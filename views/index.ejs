@@ -270,6 +270,14 @@
                     params: [],
                 })
             });
+            $('#sgs-card-panel').on('click', '.sgs-card', (e) => {
+                let pk = $(e.currentTarget).attr('pk');
+                Cmd.send({
+                    cmd: 'PLAY_CARD',
+                    params: [pk],
+                });
+            });
+
         }
 
         on() {

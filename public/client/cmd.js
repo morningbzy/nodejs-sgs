@@ -227,6 +227,11 @@ const Cmd = {
         $(rendered).appendTo('#sgs-card-panel').css('left', pos * 60);
     },
 
+    remove_card: function (params, marker) {
+        let pk = params[0]
+        $(`.sgs-card[pk=${pk}]`).remove();
+    },
+
 };
 
 
