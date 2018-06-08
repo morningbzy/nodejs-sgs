@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head lang="zh-cn">
+    <meta charset="UTF-8">
+    <title></title>
+    <link rel="stylesheet" href="static/bootstrap/css/bootstrap.css"/>
+    <link rel="stylesheet" href="static/bootstrap/css/bootstrap-grid.css"/>
+    <link rel="stylesheet" href="static/bootstrap/css/bootstrap-reboot.css"/>
+
+    <script src="static/jquery-3.3.1.js"></script>
+    <script src="static/bootstrap/js/bootstrap.js"></script>
+    <script src="static/mustache.js"></script>
+</head>
+<style>
+    body {
+        width: 720px;
+        margin: 20px auto;
+    }
+
+    #status {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin: 10px;
+        background: #999;
+    }
+
+    #status.working {
+        -webkit-animation: flash 1s infinite;
+        -webkit-animation-direction: alternate;
+    }
+
+    #msg {
+        max-height: 300px;
+        overflow: auto;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        margin: 20px 0;
+        padding: 5px 15px;
+        background: #eee;
+    }
+
+    #msg li {
+        margin: 5px 20px;
+    }
+
+    @-webkit-keyframes flash {
+        from {
+            box-shadow: 0 0 5px green;
+            background: green;
+        }
+        to {
+            box-shadow: 0 0 12px green;
+            background: green;
+        }
+    }
+
+    #game-table {
+        width: 720px;
+        height: 550px;
+    }
+
+    #game-table #sgs-table {
+        height: 100%;
+        flex: 1 0 40%;
+        position: relative;
+        display: -ms-flexbox;
+        display: flex;
+        -ms-flex-direction: column;
+        flex-direction: column;
+    }
+
+    #game-table .top,
+    #game-table .middle,
+    #game-table .bottom {
+        height: 180px;
+    }
+
+    #game-table .sgs-player {
+        width: 144px;
+    }
+
+    #game-table .sgs-player.is-you {
+        width: 134px;
+    }
+
+    .figure-candidate > .card {
+        cursor: pointer;
+    }
+
+    .figure-candidate > .card:hover {
+        box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+    }
+
+    .sgs-card {
+        width: 90px;
+        height: 120px;
+    }
+
+    #sgs-card-panel .sgs-card {
+        cursor: pointer;
+    }
+
+    #sgs-card-panel .sgs-card:hover {
+        margin-top: -20px;
+        box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+        height: 144px;
+        width: 108px;
+        z-index: 1;
+    }
+
+    .sgs-card-suit-spade {
+        color: #343a40 !important;
+    }
+
+    .sgs-card-suit-club {
+        color: #343a40 !important;
+    }
+
+    .sgs-card-suit-heart {
+        color: #dc3545 !important;
+    }
+
+    .sgs-card-suit-diamond {
+        color: #dc3545 !important;
+    }
+
+    .sgs-card-suit-spade::before {
+        content: "\2660";
+    }
+
+    .sgs-card-suit-club:before {
+        content: "\2663";
+    }
+
+    .sgs-card-suit-heart:before {
+        content: "\2665";
+    }
+
+    .sgs-card-suit-diamond:before {
+        content: "\2666";
+    }
+
+</style>
+<body>
+
+<section id="game-action">
+    <button class="btn btn-outline-primary btn-sm ready d-none">Ready</button>
+    <button class="btn btn-outline-primary btn-sm cancel-ready d-none">Cancel Ready</button>
+    <div class="btn-group">
+        <button class="btn btn-outline-primary btn-sm ok d-none">OK</button>
+        <button class="btn btn-outline-primary btn-sm cancel d-none">Cancel</button>
+    </div>
+    <button class="btn btn-outline-primary btn-sm quit">Quit</button>
+</section>
+
+<section id="game-table">
+    <div class="top sgs-cl-children card-group">
+    </div>
+    <div class="middle card-group">
+        <div id="sgs-table">
+            <div id="feature-candidate-panel"
+                 class="sgs-cl-children w-100 h-100 d-inline-flex justify-content-around align-items-center"></div>
+        </div>
+    </div>
+    <div id="player-panel" class="bottom card mt-2">
+        <div class="card-body p-1 d-flex">
+            <div id="sgs-player-panel" class="sgs-cl-children d-flex mr-1"></div>
+            <div id="sgs-card-panel" class="sgs-cl-children d-flex position-relative"></div>
+        </div>
+    </div>
+</section>
+
+<div class="">
+    <div class="form-row align-items-center">
+        <div class="col-sm-10 my-1">
+            <input type="text" id="message-input" class="form-control form-control-sm"/>
+        </div>
+        <div class="col-sm-2 my-1">
+            <button class="btn btn-sm btn-primary" id="message-send">Send</button>
+        </div>
+    </div>
+</div>
+
+<div id="status"></div>
+<button id="switch">开启</button>
+<button id="clean">清空</button>
+<ol id="msg"></ol>
+
+
+<script src="client/templates.js"></script>
+<script src="client/cmd.js"></script>
+<script>
+    let dbg;
+
+    class Debug {
+        constructor() {
+            this._switch = document.querySelector('#switch');
+            this._clean = document.querySelector('#clean');
+            this._msg = document.querySelector('#msg');
+            this._status = document.querySelector('#status');
+            this._send = document.querySelector('#message-send');
+            this._input = document.querySelector('#message-input');
+            this.game = null;
+        }
+
+        init(game) {
+            this.game = game;
+            this._clean.addEventListener('click', () => {
+                this._msg.innerHTML = '';
+            });
+            this._switch.addEventListener('click', (e) => {
+                if (e.target.innerText === '开启') {
+                    this.on();
+                } else {
+                    this.off();
+                }
+            });
+            this._send.addEventListener('click', () => {
+                $.post('/g/cmd',
+                    {data: this._input.value},
+                    (resp) => {
+                        console.log(resp);
+                    }
+                );
+            });
+        };
+
+        on() {
+            this.game.on();
+            this._switch.innerText = '关掉';
+            this._status.classList.add('working');
+        }
+
+        off() {
+            this.game.off();
+            this._switch.innerText = '开启';
+            this._status.classList.remove('working');
+        }
+
+        log(log) {
+            this._msg.innerHTML = '<li>' + log + '</li>' + this._msg.innerHTML;
+        }
+    }
+
+    class Game {
+        constructor() {
+            this._ready = $('#game-action .ready');
+            this._cancelReady = $('#game-action .cancel-ready');
+            this._ok = $('#game-action .ready');
+            this._cancel = $('#game-action .cancel');
+            this._quit = $('#game-action .quit');
+            this.es = null;
+
+            this.init();
+
+            this.cmdQueue = new CommandQueue();
+        }
+
+        init() {
+            this._ready.on('click', (e) => {
+                Cmd.send({
+                    cmd: 'READY',
+                    params: [],
+                })
+            });
+            this._cancelReady.on('click', (e) => {
+                Cmd.send({
+                    cmd: 'UNREADY',
+                    params: [],
+                })
+            });
+        }
+
+        on() {
+            const cmdQueue = this.cmdQueue;
+
+            $.get('/g', (resp) => {
+                dbg.log(resp);
+                // 1. 声明EventSource
+                this.es = new EventSource('/g/msg');
+                // 2. 监听数据
+                this.es.onmessage = function (e) {
+                    let items = e.data.split(' ');
+                    let marker = items[0].substr(0, 1);
+                    let cmd = items[0].substr(1);
+                    let params = items.slice(1);
+
+                    // dbg.log(`CMD: ${cmd} Params: ${params}`);
+                    if(cmd !== 'HB') {
+                        dbg.log(e.data);
+                        cmdQueue.publish(cmd.toLowerCase(), params, marker);
+                    }
+                    // let method = Cmd[cmd.toLowerCase()];
+                    // if (method) {
+                    //     method(params, marker);
+                    // }
+                };
+                this.es.onerror = function (e) {
+                    $.get('/g');
+                }
+            });
+        }
+
+        off() {
+            this.es.close();
+        }
+    }
+
+    $(document).ready(() => {
+        dbg = new Debug();
+        const game = new Game();
+        dbg.init(game);
+        dbg.on();
+    });
+
+</script>
+
+</body>
+</html>
