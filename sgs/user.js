@@ -16,13 +16,18 @@ module.exports = class {
         this.faceUp = true;
 
         this.showFigure = false;
-        this.cards = [];
+        this.cards = new Set();  // [];
         this.restoreCmds = [];
 
         this.setResp(messageResp);
     }
 
     toJson(u) {
+        let cards = [];
+        (u.id === this.id) && this.cards.forEach((c) => {
+            cards.push(c.toJsonString());
+        });
+
         return {
             id: this.id,
             name: this.name,
@@ -36,8 +41,8 @@ module.exports = class {
             hp: this.showFigure ? this.hp : 0,
             faceUp: this.faceUp,
 
-            cardCount: this.cards.length,
-            cards: (u.id === this.id) ? this.cards.map((c) => c.toJsonString()) : [],
+            cardCount: this.cards.size,
+            cards,
         };
     }
 
@@ -84,9 +89,14 @@ module.exports = class {
     }
 
     addCards(cards) {
-        this.cards.push(...cards);
         for (let card of cards) {
-            this.reply(`CARD ${card.toJsonString()}`);
+            this.cards.add(card);
+        }
+    }
+
+    removeCards(cards) {
+        for (let card of cards) {
+            this.cards.delete(card);
         }
     }
 };

@@ -2,7 +2,7 @@ function getSeat(seatNum) {
     return $(`#game-table .sgs-player[seat-num=${seatNum}]`);
 }
 
-const waitingClass = ' bg-warning';
+const waitingClass = 'waiting bg-warning';
 const readyClass = ' bg-success';
 
 function sleep(ms) {
@@ -14,19 +14,11 @@ function sleep(ms) {
 
 
 function changeSeatStateClass(seatNum, marker, stateClass, remove = false) {
-    if (marker === '*') {
-        if (remove) {
-            $('#player-panel').removeClass(stateClass);
-        } else {
-            $('#player-panel').addClass(stateClass);
-        }
+    let el = marker === '*' ? $('#player-panel') : getSeat(seatNum);
+    if (remove) {
+        el.removeClass(stateClass);
     } else {
-        let el = getSeat(seatNum);
-        if (remove) {
-            el.removeClass(stateClass);
-        } else {
-            el.addClass(stateClass);
-        }
+        el.addClass(stateClass);
     }
 }
 
@@ -34,7 +26,6 @@ const Cmd = {
     send: function (cmd) {
         const params = (cmd.params || []).join(' ');
         $.post('/g/cmd', {data: `${cmd.cmd} ${params}`}, (resp) => {
-            console.log(resp);
         });
     },
 
@@ -223,12 +214,13 @@ const Cmd = {
     card: function (params, marker) {
         let cards = [JSON.parse(params.join(' '))];
         let rendered = Mustache.render(cardTpl, {cards});
-        let pos = $('#sgs-card-panel .sgs-card').length;
-        $(rendered).appendTo('#sgs-card-panel').css('left', pos * 60);
+        let span = Math.min(60, (572 - 90) / $('#sgs-card-panel .sgs-card').length);
+        $(rendered).appendTo('#sgs-card-panel');
+        $('#sgs-card-panel .sgs-card').each((i, el) => $(el).css('left', i * span));
     },
 
     remove_card: function (params, marker) {
-        let pk = params[0]
+        let pk = params[0];
         $(`.sgs-card[pk=${pk}]`).remove();
     },
 

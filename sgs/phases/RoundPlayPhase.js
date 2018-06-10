@@ -10,16 +10,19 @@ module.exports = class extends Phase {
     static* start(game) {
         console.log('ROUND-PLAY-PHASE');
         const u = game.roundOwner;
-        yield game.wait(u, {
-            validator: (uid, cmd, params) => {
-                if (uid !== u.id || cmd !== 'PLAY_CARD') {
-                    return false;
-                }
-                return true;
-            },
-            value: (uid, cmd, params) => {
-                return params[0];  // Card.pk
-            },
-        });
+        let pass = false;
+        while(!pass) {
+            pass = yield game.wait(u, {
+                validator: (uid, cmd, params) => {
+                    if (uid !== u.id || !['PLAY_CARD', 'PASS'].includes(cmd)) {
+                        return false;
+                    }
+                    return true;
+                },
+                value: (uid, cmd, params) => {
+                    return cmd === 'PASS';  // params[0];  // Card.pk
+                },
+            });
+        }
     }
 };

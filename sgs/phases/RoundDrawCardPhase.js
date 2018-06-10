@@ -10,5 +10,6 @@ module.exports = class extends Phase {
     static* start(game) {
         console.log('ROUND-DRAW-CARD-PHASE');
         const u = game.roundOwner;
+        game.dispatchCards(u, 2);
     }
 };

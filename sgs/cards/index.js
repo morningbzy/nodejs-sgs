@@ -29,6 +29,14 @@ class CardManager {
     unshiftCards(cards) {
         this.unused.unshift(...(Array.isArray(cards) ? cards : [cards]));
     }
+
+    getCards(pks) {
+        return pks.map((pk) => cards.cardSet[pk]);
+    }
+
+    useCards(pks){
+        this.used.push(...pks.map((pk) => cards.cardSet[pk]));
+    }
 }
 
 

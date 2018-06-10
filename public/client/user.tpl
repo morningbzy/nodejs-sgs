@@ -12,8 +12,8 @@
         </div>
     </div>
     <div class="card-footer p-1">
-        <span class="hp badge{{#hp}} badge-danger{{/hp}}">HP: {{hp}}</span>
-        <span class="hp badge{{#cardCount}} badge-info{{/cardCount}}">C: {{cardCount}}</span>
+        <span class="hp badge badge-danger">HP: {{hp}}</span>
+        <span class="hp badge badge-info">C: {{cardCount}}</span>
     </div>
     {{/isYou}}
     {{^isYou}}
@@ -29,8 +29,8 @@
                 </div>
             </div>
             <div class="card-footer p-1">
-                <span class="hp badge{{#hp}} badge-danger{{/hp}}">HP: {{hp}}</span>
-                <span class="hp badge{{#cardCount}} badge-info{{/cardCount}}">C: {{cardCount}}</span>
+                <span class="hp badge badge-danger">HP: {{hp}}</span>
+                <span class="hp badge badge-info">C: {{cardCount}}</span>
             </div>
         </div>
     </div>

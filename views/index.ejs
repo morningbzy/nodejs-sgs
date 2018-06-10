@@ -83,7 +83,10 @@
     #game-table .sgs-player.is-you {
         width: 134px;
     }
-
+    .figure-candidate {
+        height: 160px;
+        width: 120px;
+    }
     .figure-candidate > .card {
         cursor: pointer;
     }
@@ -107,6 +110,16 @@
         height: 144px;
         width: 108px;
         z-index: 1;
+    }
+
+    #sgs-action-panel {
+        right: 5px;
+        bottom: 5px;
+        display: none;
+    }
+
+    .waiting #sgs-action-panel {
+        display: block;
     }
 
     .sgs-card-suit-spade {
@@ -145,13 +158,13 @@
 <body>
 
 <section id="game-action">
-    <button class="btn btn-outline-primary btn-sm ready d-none">Ready</button>
-    <button class="btn btn-outline-primary btn-sm cancel-ready d-none">Cancel Ready</button>
+    <button class="ready btn btn-outline-primary btn-sm d-none">Ready</button>
+    <button class="cancel-ready btn btn-outline-primary btn-sm d-none">Cancel Ready</button>
     <div class="btn-group">
-        <button class="btn btn-outline-primary btn-sm ok d-none">OK</button>
-        <button class="btn btn-outline-primary btn-sm cancel d-none">Cancel</button>
+        <button class="ok btn btn-outline-primary btn-sm d-none">OK</button>
+        <button class="cancel btn btn-outline-primary btn-sm d-none">Cancel</button>
     </div>
-    <button class="btn btn-outline-primary btn-sm quit">Quit</button>
+    <button class="quit btn btn-outline-primary btn-sm">Quit</button>
 </section>
 
 <section id="game-table">
@@ -167,6 +180,11 @@
         <div class="card-body p-1 d-flex">
             <div id="sgs-player-panel" class="sgs-cl-children d-flex mr-1"></div>
             <div id="sgs-card-panel" class="sgs-cl-children d-flex position-relative"></div>
+            <div id="sgs-action-panel" class="position-absolute">
+                <button class=" sgs-action-ok btn btn-primary btn-sm">OK</button>
+                <button class=" sgs-action-cancel btn btn-primary btn-sm">Cancel</button>
+                <button class=" sgs-action-pass btn btn-primary btn-sm">Pass</button>
+            </div>
         </div>
     </div>
 </section>
@@ -277,7 +295,12 @@
                     params: [pk],
                 });
             });
-
+            $('#sgs-action-panel').on('click', '.sgs-action-pass', (e) => {
+                Cmd.send({
+                    cmd: 'PASS',
+                    params: [],
+                });
+            });
         }
 
         on() {
@@ -299,10 +322,6 @@
                         dbg.log(e.data);
                         cmdQueue.publish(cmd.toLowerCase(), params, marker);
                     }
-                    // let method = Cmd[cmd.toLowerCase()];
-                    // if (method) {
-                    //     method(params, marker);
-                    // }
                 };
                 this.es.onerror = function (e) {
                     $.get('/g');

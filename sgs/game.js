@@ -145,6 +145,16 @@ class Game {
         this.broadcastUserInfo(user);
     }
 
+    removeUserCards(user, cardPks) {
+        let cards = cardManager.getCards(cardPks);
+        user.removeCards(cards);
+        this.broadcastUserInfo(user);
+    }
+
+    discardCards(cardPks) {
+        cardManager.useCards(cardPks);
+    }
+
     // -----
 
     phases() {

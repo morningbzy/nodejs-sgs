@@ -33,7 +33,8 @@ module.exports = {
     },
 
     play_card: (game, sender, params) => {
-        game.broadcast(`REMOVE_CARD ${params[0]}`, sender)
-        // game.broadcastUserInfo(sender);
+        // TODO: validate PLAY_CARD cmd
+        game.removeUserCards(sender, params);
+        game.discardCards(params);
     },
 };

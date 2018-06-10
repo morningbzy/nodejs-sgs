@@ -1,5 +1,5 @@
 {{#figures}}
-<div class="figure-candidate" pk="{{ pk }}">
+<div class="figure-candidate card-group" pk="{{ pk }}">
     <div class="card">
         <h6 class="card-header">{{ name }}<span class="badge badge-dark float-right">{{ country }}</span></h6>
         <div class="card-body">
