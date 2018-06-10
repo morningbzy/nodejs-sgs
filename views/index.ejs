@@ -112,6 +112,10 @@
         z-index: 1;
     }
 
+    #sgs-card-panel .sgs-card.sgs-card-selected {
+        top: -50px;
+    }
+
     #sgs-action-panel {
         right: 5px;
         bottom: 5px;
@@ -289,13 +293,19 @@
                 })
             });
             $('#sgs-card-panel').on('click', '.sgs-card', (e) => {
-                let pk = $(e.currentTarget).attr('pk');
+                $(e.currentTarget).toggleClass('sgs-card-selected');
+            });
+            $('#sgs-action-panel .sgs-action-ok').on('click',  (e) => {
+
+                let pks = [];
+                $('#sgs-card-panel .sgs-card.sgs-card-selected').each((i, el) => pks.push($(el).attr('pk')));
+
                 Cmd.send({
                     cmd: 'PLAY_CARD',
-                    params: [pk],
+                    params: pks,
                 });
             });
-            $('#sgs-action-panel').on('click', '.sgs-action-pass', (e) => {
+            $('#sgs-action-panel .sgs-action-pass').on('click', (e) => {
                 Cmd.send({
                     cmd: 'PASS',
                     params: [],
