@@ -168,6 +168,12 @@ class Game {
         this.broadcastUserInfo(user);
     }
 
+    addUserCards(user, cardPks) {
+        let cards = cardManager.getCards(cardPks);
+        user.addCards(cards);
+        this.broadcastUserInfo(user);
+    }
+
     removeUserCards(user, cardPks) {
         let cards = cardManager.getCards(cardPks);
         user.removeCards(cards);

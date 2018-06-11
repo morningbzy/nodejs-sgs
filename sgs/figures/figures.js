@@ -59,8 +59,9 @@ class CaoCao extends FigureBase {
     }
 
     * s1(game, si) {
-        console.log('SKILL WEI001s01');
-        console.log(si.sourceCards.map((i) => i.name));
+        let cardPks = si.sourceCards.map((card) => card.pk);
+        game.addUserCards(si.targets[0], cardPks);
+        si.sourceCards = [];
     }
 
     * s2(game, si) {

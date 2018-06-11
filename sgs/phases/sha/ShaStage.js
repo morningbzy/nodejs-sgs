@@ -42,7 +42,6 @@ class ShaExecuteStage {
         // TODO: validate PLAY_CARD cmd
         let cardPks = si.sourceCards.map((card) => card.pk);
         game.removeUserCards(si.sourceUser, cardPks);
-        game.discardCards(cardPks);
 
         // TODO: SHAN-able?
         let shanAble = true;
@@ -56,6 +55,9 @@ class ShaExecuteStage {
                 }
             }
         }
+
+        cardPks = si.sourceCards.map((card) => card.pk);
+        game.discardCards(cardPks);
     }
 }
 
