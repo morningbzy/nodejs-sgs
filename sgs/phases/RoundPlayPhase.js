@@ -16,11 +16,9 @@ module.exports = class extends Phase {
         let pass = false;
         while (!pass) {
             let command = yield game.wait(u, {
+                validCmds: ['PLAY_CARD', 'PASS'],
                 validator: (command) => {
-                    if (command.uid !== u.id || !['PLAY_CARD', 'PASS'].includes(command.cmd)) {
-                        return false;
-                    }
-                    // User own the card
+                    // TODO user own the card
                     return true;
                 },
             });

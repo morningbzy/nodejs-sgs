@@ -17,10 +17,8 @@ module.exports = class extends Phase {
         game.broadcast('MSG Waiting for ZG...');
 
         let command = yield game.wait(zhugong, {
+            validCmds: ['FIGURE'],
             validator: (command) => {
-                if (command.uid !== zhugong.id || command.cmd !== 'FIGURE') {
-                    return false;
-                }
                 const pk = command.params[0];
                 if (figures.map((f) => f.pk).indexOf(pk) === -1) {
                     return false;
@@ -40,10 +38,8 @@ module.exports = class extends Phase {
             figures = [new (Figures.SiMaYi)(), new (Figures.GuanYu)()];
             u.reply(`FIGURE_CANDIDATE ${JSON.stringify(figures.map((f) => f.toJson()))}`, true, true);
             command = yield game.wait(u, {
+                validCmds: ['FIGURE'],
                 validator: (command) => {
-                    if (command.uid !== u.id || command.cmd !== 'FIGURE') {
-                        return false;
-                    }
                     const pk = command.params[0];
                     if (figures.map((f) => f.pk).indexOf(pk) === -1) {
                         return false;

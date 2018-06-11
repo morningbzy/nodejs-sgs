@@ -73,9 +73,15 @@ class Game {
             return {valid: true};
         }
         const waiting = this.waitingStack.pop();
-        const validator = waiting.validator;
-        if (validator === undefined || validator(command)) {
-            return {valid: true, waiting};
+        if (waiting.u.id === command.uid && waiting.validCmds.includes(command.cmd)) {
+            const validator = waiting.validator;
+            if (validator === undefined || validator(command)) {
+                return {valid: true, waiting};
+            } else {
+                console.log(`|<!> Waiting: validator failed!`);
+            }
+        } else {
+            console.log(`|<!> Waiting: [${waiting.u.seatNum}]${waiting.u.name} - ${waiting.validCmds}!`);
         }
         this.waitingStack.push(waiting);
         return {valid: false};
@@ -85,6 +91,7 @@ class Game {
         u.waiting = true;
         this.broadcast(`WAITING ${u.seatNum}`, u);
         return new Promise((res, rej) => {
+            waiting.u = u;
             waiting.resolve = res;
             waiting.reject = rej;
             this.waitingStack.push(waiting);

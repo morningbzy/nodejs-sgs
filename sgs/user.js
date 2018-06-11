@@ -137,15 +137,11 @@ module.exports = class {
         }
         if (!shan) {
             let command = yield game.wait(this, {
+                validCmds: ['CANCEL', 'PLAY_CARD'],
                 validator: (command) => {
-                    if (command.uid !== this.id || !['CANCEL', 'PLAY_CARD'].includes(command.cmd)) {
-                        return false;
-                    }
-
                     if (command.cmd === 'CANCEL') {
                         return true
                     }
-
                     let card = cardManager.getCards(command.params)[0];
                     if (card instanceof sgsCards.Shan) {
                         return true;

@@ -4,8 +4,12 @@ class ShaInitStage {
         let targetCount = 1;  // TODO: How many targets are required
 
         let command = yield game.wait(u, {
+            validCmds: ['CANCEL', 'TARGET'],
             validator: (command) => {
-                if (command.uid !== u.id || command.cmd !== 'TARGET' || command.params.length !== targetCount) {
+                if (command.cmd === 'CANCEL') {
+                    return true;
+                }
+                if (command.params.length !== targetCount) {
                     return false;
                 }
                 // TODO: validate distance & target-able
@@ -14,6 +18,9 @@ class ShaInitStage {
             },
         });
 
+        if(command.cmd === 'CANCEL') {
+            return yield Promise.resolve('cancel')
+        }
         let targetPks = command.params;
         si.source = u;
         si.targets = game.usersByPk(targetPks);
@@ -57,7 +64,10 @@ class ShaStage {
     static stages(game, u, si) {
         return function* gen() {
             for (let s of subStages) {
-                yield s.start(game, u, si);
+                let rtn = yield s.start(game, u, si);
+                if(rtn === 'cancel') {
+                    return;
+                }
             }
         };
     };
