@@ -124,6 +124,8 @@ module.exports = class {
             // TODO game.userDying();
             return yield this.on('die', game, si);
         }
+
+        yield this.figure.on('demage', game, si)
     }
 
     * die(game, si) {

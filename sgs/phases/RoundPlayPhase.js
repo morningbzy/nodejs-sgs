@@ -30,7 +30,10 @@ module.exports = class extends Phase {
                 case 'PLAY_CARD':
                     let card = cardManager.getCards(command.params)[0];
                     if (card instanceof sgsCards.Sha) {
-                        yield ShaStage.start(game, u);
+                        let stageInfo = {
+                            sourceCards: [card],
+                        };
+                        yield ShaStage.start(game, u, stageInfo);
                     }
                     break;
             }

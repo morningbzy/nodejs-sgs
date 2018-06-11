@@ -22,7 +22,7 @@ class ShaInitStage {
             return yield Promise.resolve('cancel')
         }
         let targetPks = command.params;
-        si.source = u;
+        si.sourceUser = u;
         si.targets = game.usersByPk(targetPks);
         si.damage = 1;
     }
@@ -38,6 +38,11 @@ class ShaExecuteStage {
     static* start(game, u, si) {
         console.log('SHA-EXECUTE-STAGE');
         const targets = si.targets;
+
+        // TODO: validate PLAY_CARD cmd
+        let cardPks = si.sourceCards.map((card) => card.pk);
+        game.removeUserCards(si.sourceUser, cardPks);
+        game.discardCards(cardPks);
 
         // TODO: SHAN-able?
         let shanAble = true;
@@ -66,16 +71,16 @@ class ShaStage {
             for (let s of subStages) {
                 let rtn = yield s.start(game, u, si);
                 if(rtn === 'cancel') {
+                    // 中止
                     return;
                 }
             }
         };
     };
 
-    static* start(game, u) {
+    static* start(game, u, si) {
         console.log('SHA-STAGE');
-        let stageInfo = {};
-        yield this.stages(game, u, stageInfo);
+        yield this.stages(game, u, si);
     }
 }
 

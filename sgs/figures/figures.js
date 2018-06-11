@@ -58,18 +58,24 @@ class CaoCao extends FigureBase {
         };
     }
 
-    * s1() {
-
+    * s1(game, si) {
+        console.log('SKILL WEI001s01');
+        console.log(si.sourceCards.map((i) => i.name));
     }
 
-    * s2() {
+    * s2(game, si) {
         console.log('SKILL WEI001s02');
         return false;
     }
 
-    * requireShan(si) {
+    * demage(game, si) {
+        console.log('CaoCao damege');
+        yield this.skills.WEI001s01.handler(game, si);
+    }
+
+    * requireShan(game, si) {
         console.log('CaoCao requireShan');
-        yield this.skills.WEI001s02.handler();
+        yield this.skills.WEI001s02.handler(game, si);
     }
 }
 

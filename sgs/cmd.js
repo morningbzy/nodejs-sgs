@@ -33,9 +33,6 @@ module.exports = {
     },
 
     play_card: (game, sender, params) => {
-        // TODO: validate PLAY_CARD cmd
-        game.removeUserCards(sender, params);
-        game.discardCards(params);
     },
 
     cancel: (game, sender, params) => {
