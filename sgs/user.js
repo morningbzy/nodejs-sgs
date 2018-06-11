@@ -1,4 +1,6 @@
 const C = require('./constants');
+const cardManager = require('./cards');
+const sgsCards = require('./cards/cards');
 
 
 module.exports = class {
@@ -17,6 +19,12 @@ module.exports = class {
 
         this.showFigure = false;
         this.cards = new Set();  // [];
+        this.equipments = {
+            weapon: null,
+            armor: null,
+            attackHorse: null,
+            defenseHorse: null,
+        };
         this.restoreCmds = [];
 
         this.setResp(messageResp);
@@ -98,5 +106,64 @@ module.exports = class {
         for (let card of cards) {
             this.cards.delete(card);
         }
+    }
+
+    * on(event, game, si) {
+        console.log(`ON ${event}`);
+        if (typeof(this[event]) === 'function') {
+            return yield this[event](game, si);
+        }
+    }
+
+    * damage(game, si) {
+        console.log(`OH NO ${si.damage}`);
+        this.hp -= si.damage;
+        game.broadcastUserInfo(this);
+        if (this.hp === 0) {
+            this.state = C.USER_STATE.DYING;
+            // TODO game.userDying();
+            return yield this.on('die', game, si);
+        }
+    }
+
+    * die(game, si) {
+        this.state = C.USER_STATE.DEAD;
+    }
+
+    * requireShan(game, si) {
+        let shan = yield this.figure.requireShan(game, si);
+        if (!shan && this.equipments.armor) {
+            shan = yield this.equipments.armor.requireShan(game, si);
+        }
+        if (!shan) {
+            let cmdObj = yield game.wait(this, {
+                validator: (uid, cmd, params) => {
+                    if (uid !== this.id || !['CANCEL', 'PLAY_CARD'].includes(cmd)) {
+                        return false;
+                    }
+
+                    if (cmd === 'CANCEL') {
+                        return true
+                    }
+
+                    let card = cardManager.getCards(params)[0];
+                    if (card instanceof sgsCards.Shan) {
+                        return true;
+                    }
+                    return false;
+                },
+                value: (uid, cmd, params) => {
+                    return {uid, cmd, params};
+                },
+            });
+
+            if (cmdObj.cmd === 'CANCEL') {
+                shan = false;
+            } else {
+                game.removeUserCards(this, cmdObj.params);
+                shan = true;
+            }
+        }
+        return yield Promise.resolve(shan);
     }
 };

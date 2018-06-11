@@ -1,5 +1,5 @@
 <div class="sgs-player sgs-cl-self card {{#isYou}}is-you{{/isYou}}{{^isYou}}is-other{{/isYou}}"
-     seat-num="{{ seatNum }}">
+     seat-num="{{ seatNum }}" pk={{id}}>
     {{#name}}
     {{#isYou}}
     <h6 class="card-header p-1">

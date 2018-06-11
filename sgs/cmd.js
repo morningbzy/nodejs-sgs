@@ -37,4 +37,10 @@ module.exports = {
         game.removeUserCards(sender, params);
         game.discardCards(params);
     },
+
+    cancel: (game, sender, params) => {
+    },
+
+    target: (game, sender, params) => {
+    },
 };

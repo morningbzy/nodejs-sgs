@@ -51,12 +51,18 @@ class CaoCao extends FigureBase {
         };
     }
 
-    s1() {
+    * s1() {
 
     }
 
-    s2() {
+    * s2() {
+        console.log('SKILL WEI001s02');
+        return false;
+    }
 
+    * requireShan(si) {
+        console.log('CaoCao requireShan');
+        yield this.skills.WEI001s02.handler();
     }
 }
 

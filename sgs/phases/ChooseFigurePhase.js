@@ -47,6 +47,10 @@ module.exports = class extends Phase {
                     if (uid !== u.id || cmd !== 'FIGURE') {
                         return false;
                     }
+                    const pk = params[0];
+                    if(figures.map((f) => f.pk).indexOf(pk) === -1) {
+                        return false;
+                    }
                     return true;
                 },
                 value: (uid, cmd, params) => {

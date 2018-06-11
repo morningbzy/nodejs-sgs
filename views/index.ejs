@@ -292,17 +292,25 @@
                     params: [],
                 })
             });
+            $('#game-table').on('click', '.sgs-player.is-other .card, .sgs-player.is-you', (e) => {
+                $(e.currentTarget).toggleClass('sgs-player-selected border-success');
+            });
             $('#sgs-card-panel').on('click', '.sgs-card', (e) => {
-                $(e.currentTarget).toggleClass('sgs-card-selected');
+                $(e.currentTarget).toggleClass('sgs-card-selected border-success');
             });
             $('#sgs-action-panel .sgs-action-ok').on('click',  (e) => {
-
                 let pks = [];
                 $('#sgs-card-panel .sgs-card.sgs-card-selected').each((i, el) => pks.push($(el).attr('pk')));
 
                 Cmd.send({
                     cmd: 'PLAY_CARD',
                     params: pks,
+                });
+            });
+            $('#sgs-action-panel .sgs-action-cancel').on('click', (e) => {
+                Cmd.send({
+                    cmd: 'CANCEL',
+                    params: [],
                 });
             });
             $('#sgs-action-panel .sgs-action-pass').on('click', (e) => {

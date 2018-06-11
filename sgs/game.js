@@ -118,6 +118,10 @@ class Game {
         }
     }
 
+    usersByPk(pks) {
+        return Array.from(pks, (pk) => this.users[pk]);
+    }
+
     usersNotInState(states) {
         return Object.keys(this.users).filter(
             (k) => !states.includes(this.users[k].state)
