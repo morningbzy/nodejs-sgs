@@ -3,20 +3,18 @@ class ShaInitStage {
         console.log('SHA-INIT-STAGE');
         let targetCount = 1;  // TODO: How many targets are required
 
-        let targetPks = yield game.wait(u, {
-            validator: (uid, cmd, params) => {
-                if (uid !== u.id || cmd !== 'TARGET' || params.length !== targetCount) {
+        let command = yield game.wait(u, {
+            validator: (command) => {
+                if (command.uid !== u.id || command.cmd !== 'TARGET' || command.params.length !== targetCount) {
                     return false;
                 }
-                const pks = params;
                 // TODO: validate distance & target-able
+                // const pks = command.params;
                 return true;
-            },
-            value: (uid, cmd, params) => {
-                return params;
             },
         });
 
+        let targetPks = command.params;
         si.source = u;
         si.targets = game.usersByPk(targetPks);
         si.damage = 1;

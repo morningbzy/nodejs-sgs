@@ -131,36 +131,33 @@ module.exports = class {
     }
 
     * requireShan(game, si) {
-        let shan = yield this.figure.requireShan(game, si);
+        let shan = yield this.figure.on('requireShan', game, si);
         if (!shan && this.equipments.armor) {
-            shan = yield this.equipments.armor.requireShan(game, si);
+            shan = yield this.equipments.armor.on('requireShan', game, si);
         }
         if (!shan) {
-            let cmdObj = yield game.wait(this, {
-                validator: (uid, cmd, params) => {
-                    if (uid !== this.id || !['CANCEL', 'PLAY_CARD'].includes(cmd)) {
+            let command = yield game.wait(this, {
+                validator: (command) => {
+                    if (command.uid !== this.id || !['CANCEL', 'PLAY_CARD'].includes(command.cmd)) {
                         return false;
                     }
 
-                    if (cmd === 'CANCEL') {
+                    if (command.cmd === 'CANCEL') {
                         return true
                     }
 
-                    let card = cardManager.getCards(params)[0];
+                    let card = cardManager.getCards(command.params)[0];
                     if (card instanceof sgsCards.Shan) {
                         return true;
                     }
                     return false;
                 },
-                value: (uid, cmd, params) => {
-                    return {uid, cmd, params};
-                },
             });
 
-            if (cmdObj.cmd === 'CANCEL') {
+            if (command.cmd === 'CANCEL') {
                 shan = false;
             } else {
-                game.removeUserCards(this, cmdObj.params);
+                game.removeUserCards(this, command.params);
                 shan = true;
             }
         }

@@ -5,6 +5,16 @@ const User = require('./user');
 const cmdHandler = require('./cmd');
 const cardManager = require('./cards');
 
+
+class Command {
+    constructor(uid, cmd, params) {
+        this.uid = uid;
+        this.cmd = cmd;
+        this.params = params;
+    }
+}
+
+
 class Game {
     constructor() {
         this.state = C.GAME_STATE.PREPARING;
@@ -27,7 +37,7 @@ class Game {
         } else {
             this.users[uid] = new User(uid, res);
         }
-        console.log(`+----- ------ -----`);
+        console.log(`+------------------`);
     }
 
     executeCmd(uid, cmd, ...params) {
@@ -36,7 +46,8 @@ class Game {
         console.log(`| CMD: ${cmd}`);
         console.log(`| Params: ${params}`);
 
-        const result = this.validateCmd(uid, cmd, params);
+        let command = new Command(uid, cmd, params);
+        const result = this.validateCmd(command);
 
         if (!result.valid) {
             u.reply(`MSG Invalid CMD`, true);
@@ -52,17 +63,18 @@ class Game {
             console.log(`|<!> No command handler is found!`);
         }
 
+        console.log(`+ - - - - - - - - - -`);
+        this.unwait(u, result.waiting, command);
         console.log(`+--------------------`);
-        this.unwait(u, result.waiting, uid, cmd, params);
     }
 
-    validateCmd(uid, cmd, params) {
-        if (this.waitingStack.length <= 0 || cmd === 'JOIN') {
+    validateCmd(command) {
+        if (this.waitingStack.length <= 0 || command.cmd === 'JOIN') {
             return {valid: true};
         }
         const waiting = this.waitingStack.pop();
         const validator = waiting.validator;
-        if (validator === undefined || validator(uid, cmd, params)) {
+        if (validator === undefined || validator(command)) {
             return {valid: true, waiting};
         }
         this.waitingStack.push(waiting);
@@ -79,12 +91,12 @@ class Game {
         });
     }
 
-    unwait(u, waiting, uid, cmd, params) {
+    unwait(u, waiting, command) {
         if (waiting && typeof(waiting.resolve) === 'function') {
             if (typeof(waiting.value) === 'function') {
-                waiting.resolve(waiting.value(uid, cmd, params));
+                waiting.resolve(waiting.value(command));
             }
-            waiting.resolve();
+            waiting.resolve(command);
         }
         if (u && waiting) {
             this.broadcast(`UNWAITING ${u.seatNum}`, u);

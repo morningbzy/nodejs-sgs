@@ -15,24 +15,22 @@ module.exports = class extends Phase {
         const u = game.roundOwner;
         let pass = false;
         while (!pass) {
-            let cmdObj = yield game.wait(u, {
-                validator: (uid, cmd, params) => {
-                    if (uid !== u.id || !['PLAY_CARD', '', 'PASS'].includes(cmd)) {
+            let command = yield game.wait(u, {
+                validator: (command) => {
+                    if (command.uid !== u.id || !['PLAY_CARD', 'PASS'].includes(command.cmd)) {
                         return false;
                     }
+                    // User own the card
                     return true;
-                },
-                value: (uid, cmd, params) => {
-                    return {uid, cmd, params};
                 },
             });
 
-            switch (cmdObj.cmd) {
+            switch (command.cmd) {
                 case 'PASS':
                     pass = true;
                     continue;
                 case 'PLAY_CARD':
-                    let card = cardManager.getCards(cmdObj.params)[0];
+                    let card = cardManager.getCards(command.params)[0];
                     if (card instanceof sgsCards.Sha) {
                         yield ShaStage.start(game, u);
                     }

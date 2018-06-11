@@ -83,10 +83,12 @@
     #game-table .sgs-player.is-you {
         width: 134px;
     }
+
     .figure-candidate {
         height: 160px;
         width: 120px;
     }
+
     .figure-candidate > .card {
         cursor: pointer;
     }
@@ -298,14 +300,25 @@
             $('#sgs-card-panel').on('click', '.sgs-card', (e) => {
                 $(e.currentTarget).toggleClass('sgs-card-selected border-success');
             });
-            $('#sgs-action-panel .sgs-action-ok').on('click',  (e) => {
+            $('#sgs-action-panel .sgs-action-ok').on('click', (e) => {
                 let pks = [];
                 $('#sgs-card-panel .sgs-card.sgs-card-selected').each((i, el) => pks.push($(el).attr('pk')));
-
-                Cmd.send({
-                    cmd: 'PLAY_CARD',
-                    params: pks,
-                });
+                if (pks.length > 0) {
+                    Cmd.send({
+                        cmd: 'PLAY_CARD',
+                        params: pks,
+                    });
+                } else {
+                    $('#game-table .sgs-player-selected').each((i, el) =>
+                        pks.push(
+                            $(el).is('[pk]') ? $(el).attr('pk') : $(el).parents('[pk]').attr('pk')
+                        )
+                    );
+                    Cmd.send({
+                        cmd: 'TARGET',
+                        params: pks,
+                    });
+                }
             });
             $('#sgs-action-panel .sgs-action-cancel').on('click', (e) => {
                 Cmd.send({
@@ -336,7 +349,7 @@
                     let params = items.slice(1);
 
                     // dbg.log(`CMD: ${cmd} Params: ${params}`);
-                    if(cmd !== 'HB') {
+                    if (cmd !== 'HB') {
                         dbg.log(e.data);
                         cmdQueue.publish(cmd.toLowerCase(), params, marker);
                     }

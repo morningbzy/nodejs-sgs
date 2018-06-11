@@ -17,6 +17,13 @@ class FigureBase {
     toJsonString() {
         return JSON.stringify(this.toJson());
     }
+
+    * on(event, game, si) {
+        console.log(`ON ${event}`);
+        if (typeof(this[event]) === 'function') {
+            return yield this[event](game, si);
+        }
+    }
 }
 
 
