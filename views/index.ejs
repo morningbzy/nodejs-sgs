@@ -85,7 +85,12 @@
     }
 
     #game-table .sgs-player .sgs-player-card {
+        cursor: pointer;
         width: 134px;
+    }
+
+    #game-table .sgs-player .sgs-player-card:hover {
+        box-shadow: 0 .5rem 1rem rgba(0, 0, 0, 0.15);
     }
 
     .figure-candidate {
@@ -212,7 +217,7 @@
 <button id="clean">清空</button>
 <ol id="msg"></ol>
 
-
+<script src="client/constants.js"></script>
 <script src="client/templates.js"></script>
 <script src="client/cmd.js"></script>
 <script>
@@ -272,9 +277,6 @@
         constructor() {
             this._ready = $('#game-action .ready');
             this._cancelReady = $('#game-action .cancel-ready');
-            this._ok = $('#game-action .ready');
-            this._cancel = $('#game-action .cancel');
-            this._quit = $('#game-action .quit');
             this.es = null;
 
             this.init();
@@ -296,38 +298,46 @@
                 });
             });
             $('#sgs-player-panel').on('click', '#sgs-card-panel .sgs-card', (e) => {
-                if (Cmd.waitingTag === 2) {
-                    $(e.currentTarget).toggleClass('sgs-card-selected border-success');
+                if (Cmd.waitingTag === WAITING_FOR.CARD) {
+                    $(e.currentTarget).toggleClass(selectedCardClass);
                 }
             });
             $('#game-table').on('click', '.sgs-player .sgs-player-card', (e) => {
-                if (Cmd.waitingTag === 3) {
-                    $(e.currentTarget).toggleClass('sgs-player-selected border-success');
+                if (Cmd.waitingTag === WAITING_FOR.TARGET) {
+                    $(e.currentTarget).toggleClass(selectedPlayerClass);
                 }
             });
-            $('#sgs-player-panel').on('click', '#sgs-action-panel .sgs-action-ok', (e) => {
+            $('#sgs-player-panel').on('click', '.sgs-action-ok', (e) => {
                 let pks = [];
-                if (Cmd.waitingTag === 2) {
-                    $('#sgs-card-panel .sgs-card.sgs-card-selected').each((i, el) => pks.push($(el).attr('pk')));
+                if (Cmd.waitingTag === WAITING_FOR.CARD) {
+                    $('#sgs-card-panel .sgs-card.sgs-card-selected').each(
+                        (i, el) => {
+                            pks.push($(el).attr('pk'));
+                            $(el).removeClass(selectedCardClass);
+                        }
+                    );
                     Cmd.send({
                         cmd: 'CARD',
                         params: pks,
                     });
-                } else if (Cmd.waitingTag === 3) {
-                    $('#game-table .sgs-player-selected').each((i, el) => pks.push($(el).is('[pk]') ? $(el).attr('pk') : $(el).parents('[pk]').attr('pk')));
+                } else if (Cmd.waitingTag === WAITING_FOR.TARGET) {
+                    $('#game-table .sgs-player-selected').each((i, el) => {
+                        pks.push($(el).parents('[pk]').attr('pk'));
+                        $(el).removeClass(selectedPlayerClass);
+                    });
                     Cmd.send({
                         cmd: 'TARGET',
                         params: pks,
                     });
                 }
             });
-            $('#sgs-player-panel').on('click', '#sgs-action-panel .sgs-action-cancel', (e) => {
+            $('#sgs-player-panel').on('click', '.sgs-action-cancel', (e) => {
                 Cmd.send({
                     cmd: 'CANCEL',
                     params: [],
                 });
             });
-            $('#sgs-player-panel').on('click', '#sgs-action-panel .sgs-action-pass', (e) => {
+            $('#sgs-player-panel').on('click', '.sgs-action-pass', (e) => {
                 Cmd.send({
                     cmd: 'PASS',
                     params: [],

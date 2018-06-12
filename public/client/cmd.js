@@ -2,19 +2,6 @@ function getSeat(seatNum) {
     return $(`#game-table .sgs-player[seat-num=${seatNum}]`);
 }
 
-const waitingClass = 'waiting bg-warning';
-const readyClass = ' bg-success';
-const selectedCardClass = 'sgs-card-selected border-success';
-const selectedPlayerClass = 'sgs-player-selected border-success';
-const lockedCardClass = 'sgs-card-locked border-danger';
-
-function sleep(ms) {
-    return new Promise((res, rej) => {
-        setTimeout(res, ms);
-    });
-    // for (let t = Date.now(); Date.now() - t <= ms;) ;
-}
-
 
 function changeSeatStateClass(seatNum, marker, stateClass, remove = false) {
     let el = getSeat(seatNum);
