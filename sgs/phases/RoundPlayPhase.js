@@ -16,7 +16,7 @@ module.exports = class extends Phase {
         let pass = false;
         while (!pass) {
             let command = yield game.wait(u, {
-                validCmds: ['PLAY_CARD', 'PASS'],
+                validCmds: ['CARD', 'PASS'],
                 validator: (command) => {
                     // TODO user own the card
                     return true;
@@ -27,7 +27,7 @@ module.exports = class extends Phase {
                 case 'PASS':
                     pass = true;
                     continue;
-                case 'PLAY_CARD':
+                case 'CARD':
                     let card = cardManager.getCards(command.params)[0];
                     if (card instanceof sgsCards.Sha) {
                         let stageInfo = {

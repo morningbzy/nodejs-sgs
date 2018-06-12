@@ -23,6 +23,8 @@ function changeSeatStateClass(seatNum, marker, stateClass, remove = false) {
 }
 
 const Cmd = {
+    waitingTag: null,  // 0:SOMETHING, 1:CARD, 2:TARGET, null:NOT_WAITING
+
     send: function (cmd) {
         const params = (cmd.params || []).join(' ');
         $.post('/g/cmd', {data: `${cmd.cmd} ${params}`}, (resp) => {
@@ -136,8 +138,8 @@ const Cmd = {
         } else if (userInfo.state > 1) {
             Cmd.start();
         }
-        if (userInfo.waiting) {
-            Cmd.waiting([seatNum], marker);
+        if (userInfo.waiting !== 0) {
+            Cmd.waiting([seatNum, userInfo.waiting], marker);
         }
         if (userInfo.role !== null) {
             Cmd.role([seatNum, userInfo.role], marker);
@@ -196,11 +198,13 @@ const Cmd = {
 
     waiting: function (params, marker) {
         let seatNum = params[0];
+        Cmd.waitingTag = parseInt(params[1]);
         changeSeatStateClass(seatNum, marker, waitingClass);
     },
 
     unwaiting: function (params, marker) {
         let seatNum = params[0];
+        Cmd.waitingTag = 0;
         changeSeatStateClass(seatNum, marker, waitingClass, true);
     },
 

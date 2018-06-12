@@ -15,7 +15,7 @@ module.exports = class extends Phase {
         let discardCount = Math.max(u.cards.size - u.hp, 0);
         while(discardCount > 0) {
             let command = yield game.wait(u, {
-                validCmds: ['PLAY_CARD', 'CANCEL'],
+                validCmds: ['CARD', 'CANCEL'],
                 validator: (command) => {
                     if(command.cmd === 'CANCEL') {
                         return true;

@@ -16,6 +16,12 @@ Constants = {
         DYING: 4,
         DEAD: 5,
     },
+    WAITING_FOR: {
+        NOTHING: 0,
+        SOMETHING: 1,
+        CARD: 2,
+        TARGET: 3,
+    },
     ROLE: {
         ZHUGONG: 0,
         ZHONGCHEN: 1,

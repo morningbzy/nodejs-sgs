@@ -32,7 +32,7 @@ module.exports = {
         // game.broadcast(`FIGURE ${sender.seatNum} ${params[0]}`, sender);
     },
 
-    play_card: (game, sender, params) => {
+    card: (game, sender, params) => {
     },
 
     cancel: (game, sender, params) => {

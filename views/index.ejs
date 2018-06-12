@@ -294,26 +294,26 @@
                     params: [],
                 })
             });
-            $('#game-table').on('click', '.sgs-player.is-other .card, .sgs-player.is-you', (e) => {
-                $(e.currentTarget).toggleClass('sgs-player-selected border-success');
-            });
             $('#sgs-card-panel').on('click', '.sgs-card', (e) => {
-                $(e.currentTarget).toggleClass('sgs-card-selected border-success');
+                if (Cmd.waitingTag === 2) {
+                    $(e.currentTarget).toggleClass('sgs-card-selected border-success');
+                }
+            });
+            $('#game-table').on('click', '.sgs-player.is-other .card, .sgs-player.is-you', (e) => {
+                if (Cmd.waitingTag === 3) {
+                    $(e.currentTarget).toggleClass('sgs-player-selected border-success');
+                }
             });
             $('#sgs-action-panel .sgs-action-ok').on('click', (e) => {
                 let pks = [];
-                $('#sgs-card-panel .sgs-card.sgs-card-selected').each((i, el) => pks.push($(el).attr('pk')));
-                if (pks.length > 0) {
+                if (Cmd.waitingTag === 2) {
+                    $('#sgs-card-panel .sgs-card.sgs-card-selected').each((i, el) => pks.push($(el).attr('pk')));
                     Cmd.send({
-                        cmd: 'PLAY_CARD',
+                        cmd: 'CARD',
                         params: pks,
                     });
-                } else {
-                    $('#game-table .sgs-player-selected').each((i, el) =>
-                        pks.push(
-                            $(el).is('[pk]') ? $(el).attr('pk') : $(el).parents('[pk]').attr('pk')
-                        )
-                    );
+                } else if (Cmd.waitingTag === 3) {
+                    $('#game-table .sgs-player-selected').each((i, el) => pks.push($(el).is('[pk]') ? $(el).attr('pk') : $(el).parents('[pk]').attr('pk')));
                     Cmd.send({
                         cmd: 'TARGET',
                         params: pks,

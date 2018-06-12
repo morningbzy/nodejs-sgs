@@ -88,8 +88,15 @@ class Game {
     }
 
     wait(u, waiting) {
-        u.waiting = true;
-        this.broadcast(`WAITING ${u.seatNum}`, u);
+        let waitingTag = C.WAITING_FOR.SOMETHING;
+        for (let k of Object.keys(C.WAITING_FOR)) {
+            if (waiting.validCmds.includes(k)) {
+                waitingTag = C.WAITING_FOR[k];
+                break;
+            }
+        }
+        u.waiting = waitingTag;
+        this.broadcast(`WAITING ${u.seatNum} ${waitingTag}`, u);
         return new Promise((res, rej) => {
             waiting.u = u;
             waiting.resolve = res;
@@ -107,7 +114,7 @@ class Game {
         }
         if (u && waiting) {
             this.broadcast(`UNWAITING ${u.seatNum}`, u);
-            u.waiting = false;
+            u.waiting = C.WAITING_FOR.NOTHING;
         }
     }
 

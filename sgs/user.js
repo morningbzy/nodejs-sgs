@@ -14,7 +14,7 @@ module.exports = class {
         this.role = null;
         this.figure = null;
         this.hp = 0;
-        this.waiting = false;
+        this.waiting = C.WAITING_FOR.NOTHING;
         this.faceUp = true;
 
         this.showFigure = false;
@@ -139,7 +139,7 @@ module.exports = class {
         }
         if (!shan) {
             let command = yield game.wait(this, {
-                validCmds: ['CANCEL', 'PLAY_CARD'],
+                validCmds: ['CANCEL', 'CARD'],
                 validator: (command) => {
                     if (command.cmd === 'CANCEL') {
                         return true
