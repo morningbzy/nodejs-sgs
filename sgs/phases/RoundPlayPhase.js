@@ -20,6 +20,9 @@ module.exports = class extends Phase {
                 validator: (command) => {
                     switch (command.cmd) {
                         case 'CARD':
+                            if (command.params.length !== 1) {
+                                return false;
+                            }
                             for (let cardPk of command.params) {
                                 if (!u.hasCardPk(cardPk)) {
                                     return false;
@@ -45,7 +48,7 @@ module.exports = class extends Phase {
                             sourceCards: [card],
                         };
                         result = yield ShaStage.start(game, u, stageInfo);
-                        if(result === 'cancel') {
+                        if (result === 'cancel') {
                             game.unlockUserCards(u, [card]);
                         }
                     }

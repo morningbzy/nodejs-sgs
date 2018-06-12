@@ -18,8 +18,8 @@ class ShaInitStage {
             },
         });
 
-        if(command.cmd === 'CANCEL') {
-            return yield Promise.resolve('cancel')
+        if (command.cmd === 'CANCEL') {
+            return yield Promise.resolve('cancel');
         }
         let targetPks = command.params;
         si.sourceUser = u;
@@ -31,6 +31,12 @@ class ShaInitStage {
 class ShaValidateStage {
     static* start(game, u, si) {
         console.log('SHA-VALIDATE-STAGE');
+        let shaAble = true;
+        if (shaAble) {
+            game.removeUserCards(si.sourceUser, si.sourceCards);
+        } else {
+            return yield Promise.resolve('cancel');
+        }
     }
 }
 
@@ -51,8 +57,6 @@ class ShaExecuteStage {
                 }
             }
         }
-
-        game.removeUserCards(si.sourceUser, si.sourceCards);
         game.discardCards(si.sourceCards);
     }
 }
@@ -69,7 +73,7 @@ class ShaStage {
             let result;
             for (let s of subStages) {
                 result = yield s.start(game, u, si);
-                if(result === 'cancel') {
+                if (result === 'cancel') {
                     // 中止
                     break;
                 }

@@ -81,6 +81,10 @@
     }
 
     #game-table .sgs-player.is-you {
+        width: 100%;
+    }
+
+    #game-table .sgs-player .sgs-player-card {
         width: 134px;
     }
 
@@ -183,16 +187,7 @@
                  class="sgs-cl-children w-100 h-100 d-inline-flex justify-content-around align-items-center"></div>
         </div>
     </div>
-    <div id="player-panel" class="bottom card mt-2">
-        <div class="card-body p-1 d-flex">
-            <div id="sgs-player-panel" class="sgs-cl-children d-flex mr-1"></div>
-            <div id="sgs-card-panel" class="sgs-cl-children d-flex position-relative"></div>
-            <div id="sgs-action-panel" class="position-absolute">
-                <button class=" sgs-action-ok btn btn-primary btn-sm">OK</button>
-                <button class=" sgs-action-cancel btn btn-primary btn-sm">Cancel</button>
-                <button class=" sgs-action-pass btn btn-primary btn-sm">Pass</button>
-            </div>
-        </div>
+    <div id="sgs-player-panel" class="bottom mt-2 d-flex flex-row align-items-stretch position-relative">
     </div>
 </section>
 
@@ -287,25 +282,25 @@
                 Cmd.send({
                     cmd: 'READY',
                     params: [],
-                })
+                });
             });
             this._cancelReady.on('click', (e) => {
                 Cmd.send({
                     cmd: 'UNREADY',
                     params: [],
-                })
+                });
             });
-            $('#sgs-card-panel').on('click', '.sgs-card', (e) => {
+            $('#sgs-player-panel').on('click', '#sgs-card-panel .sgs-card', (e) => {
                 if (Cmd.waitingTag === 2) {
                     $(e.currentTarget).toggleClass('sgs-card-selected border-success');
                 }
             });
-            $('#game-table').on('click', '.sgs-player.is-other .card, .sgs-player.is-you', (e) => {
+            $('#game-table').on('click', '.sgs-player .sgs-player-card', (e) => {
                 if (Cmd.waitingTag === 3) {
                     $(e.currentTarget).toggleClass('sgs-player-selected border-success');
                 }
             });
-            $('#sgs-action-panel .sgs-action-ok').on('click', (e) => {
+            $('#sgs-player-panel').on('click', '#sgs-action-panel .sgs-action-ok', (e) => {
                 let pks = [];
                 if (Cmd.waitingTag === 2) {
                     $('#sgs-card-panel .sgs-card.sgs-card-selected').each((i, el) => pks.push($(el).attr('pk')));
@@ -321,13 +316,13 @@
                     });
                 }
             });
-            $('#sgs-action-panel .sgs-action-cancel').on('click', (e) => {
+            $('#sgs-player-panel').on('click', '#sgs-action-panel .sgs-action-cancel', (e) => {
                 Cmd.send({
                     cmd: 'CANCEL',
                     params: [],
                 });
             });
-            $('#sgs-action-panel .sgs-action-pass').on('click', (e) => {
+            $('#sgs-player-panel').on('click', '#sgs-action-panel .sgs-action-pass', (e) => {
                 Cmd.send({
                     cmd: 'PASS',
                     params: [],
@@ -357,7 +352,7 @@
                 };
                 this.es.onerror = function (e) {
                     $.get('/g');
-                }
+                };
             });
         }
 

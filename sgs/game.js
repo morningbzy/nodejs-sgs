@@ -10,7 +10,7 @@ class Command {
     constructor(uid, cmd, params) {
         this.uid = uid;
         this.cmd = cmd;
-        this.params = params;
+        this.params = params.filter(p => p !== '');
     }
 }
 

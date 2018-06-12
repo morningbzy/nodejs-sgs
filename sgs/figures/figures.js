@@ -72,12 +72,12 @@ class CaoCao extends FigureBase {
 
     * demage(game, si) {
         console.log('CaoCao damege');
-        yield this.skills.WEI001s01.handler(game, si);
+        yield this.skills.WEI001s01.handler.apply(this, [game, si]);
     }
 
     * requireShan(game, si) {
         console.log('CaoCao requireShan');
-        yield this.skills.WEI001s02.handler(game, si);
+        yield this.skills.WEI001s02.handler.apply(this, [game, si]);
     }
 }
 

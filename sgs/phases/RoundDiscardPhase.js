@@ -24,7 +24,7 @@ module.exports = class extends Phase {
                 },
             });
 
-            let discardCardPks = command.params.filter(u.hasCardPk);
+            let discardCardPks = command.params.filter((cardPk) => u.hasCardPk(cardPk));
             if(command.cmd === 'CANCEL') {
                 // Random discard cards
                 discardCardPks = utils.shuffle(u.cards.keys()).slice(0, discardCount);

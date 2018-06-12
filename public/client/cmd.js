@@ -17,7 +17,7 @@ function sleep(ms) {
 
 
 function changeSeatStateClass(seatNum, marker, stateClass, remove = false) {
-    let el = marker === '*' ? $('#player-panel') : getSeat(seatNum);
+    let el = getSeat(seatNum);
     if (remove) {
         el.removeClass(stateClass);
     } else {
@@ -26,7 +26,7 @@ function changeSeatStateClass(seatNum, marker, stateClass, remove = false) {
 }
 
 const Cmd = {
-    waitingTag: null,  // 0:SOMETHING, 1:CARD, 2:TARGET, null:NOT_WAITING
+    waitingTag: 0,  // 0:NOTHING, 1:SOMETHING, 2:CARD, 3:TARGET
 
     send: function (cmd) {
         const params = (cmd.params || []).join(' ');
@@ -42,7 +42,7 @@ const Cmd = {
         $('#game-table .sgs-cl-children *').remove();
 
         let rendered = Mustache.render(userTpl, {
-            name: 0,
+            name: null,
             role: '?',
             isYou: false,
         });
@@ -57,8 +57,8 @@ const Cmd = {
             role: '?',
             isYou: true,
         });
-        $('#player-panel #sgs-player-panel').prepend(rendered);
-        $('#player-panel').removeClass(waitingClass).removeClass(readyClass);
+        $('#sgs-player-panel').prepend(rendered);
+        $('#sgs-player-panel').removeClass(waitingClass).removeClass(readyClass);
     },
 
     table: function (params, marker) {
@@ -121,21 +121,15 @@ const Cmd = {
     user_info: function (params, marker) {
         let seatNum = params[0];
         let userInfo = JSON.parse(params.slice(1).join(' '));
-
-        if (marker === '*') {
-            userInfo.isYou = true;
-            Cmd.table([seatNum, userInfo.name], marker);
-            $('#sgs-card-panel .sgs-card').remove();
-            for (let card of userInfo.cards) {
-                Cmd.card([card], marker);
-            }
-        } else {
-            userInfo.isYou = false;
-        }
+        userInfo.isYou = marker === '*';
 
         let el = getSeat(seatNum);
         const rendered = Mustache.render(userTpl, userInfo);
         el.replaceWith(rendered);
+
+        if (userInfo.isYou) {
+            userInfo.cards.forEach(card => Cmd.card([card], marker));
+        }
         if (userInfo.state === 1) {
             Cmd.ready([seatNum], marker);
         } else if (userInfo.state > 1) {
@@ -151,7 +145,7 @@ const Cmd = {
 
     start: function (params, marker) {
         $('#game-table .sgs-player').removeClass(readyClass);
-        $('#player-panel').removeClass(readyClass);
+        $('#sgs-player-panel').removeClass(readyClass);
         $('#game-action .ready').addClass('d-none');
         $('#game-action .cancel-ready').addClass('d-none');
     },
@@ -201,8 +195,11 @@ const Cmd = {
 
     waiting: function (params, marker) {
         let seatNum = params[0];
-        Cmd.waitingTag = parseInt(params[1]);
         changeSeatStateClass(seatNum, marker, waitingClass);
+
+        if(marker === '*') {
+            Cmd.waitingTag = parseInt(params[1]);
+        }
     },
 
     unwaiting: function (params, marker) {

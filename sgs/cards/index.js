@@ -32,7 +32,7 @@ class CardManager {
     }
 
     useCards(pks){
-        this.used.push(this.getCards(pks));
+        this.used.push(...this.getCards(pks));
     }
 }
 
