@@ -13,6 +13,11 @@ class FigureBase {
             name: this.name,
             country: this.country,
             hp: this.hp,
+            skills: Object.keys(this.skills).map((k) => {
+                let info = Object.assign({}, this.skills[k]);
+                delete info.handler;
+                return info;
+            }),
         };
     }
 

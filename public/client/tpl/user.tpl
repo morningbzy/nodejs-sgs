@@ -18,11 +18,16 @@
             </div>
         </div>
         {{#isYou}}
-        <div id="sgs-card-panel" class="sgs-cl-children d-flexi ml-1 position-relative"></div>
+        <div id="sgs-card-panel" class="sgs-cl-children ml-1 position-relative"></div>
+        <div id="sgs-skill-panel" class="position-absolute">
+            {{#figure.skills}}
+            <button class="sgs-skill btn btn-light btn-sm px-3" pk="{{pk}}">{{name}}</button>
+            {{/figure.skills}}
+        </div>
         <div id="sgs-action-panel" class="position-absolute">
-            <button class=" sgs-action-ok btn btn-primary btn-sm">OK</button>
-            <button class=" sgs-action-cancel btn btn-primary btn-sm">Cancel</button>
-            <button class=" sgs-action-pass btn btn-primary btn-sm">Pass</button>
+            <button class="sgs-action-ok btn btn-primary btn-sm">OK</button>
+            <button class="sgs-action-cancel btn btn-primary btn-sm">Cancel</button>
+            <button class="sgs-action-pass btn btn-primary btn-sm">Pass</button>
         </div>
         {{/isYou}}
     </div>
