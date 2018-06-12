@@ -63,7 +63,7 @@ cardClasses = {
     Tao,
 };
 
-const cardSet = {};
+const cardSet = new Map();
 
 [
     new Sha(C.CARD_SUIT.SPADE, 10),
@@ -83,6 +83,6 @@ const cardSet = {};
     new Tao(C.CARD_SUIT.HEART, 5),
     new Tao(C.CARD_SUIT.HEART, 7),
     new Tao(C.CARD_SUIT.DIAMOND, 2),
-].map((c) => cardSet[c.pk] = c);
+].map((c) => cardSet.set(c.pk, c));
 
 module.exports = Object.assign(cardClasses, {cardSet});

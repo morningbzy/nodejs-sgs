@@ -1,17 +1,15 @@
 const utils = require('../utils');
 const cards = require('./cards');
+const cardSet = cards.cardSet;
 
 class CardManager {
     constructor() {
-        this.cards = cards.cardSet;
-        this.used = Object.keys(this.cards).map((k) => this.cards[k]);
+        this.used = cardSet.values();
         this.unused = [];
-        this.onhand = [];
     }
 
     shuffle() {
-        this.used = utils.shuffle(this.used);
-        this.unused.push(...this.used);
+        this.unused.push(...utils.shuffle(this.used));
         this.used = [];
     }
 
@@ -22,7 +20,6 @@ class CardManager {
         }
 
         cards = this.unused.splice(0, count);
-        this.onhand.push(...cards);
         return cards;
     }
 
@@ -31,11 +28,11 @@ class CardManager {
     }
 
     getCards(pks) {
-        return pks.map((pk) => cards.cardSet[pk]);
+        return pks.map((pk) => cards.cardSet.get(pk));
     }
 
     useCards(pks){
-        this.used.push(...pks.map((pk) => cards.cardSet[pk]));
+        this.used.push(this.getCards(pks));
     }
 }
 

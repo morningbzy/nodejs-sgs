@@ -4,6 +4,9 @@ function getSeat(seatNum) {
 
 const waitingClass = 'waiting bg-warning';
 const readyClass = ' bg-success';
+const selectedCardClass = 'sgs-card-selected border-success';
+const selectedPlayerClass = 'sgs-player-selected border-success';
+const lockedCardClass = 'sgs-card-locked border-danger';
 
 function sleep(ms) {
     return new Promise((res, rej) => {
@@ -221,6 +224,18 @@ const Cmd = {
         let span = Math.min(60, (572 - 90) / $('#sgs-card-panel .sgs-card').length);
         $(rendered).appendTo('#sgs-card-panel');
         $('#sgs-card-panel .sgs-card').each((i, el) => $(el).css('left', i * span));
+    },
+
+    lock_card: function(params, marker) {
+        for(let pk of params) {
+            $(`.sgs-card[pk=${pk}]`).addClass(lockedCardClass);
+        }
+    },
+
+    unlock_card: function(params, marker) {
+        for(let pk of params) {
+            $(`.sgs-card[pk=${pk}]`).removeClass(lockedCardClass);
+        }
     },
 
     remove_card: function (params, marker) {

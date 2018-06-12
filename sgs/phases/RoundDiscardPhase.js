@@ -24,16 +24,13 @@ module.exports = class extends Phase {
                 },
             });
 
-            let discardCardPks = command.params;
+            let discardCardPks = command.params.filter(u.hasCardPk);
             if(command.cmd === 'CANCEL') {
                 // Random discard cards
-                discardCardPks = utils.shuffle(u.cards).map((c) => c.pk).slice(0, discardCount);
+                discardCardPks = utils.shuffle(u.cards.keys()).slice(0, discardCount);
             }
-
-            console.log(discardCardPks);
-
-            game.removeUserCards(u, discardCardPks);
-            game.discardCards(discardCardPks);
+            game.removeUserCardPks(u, discardCardPks);
+            game.discardCardPks(discardCardPks);
             discardCount = Math.max(u.cards.size - u.hp, 0);
         }
     }

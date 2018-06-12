@@ -29,7 +29,6 @@ module.exports = {
     },
 
     figure: (game, sender, params) => {
-        // game.broadcast(`FIGURE ${sender.seatNum} ${params[0]}`, sender);
     },
 
     card: (game, sender, params) => {

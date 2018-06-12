@@ -18,7 +18,7 @@ module.exports = class {
         this.faceUp = true;
 
         this.showFigure = false;
-        this.cards = new Set();  // [];
+        this.cards = new Map();  // [];
         this.equipments = {
             weapon: null,
             armor: null,
@@ -93,19 +93,28 @@ module.exports = class {
 
     setFigure(figure) {
         this.figure = figure;
+        figure.owner = this;
         this.hp = figure.hp;
     }
 
     addCards(cards) {
         for (let card of cards) {
-            this.cards.add(card);
+            this.cards.set(card.pk, card);
         }
     }
 
-    removeCards(cards) {
-        for (let card of cards) {
-            this.cards.delete(card);
+    removeCardPks(cardPks) {
+        for (let pk of cardPks) {
+            this.cards.delete(pk);
         }
+    }
+
+    hasCard(card) {
+        return this.cards.has(card.pk);
+    }
+
+    hasCardPk(cardPk) {
+        return this.cards.has(cardPk);
     }
 
     * on(event, game, si) {
@@ -155,7 +164,7 @@ module.exports = class {
             if (command.cmd === 'CANCEL') {
                 shan = false;
             } else {
-                game.removeUserCards(this, command.params);
+                game.removeUserCardPks(this, command.params);
                 shan = true;
             }
         }

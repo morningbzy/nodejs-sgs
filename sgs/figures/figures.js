@@ -3,7 +3,9 @@ const C = require('../constants');
 
 
 class FigureBase {
-    constructor() {}
+    constructor() {
+        this.owner = null;
+    }
 
     toJson() {
         return {
@@ -59,8 +61,7 @@ class CaoCao extends FigureBase {
     }
 
     * s1(game, si) {
-        let cardPks = si.sourceCards.map((card) => card.pk);
-        game.addUserCards(si.targets[0], cardPks);
+        game.addUserCards(this.owner, si.sourceCards);
         si.sourceCards = [];
     }
 

@@ -175,20 +175,42 @@ class Game {
         this.broadcastUserInfo(user);
     }
 
-    addUserCards(user, cardPks) {
-        let cards = cardManager.getCards(cardPks);
+    addUserCards(user, cards) {
         user.addCards(cards);
         this.broadcastUserInfo(user);
     }
 
-    removeUserCards(user, cardPks) {
-        let cards = cardManager.getCards(cardPks);
-        user.removeCards(cards);
+    lockUserCardPks(user, cardPks) {
+        user.reply(`LOCK_CARD ${cardPks.join(' ')}`);
+    }
+
+    lockUserCards(user, cards) {
+        this.lockUserCardPks(user, cards.map(c => c.pk));
+    }
+
+    unlockUserCardPks(user, cardPks) {
+        user.reply(`UNLOCK_CARD ${cardPks.join(' ')}`);
+    }
+
+    unlockUserCards(user, cards) {
+        this.unlockUserCardPks(user, cards.map(c => c.pk));
+    }
+
+    removeUserCardPks(user, cardPks) {
+        user.removeCardPks(cardPks);
         this.broadcastUserInfo(user);
     }
 
-    discardCards(cardPks) {
+    removeUserCards(user, cards) {
+        this.removeUserCardPks(user, cards.map(c => c.pk));
+    }
+
+    discardCardPks(cardPks) {
         cardManager.useCards(cardPks);
+    }
+
+    discardCards(cards) {
+        this.discardCardPks(cards.map(c => c.pk));
     }
 
     // -----
@@ -220,6 +242,8 @@ class Game {
 }
 
 const game = new Game();
+
+// Heartbeat every 10s to keep connection alive
 setInterval(() => {
     game.broadcast(`HB`);
 }, 10000);

@@ -18,7 +18,16 @@ module.exports = class extends Phase {
             let command = yield game.wait(u, {
                 validCmds: ['CARD', 'PASS'],
                 validator: (command) => {
-                    // TODO user own the card
+                    switch (command.cmd) {
+                        case 'CARD':
+                            for (let cardPk of command.params) {
+                                if (!u.hasCardPk(cardPk)) {
+                                    return false;
+                                }
+                            }
+                            break;
+                    }
+
                     return true;
                 },
             });
@@ -29,11 +38,16 @@ module.exports = class extends Phase {
                     continue;
                 case 'CARD':
                     let card = cardManager.getCards(command.params)[0];
+                    let result;
+                    game.lockUserCards(u, [card]);
                     if (card instanceof sgsCards.Sha) {
                         let stageInfo = {
                             sourceCards: [card],
                         };
-                        yield ShaStage.start(game, u, stageInfo);
+                        result = yield ShaStage.start(game, u, stageInfo);
+                        if(result === 'cancel') {
+                            game.unlockUserCards(u, [card]);
+                        }
                     }
                     break;
             }
