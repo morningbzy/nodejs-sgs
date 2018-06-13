@@ -117,41 +117,52 @@ module.exports = class {
         return this.cards.has(cardPk);
     }
 
-    * on(event, game, si) {
+    * on(event, game, ctx) {
         console.log(`ON ${event}`);
         if (typeof(this[event]) === 'function') {
-            return yield this[event](game, si);
+            return yield this[event](game, ctx);
         }
     }
 
-    * damage(game, si) {
-        console.log(`OH NO ${si.damage}`);
-        this.hp -= si.damage;
+    * damage(game, ctx) {
+        console.log(`OH NO ${ctx.damage}`);
+        this.hp -= ctx.damage;
         game.broadcastUserInfo(this);
+        yield this.figure.on('demage', game, ctx);
+
         if (this.hp === 0) {
             this.state = C.USER_STATE.DYING;
             // TODO game.userDying();
-            return yield this.on('die', game, si);
+            return yield this.on('dying', game, ctx);
         }
-
-        yield this.figure.on('demage', game, si)
     }
 
-    * die(game, si) {
+    * dying(game, ctx) {
+        this.state = C.USER_STATE.DYING;
+        game.broadcastUserInfo(this);
+        // TODO require Tao
+
+        return yield this.on('die', game, ctx);
+    }
+
+    * die(game, ctx) {
         this.state = C.USER_STATE.DEAD;
+        let cardPks = this.cards.keys();
+        game.removeUserCardPks(this, cardPks);
+        game.discardCardPks(cardPks);
     }
 
-    * requireShan(game, si) {
-        let shan = yield this.figure.on('requireShan', game, si);
+    * requireShan(game, ctx) {
+        let shan = yield this.figure.on('requireShan', game, ctx);
         if (!shan && this.equipments.armor) {
-            shan = yield this.equipments.armor.on('requireShan', game, si);
+            shan = yield this.equipments.armor.on('requireShan', game, ctx);
         }
         if (!shan) {
             let command = yield game.wait(this, {
                 validCmds: ['CANCEL', 'CARD'],
                 validator: (command) => {
                     if (command.cmd === 'CANCEL') {
-                        return true
+                        return true;
                     }
                     let card = cardManager.getCards(command.params)[0];
                     if (card instanceof sgsCards.Shan) {

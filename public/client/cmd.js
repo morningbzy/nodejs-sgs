@@ -109,6 +109,12 @@ const Cmd = {
         let seatNum = params[0];
         let userInfo = JSON.parse(params.slice(1).join(' '));
         userInfo.isYou = marker === '*';
+        userInfo.dying = () => {
+            return userInfo.state === 4;
+        };
+        userInfo.dead = () => {
+            return userInfo.state === 5;
+        };
 
         let el = getSeat(seatNum);
         const rendered = Mustache.render(userTpl, userInfo);
@@ -138,6 +144,21 @@ const Cmd = {
     },
 
     msg: function (params, marker) {
+    },
+
+    confirm: function(params, marker) {
+        let alertHtml = params.join(' ');
+        alertHtml += `<span class="sgs-confirm-action"><a href="#" class="sgs-confirm-action-y alert-link ml-3" cmd="Y">是</a><a href="#" class="sgs-confirm-action-n alert-link ml-3" cmd="N">否</a></span>`;
+        Cmd.alert([alertHtml], marker);
+    },
+
+    alert: function (params, marker) {
+        let alertClass = (marker === '*') ? 'warning' : 'info';
+        let alertHtml = params.join(' ');
+        let rendered = `<div class="sgs-cl-self alert alert-${alertClass} fade mb-0" role="alert">${alertHtml}</div>`;
+        $('#sgs-table .alert').alert('close');
+        $(rendered).appendTo('#sgs-table');
+        $('#sgs-table .alert:first').addClass('show');
     },
 
     role: function (params, marker) {
@@ -184,7 +205,7 @@ const Cmd = {
         let seatNum = params[0];
         changeSeatStateClass(seatNum, marker, waitingClass);
 
-        if(marker === '*') {
+        if (marker === '*') {
             Cmd.waitingTag = parseInt(params[1]);
         }
     },
@@ -210,14 +231,14 @@ const Cmd = {
         $('#sgs-card-panel .sgs-card').each((i, el) => $(el).css('left', i * span));
     },
 
-    lock_card: function(params, marker) {
-        for(let pk of params) {
+    lock_card: function (params, marker) {
+        for (let pk of params) {
             $(`.sgs-card[pk=${pk}]`).addClass(lockedCardClass);
         }
     },
 
-    unlock_card: function(params, marker) {
-        for(let pk of params) {
+    unlock_card: function (params, marker) {
+        for (let pk of params) {
             $(`.sgs-card[pk=${pk}]`).removeClass(lockedCardClass);
         }
     },

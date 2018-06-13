@@ -84,12 +84,16 @@
         width: 100%;
     }
 
+    #game-table .sgs-player.sgs-dead {
+        opacity: .5;
+    }
+
     #game-table .sgs-player .sgs-player-card {
         cursor: pointer;
         width: 134px;
     }
 
-    #game-table .sgs-player .sgs-player-card:hover {
+    #game-table .sgs-player:not(.sgs-dead) .sgs-player-card:hover {
         box-shadow: 0 .5rem 1rem rgba(0, 0, 0, 0.15);
     }
 
@@ -115,7 +119,7 @@
         cursor: pointer;
     }
 
-    #sgs-card-panel .sgs-card:hover {
+    .sgs-player:not(.sgs-dead) #sgs-card-panel .sgs-card:hover {
         margin-top: -20px;
         box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
         height: 144px;
@@ -194,7 +198,7 @@
     <div class="middle card-group">
         <div id="sgs-table">
             <div id="feature-candidate-panel"
-                 class="sgs-cl-children w-100 h-100 d-inline-flex justify-content-around align-items-center"></div>
+                 class="sgs-cl-children position-absolute w-100 h-100 d-inline-flex justify-content-around align-items-center"></div>
         </div>
     </div>
     <div id="sgs-player-panel" class="bottom mt-2 d-flex flex-row align-items-stretch position-relative">
@@ -302,7 +306,7 @@
                     $(e.currentTarget).toggleClass(selectedCardClass);
                 }
             });
-            $('#game-table').on('click', '.sgs-player .sgs-player-card', (e) => {
+            $('#game-table').on('click', '.sgs-player:not(.sgs-dead) .sgs-player-card', (e) => {
                 if (Cmd.waitingTag === WAITING_FOR.TARGET) {
                     $(e.currentTarget).toggleClass(selectedPlayerClass);
                 }
@@ -340,6 +344,15 @@
             $('#sgs-player-panel').on('click', '.sgs-action-pass', (e) => {
                 Cmd.send({
                     cmd: 'PASS',
+                    params: [],
+                });
+            });
+            $('#sgs-table').on('click', '.sgs-confirm-action a', (e) => {
+                let el = $(e.currentTarget);
+                let cmd = el.attr('cmd');
+                el.parents('.alert').alert('close');
+                Cmd.send({
+                    cmd: cmd,
                     params: [],
                 });
             });

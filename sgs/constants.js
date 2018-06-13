@@ -21,6 +21,7 @@ Constants = {
         SOMETHING: 1,
         CARD: 2,
         TARGET: 3,
+        CONFIRM: 4,
     },
     ROLE: {
         ZHUGONG: 0,
@@ -53,6 +54,10 @@ Constants = {
     },
     CARD_CATEGORY: {
         NORMAL: 0,
+    },
+    CONFIRM: {
+        Y: 'Y',
+        N: 'N',
     },
 };
 Constants.ROLES_MAPPING = {

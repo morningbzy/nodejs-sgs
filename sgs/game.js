@@ -25,7 +25,7 @@ class Game {
         this.waitingStack = [];
 
         this.zhugong;  // User
-        this.roundOwner;  //  Whose round it is, now.
+        this.roundOwner = null;  //  Whose round it is, now.
     }
 
     newSession(req, res) {
@@ -89,10 +89,14 @@ class Game {
 
     wait(u, waiting) {
         let waitingTag = C.WAITING_FOR.SOMETHING;
-        for (let k of Object.keys(C.WAITING_FOR)) {
-            if (waiting.validCmds.includes(k)) {
-                waitingTag = C.WAITING_FOR[k];
-                break;
+        if (waiting.waitingTag !== undefined) {
+            waitingTag = waiting.waitingTag;
+        } else {
+            for (let k of Object.keys(C.WAITING_FOR)) {
+                if (waiting.validCmds.includes(k)) {
+                    waitingTag = C.WAITING_FOR[k];
+                    break;
+                }
             }
         }
         u.waiting = waitingTag;
@@ -118,6 +122,18 @@ class Game {
         }
     }
 
+    waitConfirm(u, text) {
+        u.reply(`CONFIRM ${text}`, true, true);
+        return this.wait(u, {
+            validCmds: ['Y', 'N'],
+            waitingTag: C.WAITING_FOR.CONFIRM,
+            value: (command) => {
+                u.popRestoreCmd();
+                return command;
+            }
+        });
+    }
+
     broadcast(msg, self, addToResoreCmd = false) {
         for (let k in this.users) {
             let u = this.users[k];
@@ -126,14 +142,17 @@ class Game {
     }
 
     broadcastUserInfo(user) {
-        for (let u of this.userRound()) {
+        for (let k in this.users) {
+            let u = this.users[k];
             u.reply(`USER_INFO ${user.seatNum} ${user.toJsonString(u)}`, user.id === u.id);
         }
     }
 
     resendUserInfo(user) {
-        for (let _u of this.userRound(user)) {
-            user.reply(`USER_INFO ${_u.seatNum} ${_u.toJsonString(user)}`, user.id === _u.id);
+        // Send ALL user info to one user, especially for the user's reconnecting
+        for (let k in this.users) {
+            let u = this.users[k];
+            user.reply(`USER_INFO ${u.seatNum} ${u.toJsonString(user)}`, user.id === u.id);
         }
     }
 
@@ -160,11 +179,18 @@ class Game {
         );
     }
 
-    userRound(start = this.zhugong, shift = false) {
-        const index = this.sortedUsers.indexOf(start);
+    userRound(start = this.roundOwner, shift = false, filterUndead = true) {
+        start = start ? start : this.zhugong;
+        console.log(`|[D] START: ${start && start.name}`);
+        const index = this.sortedUsers.indexOf(start ? start : this.zhugong);
         let round = this.sortedUsers.slice(index).concat(this.sortedUsers.slice(0, index));
         if (shift) {
             round.shift();
+        }
+        if (filterUndead) {
+            round = round.filter(u => {
+                return ![C.USER_STATE.DEAD].includes(u.state)
+            });
         }
         return round;
     }
@@ -181,7 +207,7 @@ class Game {
     }
 
     lockUserCardPks(user, cardPks) {
-        user.reply(`LOCK_CARD ${cardPks.join(' ')}`);
+        user.reply(`LOCK_CARD ${cardPks.join(' ')}`, true, true);
     }
 
     lockUserCards(user, cards) {
@@ -190,6 +216,7 @@ class Game {
 
     unlockUserCardPks(user, cardPks) {
         user.reply(`UNLOCK_CARD ${cardPks.join(' ')}`);
+        user.popRestoreCmd();
     }
 
     unlockUserCards(user, cards) {

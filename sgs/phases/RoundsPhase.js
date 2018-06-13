@@ -29,10 +29,7 @@ module.exports = class extends Phase {
         console.log('ROUND-PHASE');
 
         while (game.state !== C.GAME_STATE.ENDING) {
-            for (let u of game.userRound()) {
-                if (![C.USER_STATE.ALIVE, C.USER_STATE.DYING].includes(u.state)) {
-                    continue;
-                }
+            for (let u of game.userRound(game.zhugong)) {
                 game.roundOwner = u;
                 yield this.roundPhases(game);
             }

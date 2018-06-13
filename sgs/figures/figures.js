@@ -25,10 +25,10 @@ class FigureBase {
         return JSON.stringify(this.toJson());
     }
 
-    * on(event, game, si) {
+    * on(event, game, ctx) {
         console.log(`ON ${event}`);
         if (typeof(this[event]) === 'function') {
-            return yield this[event](game, si);
+            return yield this[event](game, ctx);
         }
     }
 }
@@ -50,7 +50,7 @@ class CaoCao extends FigureBase {
                 style: C.SKILL_STYLE.NORMAL,
                 name: '奸雄',
                 desc: '你可以立即获得对你成伤害的牌。',
-                handler: this.s1,
+                handler: 's1',
             },
             WEI001s02: {
                 pk: 'WEI001s02',
@@ -59,30 +59,48 @@ class CaoCao extends FigureBase {
                 desc: '主公技，当你需要使用（或打出）一张【闪】时，'
                     + '你可以发动护驾。所有“魏”势力角色按行动顺序依次选择是'
                     + '否打出一张【闪】“提供”给你（然后视为由你使用或打出），'
-                    + '直到有—名角色或没有任何角色决定如此做时为止。',
-                handler: this.s2,
+                    + '直到有一名角色或没有任何角色决定如此做时为止。',
+                handler: 's2',
             },
         };
     }
 
-    * s1(game, si) {
-        game.addUserCards(this.owner, si.sourceCards);
-        si.sourceCards = [];
+    * s1(game, ctx) {
+        console.log('SKILL WEI001s01');
+        game.addUserCards(this.owner, ctx.sourceCards);
+        ctx.sourceCards = [];
     }
 
-    * s2(game, si) {
+    * s2(game, ctx) {
         console.log('SKILL WEI001s02');
-        return false;
+        for(let u of game.userRound()) {
+            if(u.id === this.owner.id
+                || u.figure.country !== C.COUNTRY.WEI) {
+                continue;
+            }
+
+            let command = yield game.waitConfirm(u, `曹操使用技能【护驾】，是否为其出【闪】？`);
+            if(command.cmd === C.CONFIRM.Y) {
+                let result = yield u.on('requireShan', game, ctx);
+                if (result) {
+                    return yield Promise.resolve(result);
+                }
+            }
+        }
+        return yield Promise.resolve();
     }
 
-    * demage(game, si) {
+    * demage(game, ctx) {
         console.log('CaoCao damege');
-        yield this.skills.WEI001s01.handler.apply(this, [game, si]);
+        return yield this[this.skills.WEI001s01.handler](game, ctx);
     }
 
-    * requireShan(game, si) {
+    * requireShan(game, ctx) {
         console.log('CaoCao requireShan');
-        yield this.skills.WEI001s02.handler.apply(this, [game, si]);
+        let command = yield game.waitConfirm(this.owner, `是否使用技能【护驾】？`);
+        if(command.cmd === C.CONFIRM.Y) {
+            return yield this[this.skills.WEI001s02.handler](game, ctx);
+        }
     }
 }
 

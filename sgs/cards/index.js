@@ -28,7 +28,7 @@ class CardManager {
     }
 
     getCards(pks) {
-        return pks.map((pk) => cards.cardSet.get(pk));
+        return Array.from(pks).map((pk) => cards.cardSet.get(pk));
     }
 
     useCards(pks){

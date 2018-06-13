@@ -42,14 +42,15 @@ module.exports = class extends Phase {
                     let card = cardManager.getCards(command.params)[0];
                     if (card instanceof sgsCards.Sha) {
                         game.lockUserCards(u, [card]);
-                        let stageInfo = {
+                        let context = {
                             sourceCards: [card],
                         };
-                        let result = yield ShaStage.start(game, u, stageInfo);
+                        let result = yield ShaStage.start(game, u, context);
                         if (result === 'cancel') {
-                            game.unlockUserCards(u, [card]);
+                            // User cancel
                         }
                     }
+                    game.unlockUserCards(u, [card]);
                     break;
             }
         }

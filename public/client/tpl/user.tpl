@@ -1,4 +1,4 @@
-<div class="sgs-player sgs-cl-self card {{#isYou}}is-you{{/isYou}}{{^isYou}}is-other{{/isYou}}"
+<div class="sgs-player sgs-cl-self {{#isYou}}is-you{{/isYou}}{{^isYou}}is-other{{/isYou}} {{#dying}}sgs-dying bg-danger{{/dying}} {{#dead}}sgs-dead bg-secondary{{/dead}} card"
      seat-num="{{ seatNum }}" pk={{id}}>
     {{#name}}
     <div class="card-body p-1 d-flex">
