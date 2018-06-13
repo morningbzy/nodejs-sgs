@@ -149,11 +149,14 @@ module.exports = class {
         console.log(`<U> HP - ${ctx.damage}`);
         this.hp -= ctx.damage;
         game.broadcastUserInfo(this);
-        yield this.figure.on('demage', game, ctx);
 
         if (this.hp === 0) {
             // TODO game.userDying();
-            return yield this.on('dying', game, ctx);
+            yield this.on('dying', game, ctx);
+        }
+
+        if (this.state === C.USER_STATE.ALIVE) {
+            yield this.figure.on('demage', game, ctx);
         }
     }
 

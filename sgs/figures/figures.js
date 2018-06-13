@@ -1,4 +1,5 @@
 const C = require('../constants');
+const utils = require('../utils');
 const cardManager = require('../cards');
 const ShaStage = require('../phases/sha/ShaStage');
 
@@ -201,15 +202,18 @@ class SiMaYi extends FigureBase {
                 style: C.SKILL_STYLE.NORMAL,
                 name: '鬼才',
                 desc: '在任意角色的判定牌生效前，你可以打出一张手牌代替之。',
-                handler: this.s2,
+                handler: 's2',
             },
         };
     }
 
-    * s1() {
+    * s1(game, ctx) {
+        let cards = utils.shuffle(ctx.sourceUser.cards.values()).slice(0, 1);
+        game.removeUserCards(ctx.sourceUser, cards);
+        game.addUserCards(this.owner, cards);
     }
 
-    * s2() {
+    * s2(game, ctx) {
 
     }
 
