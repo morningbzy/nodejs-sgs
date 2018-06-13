@@ -152,7 +152,6 @@ module.exports = class {
         yield this.figure.on('demage', game, ctx);
 
         if (this.hp === 0) {
-            this.state = C.USER_STATE.DYING;
             // TODO game.userDying();
             return yield this.on('dying', game, ctx);
         }
@@ -173,16 +172,28 @@ module.exports = class {
     * dying(game, ctx) {
         this.state = C.USER_STATE.DYING;
         game.broadcastUserInfo(this);
-        // TODO require Tao
 
-        return yield this.on('die', game, ctx);
+        // TODO require Tao
+        for (let u of game.userRound(this)) {
+            let command = yield game.waitConfirm(u, `${this.figure.name}濒死，是否为其出【桃】？`);
+            if (command.cmd === C.CONFIRM.Y) {
+                let result = yield u.on('requireTao', game, ctx);
+                if (result) {
+                    ctx.heal = 1;
+                    yield this.on('heal', game, ctx);
+                    break;
+                }
+            }
+        }
+
+        if (this.hp <= 0) {
+            return yield this.on('die', game, ctx);
+        }
     }
 
     * die(game, ctx) {
         this.state = C.USER_STATE.DEAD;
-        let cardPks = this.cards.keys();
-        game.removeUserCardPks(this, cardPks);
-        game.discardCardPks(cardPks);
+        game.userDead(this);
     }
 
     * requireShan(game, ctx) {
@@ -209,9 +220,41 @@ module.exports = class {
                 shan = false;
             } else {
                 game.removeUserCardPks(this, command.params);
+                game.discardCardPks(command.params);
                 shan = true;
             }
         }
         return yield Promise.resolve(shan);
+    }
+
+    * requireTao(game, ctx) {
+        let result = yield this.figure.on('requireTao', game, ctx);
+        if (!result && this.equipments.armor) {
+            result = yield this.equipments.armor.on('requireTao', game, ctx);
+        }
+        if (!result) {
+            let command = yield game.wait(this, {
+                validCmds: ['CANCEL', 'CARD'],
+                validator: (command) => {
+                    if (command.cmd === 'CANCEL') {
+                        return true;
+                    }
+                    let card = cardManager.getCards(command.params)[0];
+                    if (card instanceof sgsCards.Tao) {
+                        return true;
+                    }
+                    return false;
+                },
+            });
+
+            if (command.cmd === 'CANCEL') {
+                result = false;
+            } else {
+                game.removeUserCardPks(this, command.params);
+                game.discardCardPks(command.params);
+                result = true;
+            }
+        }
+        return yield Promise.resolve(result);
     }
 };

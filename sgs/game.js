@@ -243,6 +243,16 @@ class Game {
         this.discardCardPks(cards.map(c => c.pk));
     }
 
+    userDead(user) {
+        let cardPks = user.cards.keys();
+        this.removeUserCardPks(user, cardPks);
+        this.discardCardPks(cardPks);
+
+        if(this.usersNotInState(C.USER_STATE.DEAD).length <= 1) {
+            this.state = C.GAME_STATE.ENDING;
+        }
+    }
+
     // -----
 
     phases() {

@@ -19,6 +19,8 @@ module.exports = class extends Phase {
     static roundPhases(game) {
         return function* gen() {
             for (let p of subPhases) {
+                if(game.state === C.GAME_STATE.ENDING)
+                    return;
                 yield p.start(game);
             }
         };
@@ -38,10 +40,6 @@ module.exports = class extends Phase {
                 game.roundOwner = u;
                 yield this.roundPhases(game);
                 console.log(`|<G> ${u.name}(${u.figure.name})'s ROUND END`);
-
-                if(game.usersNotInState(C.USER_STATE.DEAD).length === 1) {
-                    game.state = C.GAME_STATE.ENDING;
-                }
             }
         }
 

@@ -16,7 +16,7 @@ module.exports = class extends Phase {
         u.shaCount = 1;
 
         let pass = false;
-        while (!pass) {
+        while (!pass && game.state !== C.GAME_STATE.ENDING) {
             yield u.on('requirePlay', game, {});
 
             let command = yield game.wait(u, {

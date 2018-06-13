@@ -116,7 +116,6 @@ const Cmd = {
             return userInfo.state === 5;
         };
         userInfo.skillStateClass = function() {
-            console.log(this.state);
             switch(this.state) {
                 case SKILL_STATE.DISABLED:
                     return 'btn-light disabled';
