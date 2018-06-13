@@ -211,12 +211,44 @@ module.exports = class {
         game.userDead(this);
     }
 
-    * requireShan(game, ctx) {
-        let shan = yield this.figure.on('requireShan', game, ctx);
-        if (!shan && this.equipments.armor) {
-            shan = yield this.equipments.armor.on('requireShan', game, ctx);
+    * requireSha(game, ctx) {
+        let result = yield this.figure.on('requireSha', game, ctx);
+        if (!result && this.equipments.armor) {
+            result = yield this.equipments.armor.on('requireSha', game, ctx);
         }
-        if (!shan) {
+        if (!result) {
+            let command = yield game.wait(this, {
+                validCmds: ['CANCEL', 'CARD'],
+                validator: (command) => {
+                    if (command.cmd === 'CANCEL') {
+                        return true;
+                    }
+                    let card = cardManager.getCards(command.params)[0];
+                    if (card instanceof sgsCards.Sha) {
+                        return true;
+                    }
+                    return false;
+                },
+            });
+
+            if (command.cmd === 'CANCEL') {
+                result = false;
+            } else {
+                let cards = cardManager.getCards(command.params);
+                game.removeUserCards(this, cards);
+                game.discardCards(cards);
+                result = cards;
+            }
+        }
+        return yield Promise.resolve(result);
+    }
+
+    * requireShan(game, ctx) {
+        let result= yield this.figure.on('requireShan', game, ctx);
+        if (!result && this.equipments.armor) {
+            result = yield this.equipments.armor.on('requireShan', game, ctx);
+        }
+        if (!result) {
             let command = yield game.wait(this, {
                 validCmds: ['CANCEL', 'CARD'],
                 validator: (command) => {
@@ -232,14 +264,14 @@ module.exports = class {
             });
 
             if (command.cmd === 'CANCEL') {
-                shan = false;
+                result = false;
             } else {
                 game.removeUserCardPks(this, command.params);
                 game.discardCardPks(command.params);
-                shan = true;
+                result = true;
             }
         }
-        return yield Promise.resolve(shan);
+        return yield Promise.resolve(result);
     }
 
     * requireTao(game, ctx) {

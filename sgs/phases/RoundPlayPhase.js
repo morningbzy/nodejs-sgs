@@ -16,7 +16,7 @@ module.exports = class extends Phase {
         u.shaCount = 1;
 
         let pass = false;
-        while (!pass && game.state !== C.GAME_STATE.ENDING) {
+        while (!pass && u.state !== C.USER_STATE.DEAD && game.state !== C.GAME_STATE.ENDING) {
             yield u.on('requirePlay', game, {});
 
             let command = yield game.wait(u, {
@@ -60,6 +60,13 @@ module.exports = class extends Phase {
                             sourceCards: [card],
                         };
                         yield u.on('useTao', game, context);
+                    }
+                    if (card instanceof sgsCards.SilkBagCard) {
+                        let context = {
+                            sourceUser: u,
+                            sourceCards: [card],
+                        };
+                        let result = yield card.start(game, context);
                     }
                     break;
                 case 'SKILL':

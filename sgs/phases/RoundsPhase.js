@@ -19,7 +19,7 @@ module.exports = class extends Phase {
     static roundPhases(game) {
         return function* gen() {
             for (let p of subPhases) {
-                if(game.state === C.GAME_STATE.ENDING)
+                if(game.roundOwner.state === C.USER_STATE.DEAD || game.state === C.GAME_STATE.ENDING)
                     return;
                 yield p.start(game);
             }

@@ -165,7 +165,14 @@ class GuanYu extends FigureBase {
         let cards = cardManager.getCards(command.params);
         game.lockUserCards(u, cards);
         ctx.sourceCards = cards;
-        return yield ShaStage.start(game, u, ctx);
+
+        if(ctx.mark === 'requireCard') {
+            game.removeUserCards(u, cards);
+            game.discardCards(cards);
+            return yield Promise.resolve(cards);
+        } else {
+            return yield ShaStage.start(game, u, ctx);
+        }
     }
 
     * requirePlay(game, ctx) {
@@ -173,6 +180,14 @@ class GuanYu extends FigureBase {
             this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.ENABLED);
         } else {
             this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.DISABLED);
+        }
+    }
+
+    * requireSha(game, ctx) {
+        let command = yield game.waitConfirm(this.owner, `是否使用技能【武圣】？`);
+        if (command.cmd === C.CONFIRM.Y) {
+            ctx.mark = 'requireCard';
+            return yield this.useSkill(this.skills.SHU002s01, game, ctx);
         }
     }
 }
