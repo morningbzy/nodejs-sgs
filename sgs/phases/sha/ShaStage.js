@@ -1,6 +1,11 @@
 class ShaInitStage {
     static* start(game, u, ctx) {
         console.log('SHA-INIT-STAGE');
+        let result = yield u.on('useSha', game, ctx);
+        if (result === 'cancel') {
+            return yield Promise.resolve('cancel');
+        }
+
         let targetCount = 1;  // TODO: How many targets are required
 
         let command = yield game.wait(u, {
@@ -57,6 +62,8 @@ class ShaExecuteStage {
                 }
             }
         }
+
+        yield u.on('usedSha', game, ctx);
         game.discardCards(ctx.sourceCards);
     }
 }

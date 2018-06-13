@@ -1,5 +1,6 @@
-
 const C = require('../constants');
+const cardManager = require('../cards');
+const ShaStage = require('../phases/sha/ShaStage');
 
 
 class FigureBase {
@@ -25,8 +26,21 @@ class FigureBase {
         return JSON.stringify(this.toJson());
     }
 
+    changeSkillState(skill, state) {
+        skill.state = state;
+        this.owner.reply(`USER_INFO ${this.owner.seatNum} ${this.owner.toJsonString(this.owner)}`, true);
+    }
+
+    * useSkill(skill, game, ctx) {
+        console.log(`|<F> SKILL ${skill.name}`);
+        this.changeSkillState(skill, C.SKILL_STATE.FIRING);
+        let result = yield this[skill.handler](game, ctx);
+        this.changeSkillState(skill, C.SKILL_STATE.DISABLED);
+        return result;
+    }
+
     * on(event, game, ctx) {
-        console.log(`ON ${event}`);
+        console.log(`|<F> ON ${this.name} ${event}`);
         if (typeof(this[event]) === 'function') {
             return yield this[event](game, ctx);
         }
@@ -57,30 +71,28 @@ class CaoCao extends FigureBase {
                 style: C.SKILL_STYLE.ZHUGONG,
                 name: '护驾',
                 desc: '主公技，当你需要使用（或打出）一张【闪】时，'
-                    + '你可以发动护驾。所有“魏”势力角色按行动顺序依次选择是'
-                    + '否打出一张【闪】“提供”给你（然后视为由你使用或打出），'
-                    + '直到有一名角色或没有任何角色决定如此做时为止。',
+                + '你可以发动护驾。所有“魏”势力角色按行动顺序依次选择是'
+                + '否打出一张【闪】“提供”给你（然后视为由你使用或打出），'
+                + '直到有一名角色或没有任何角色决定如此做时为止。',
                 handler: 's2',
             },
         };
     }
 
     * s1(game, ctx) {
-        console.log('SKILL WEI001s01');
         game.addUserCards(this.owner, ctx.sourceCards);
         ctx.sourceCards = [];
     }
 
     * s2(game, ctx) {
-        console.log('SKILL WEI001s02');
-        for(let u of game.userRound()) {
-            if(u.id === this.owner.id
+        for (let u of game.userRound()) {
+            if (u.id === this.owner.id
                 || u.figure.country !== C.COUNTRY.WEI) {
                 continue;
             }
 
             let command = yield game.waitConfirm(u, `曹操使用技能【护驾】，是否为其出【闪】？`);
-            if(command.cmd === C.CONFIRM.Y) {
+            if (command.cmd === C.CONFIRM.Y) {
                 let result = yield u.on('requireShan', game, ctx);
                 if (result) {
                     return yield Promise.resolve(result);
@@ -91,15 +103,13 @@ class CaoCao extends FigureBase {
     }
 
     * demage(game, ctx) {
-        console.log('CaoCao damege');
-        return yield this[this.skills.WEI001s01.handler](game, ctx);
+        return yield this.useSkill(this.skills.WEI001s01, game, ctx);
     }
 
     * requireShan(game, ctx) {
-        console.log('CaoCao requireShan');
         let command = yield game.waitConfirm(this.owner, `是否使用技能【护驾】？`);
-        if(command.cmd === C.CONFIRM.Y) {
-            return yield this[this.skills.WEI001s02.handler](game, ctx);
+        if (command.cmd === C.CONFIRM.Y) {
+            return yield this.useSkill(this.skills.WEI001s02, game, ctx);
         }
     }
 }
@@ -121,13 +131,48 @@ class GuanYu extends FigureBase {
                 style: C.SKILL_STYLE.NORMAL,
                 name: '武圣',
                 desc: '你可以将你的任意一张红色牌当【杀】使用或打出。',
-                handler: this.s1,
+                handler: 's1',
             },
         };
     }
 
-    s1() {
+    * s1(game, ctx) {
+        const u = this.owner;
+        let command = yield game.wait(u, {
+            validCmds: ['CARD', 'CANCEL'],
+            validator: (command) => {
+                switch (command.cmd) {
+                    case 'CANCEL':
+                        return true;
+                    case 'CARD':
+                        if (command.params.length !== 1) {
+                            return false;
+                        }
+                        let card = cardManager.getCards(command.params)[0];
+                        if (!u.hasCard(card) || ![C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND].includes(card.suit)) {
+                            return false;
+                        }
+                        break;
+                }
+                return true;
+            },
+        });
 
+        if (command.cmd === 'CANCEL') {
+            return yield Promise.resolve('cancel');
+        }
+        let cards = cardManager.getCards(command.params);
+        game.lockUserCards(u, cards);
+        ctx.sourceCards = cards;
+        return yield ShaStage.start(game, u, ctx);
+    }
+
+    * requirePlay(game, ctx) {
+        if (this.owner.shaCount > 0) {
+            this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.ENABLED);
+        } else {
+            this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.DISABLED);
+        }
     }
 }
 
@@ -149,7 +194,7 @@ class SiMaYi extends FigureBase {
                 style: C.SKILL_STYLE.NORMAL,
                 name: '反馈',
                 desc: '你可以立即从对你造成伤害的来源处获得一张牌。',
-                handler: this.s1,
+                handler: 's1',
             },
             WEI002s02: {
                 pk: 'WEI002s02',
@@ -161,12 +206,15 @@ class SiMaYi extends FigureBase {
         };
     }
 
-    s1() {
+    * s1() {
+    }
+
+    * s2() {
 
     }
 
-    s2() {
-
+    * demage(game, ctx) {
+        return yield this.useSkill(this.skills.WEI002s01, game, ctx);
     }
 }
 

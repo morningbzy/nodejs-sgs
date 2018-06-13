@@ -53,6 +53,7 @@ class Game {
             u.reply(`MSG Invalid CMD`, true);
             console.log(`|<!> invalid command!`);
             console.log(`+--------------------`);
+            console.log(``);
             return;
         }
 
@@ -66,6 +67,7 @@ class Game {
         console.log(`+ - - - - - - - - - -`);
         this.unwait(u, result.waiting, command);
         console.log(`+--------------------`);
+        console.log(``);
     }
 
     validateCmd(command) {
@@ -157,8 +159,8 @@ class Game {
     }
 
     startIfReady() {
-        if (this.usersNotInState([C.USER_STATE.READY]).length === 0 &&
-            this.usersInState([C.USER_STATE.READY]).length >= 3) {
+        if (this.usersNotInState(C.USER_STATE.READY).length === 0 &&
+            this.usersInState(C.USER_STATE.READY).length >= 3) {
             this.start();
         }
     }
@@ -168,12 +170,14 @@ class Game {
     }
 
     usersNotInState(states) {
+        states = Array.isArray(states)? states: [states];
         return Object.keys(this.users).filter(
             (k) => !states.includes(this.users[k].state)
         );
     }
 
     usersInState(states) {
+        states = Array.isArray(states)? states: [states];
         return Object.keys(this.users).filter(
             (k) => states.includes(this.users[k].state)
         );
@@ -181,7 +185,6 @@ class Game {
 
     userRound(start = this.roundOwner, shift = false, filterUndead = true) {
         start = start ? start : this.zhugong;
-        console.log(`|[D] START: ${start && start.name}`);
         const index = this.sortedUsers.indexOf(start ? start : this.zhugong);
         let round = this.sortedUsers.slice(index).concat(this.sortedUsers.slice(0, index));
         if (shift) {

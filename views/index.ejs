@@ -301,17 +301,28 @@
                     params: [],
                 });
             });
-            $('#sgs-player-panel').on('click', '#sgs-card-panel .sgs-card', (e) => {
-                if (Cmd.waitingTag === WAITING_FOR.CARD) {
-                    $(e.currentTarget).toggleClass(selectedCardClass);
-                }
-            });
-            $('#game-table').on('click', '.sgs-player:not(.sgs-dead) .sgs-player-card', (e) => {
+            let table = $('#game-table');
+            let panel = $('#sgs-player-panel');
+            table.on('click', '.sgs-player:not(.sgs-dead) .sgs-player-card', (e) => {
                 if (Cmd.waitingTag === WAITING_FOR.TARGET) {
                     $(e.currentTarget).toggleClass(selectedPlayerClass);
                 }
             });
-            $('#sgs-player-panel').on('click', '.sgs-action-ok', (e) => {
+            table.on('click', '.sgs-confirm-action a', (e) => {
+                let el = $(e.currentTarget);
+                let cmd = el.attr('cmd');
+                el.parents('.alert').alert('close');
+                Cmd.send({
+                    cmd: cmd,
+                    params: [],
+                });
+            });
+            panel.on('click', '#sgs-card-panel .sgs-card', (e) => {
+                if (Cmd.waitingTag === WAITING_FOR.CARD) {
+                    $(e.currentTarget).toggleClass(selectedCardClass);
+                }
+            });
+            panel.on('click', '.sgs-action-ok', (e) => {
                 let pks = [];
                 if (Cmd.waitingTag === WAITING_FOR.CARD) {
                     $('#sgs-card-panel .sgs-card.sgs-card-selected').each(
@@ -335,24 +346,23 @@
                     });
                 }
             });
-            $('#sgs-player-panel').on('click', '.sgs-action-cancel', (e) => {
+            panel.on('click', '.sgs-skill-enabled', (e) => {
+                let pk = $(e.currentTarget).attr('pk');
+                Cmd.send({
+                    cmd: 'SKILL',
+                    params: [pk],
+                });
+            });
+
+            panel.on('click', '.sgs-action-cancel', (e) => {
                 Cmd.send({
                     cmd: 'CANCEL',
                     params: [],
                 });
             });
-            $('#sgs-player-panel').on('click', '.sgs-action-pass', (e) => {
+            panel.on('click', '.sgs-action-pass', (e) => {
                 Cmd.send({
                     cmd: 'PASS',
-                    params: [],
-                });
-            });
-            $('#sgs-table').on('click', '.sgs-confirm-action a', (e) => {
-                let el = $(e.currentTarget);
-                let cmd = el.attr('cmd');
-                el.parents('.alert').alert('close');
-                Cmd.send({
-                    cmd: cmd,
                     params: [],
                 });
             });

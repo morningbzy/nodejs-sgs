@@ -13,10 +13,14 @@ module.exports = class extends Phase {
     static* start(game) {
         console.log('ROUND-PLAY-PHASE');
         const u = game.roundOwner;
+        u.shaCount = 1;
+
         let pass = false;
         while (!pass) {
+            yield u.on('requirePlay', game, {});
+
             let command = yield game.wait(u, {
-                validCmds: ['CARD', 'PASS'],
+                validCmds: ['CARD', 'SKILL', 'PASS'],
                 validator: (command) => {
                     switch (command.cmd) {
                         case 'CARD':
@@ -51,6 +55,19 @@ module.exports = class extends Phase {
                         }
                     }
                     game.unlockUserCards(u, [card]);
+                    break;
+                case 'SKILL':
+                    let skill = u.figure.skills[command.params[0]];
+                    let context = {
+                        sourceUser: u,
+                        skill: skill,
+                    };
+                    if(skill.state === C.SKILL_STATE.ENABLED) {
+                        let result = yield u.figure.useSkill(skill, game, context);
+                        if (result === 'cancel') {
+                            // User cancel
+                        }
+                    }
                     break;
             }
         }

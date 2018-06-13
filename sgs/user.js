@@ -27,6 +27,7 @@ module.exports = class {
         };
         this.restoreCmds = [];
 
+        this.shaCount = 1;
         this.setResp(messageResp);
     }
 
@@ -117,15 +118,35 @@ module.exports = class {
         return this.cards.has(cardPk);
     }
 
-    * on(event, game, ctx) {
-        console.log(`ON ${event}`);
+    * on(event, game, ctx = {}) {
+        console.log(`|<U> ON ${this.name}(${this.figure.name}) ${event}`);
         if (typeof(this[event]) === 'function') {
             return yield this[event](game, ctx);
         }
     }
 
+    * requirePlay(game, ctx) {
+        let result = yield this.figure.on('requirePlay', game, ctx);
+        if (!result && this.equipments.armor) {
+            result = yield this.equipments.armor.on('requirePlay', game, ctx);
+        }
+        if (!result) {
+        }
+        return yield Promise.resolve(result);
+    }
+
+    * useSha(game, ctx) {
+        if (this.shaCount < 1) {
+            return yield Promise.resolve('cancel');
+        }
+    }
+
+    * usedSha(game, ctx) {
+        this.shaCount--;
+    }
+
     * damage(game, ctx) {
-        console.log(`OH NO ${ctx.damage}`);
+        console.log(`<U> HP - ${ctx.damage}`);
         this.hp -= ctx.damage;
         game.broadcastUserInfo(this);
         yield this.figure.on('demage', game, ctx);
@@ -134,6 +155,18 @@ module.exports = class {
             this.state = C.USER_STATE.DYING;
             // TODO game.userDying();
             return yield this.on('dying', game, ctx);
+        }
+    }
+
+    * heal(game, ctx) {
+        console.log(`<U> HP + ${ctx.heal}`);
+        this.hp += ctx.heal;
+        game.broadcastUserInfo(this);
+        yield this.figure.on('heal', game, ctx);
+
+        if (this.state === C.USER_STATE.DYING && this.hp > 0) {
+            this.state = C.USER_STATE.ALIVE;
+            game.broadcastUserInfo(this);
         }
     }
 

@@ -10,6 +10,13 @@ const WAITING_FOR = {
     TARGET: 3,
 };
 
+const SKILL_STATE = {
+    DISABLED: 1,
+    ENABLED: 2,
+    CONFIRMING: 3,
+    FIRING: 4,
+};
+
 function sleep(ms) {
     return new Promise((res, rej) => {
         setTimeout(res, ms);

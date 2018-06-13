@@ -115,6 +115,18 @@ const Cmd = {
         userInfo.dead = () => {
             return userInfo.state === 5;
         };
+        userInfo.skillStateClass = function() {
+            console.log(this.state);
+            switch(this.state) {
+                case SKILL_STATE.DISABLED:
+                    return 'btn-light disabled';
+                case SKILL_STATE.ENABLED:
+                    return 'btn-light sgs-skill-enabled';
+                case SKILL_STATE.FIRING:
+                    return 'btn-danger';
+            }
+            return 'btn-light disabled';
+        };
 
         let el = getSeat(seatNum);
         const rendered = Mustache.render(userTpl, userInfo);

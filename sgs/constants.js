@@ -46,6 +46,12 @@ Constants = {
         XIANDING: 3,
         JUEXING: 4,
     },
+    SKILL_STATE: {
+        DISABLED: 1,
+        ENABLED: 2,
+        CONFIRMING: 3,
+        FIRING: 4,
+    },
     CARD_SUIT: {
         SPADE: 'spade',
         HEART: 'heart',

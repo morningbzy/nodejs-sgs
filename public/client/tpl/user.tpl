@@ -21,7 +21,7 @@
         <div id="sgs-card-panel" class="sgs-cl-children ml-1 position-relative"></div>
         <div id="sgs-skill-panel" class="position-absolute">
             {{#figure.skills}}
-            <button class="sgs-skill btn btn-light btn-sm px-3" pk="{{pk}}">{{name}}</button>
+            <button class="sgs-skill btn btn-sm px-3 {{skillStateClass}}" pk="{{pk}}">{{name}}</button>
             {{/figure.skills}}
         </div>
         <div id="sgs-action-panel" class="position-absolute">

@@ -34,9 +34,15 @@ module.exports = {
     card: (game, sender, params) => {
     },
 
+    skill: (game, sender, params) => {
+    },
+
     cancel: (game, sender, params) => {
     },
 
     target: (game, sender, params) => {
+    },
+
+    pass: (game, sender, params) => {
     },
 };
