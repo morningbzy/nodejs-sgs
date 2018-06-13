@@ -14,6 +14,7 @@ module.exports = class {
         this.role = null;
         this.figure = null;
         this.hp = 0;
+        this.maxHp = 0;
         this.waiting = C.WAITING_FOR.NOTHING;
         this.faceUp = true;
 
@@ -48,6 +49,7 @@ module.exports = class {
             role: (u.id === this.id || this.role === C.ROLE.ZHUGONG || this.state === C.USER_STATE.DEAD) ? this.role : '?',
             figure: ((u.id === this.id || this.showFigure) && this.figure) ? this.figure.toJson() : null,
             hp: this.showFigure ? this.hp : 0,
+            maxHp: this.showFigure ? this.maxHp : 0,
             faceUp: this.faceUp,
 
             cardCount: this.cards.size,
@@ -96,6 +98,7 @@ module.exports = class {
         this.figure = figure;
         figure.owner = this;
         this.hp = figure.hp;
+        this.maxHp = figure.hp;
     }
 
     addCards(cards) {
@@ -145,6 +148,15 @@ module.exports = class {
         this.shaCount--;
     }
 
+    * useTao(game, ctx) {
+        if(this.hp < this.maxHp) {
+            ctx.heal = 1;
+            yield this.on('heal', game, ctx);
+            game.removeUserCards(ctx.sourceUser, ctx.sourceCards);
+            game.discardCards(ctx.sourceCards);
+        }
+    }
+
     * damage(game, ctx) {
         console.log(`<U> HP - ${ctx.damage}`);
         this.hp -= ctx.damage;
@@ -177,7 +189,7 @@ module.exports = class {
         game.broadcastUserInfo(this);
 
         // TODO require Tao
-        for (let u of game.userRound(this)) {
+        for (let u of game.userRound()) {
             let command = yield game.waitConfirm(u, `${this.figure.name}濒死，是否为其出【桃】？`);
             if (command.cmd === C.CONFIRM.Y) {
                 let result = yield u.on('requireTao', game, ctx);

@@ -45,8 +45,8 @@ module.exports = class extends Phase {
                 case 'CARD':
                     let card = cardManager.getCards(command.params)[0];
                     if (card instanceof sgsCards.Sha) {
-                        game.lockUserCards(u, [card]);
                         let context = {
+                            sourceUser: u,
                             sourceCards: [card],
                         };
                         let result = yield ShaStage.start(game, u, context);
@@ -54,7 +54,13 @@ module.exports = class extends Phase {
                             // User cancel
                         }
                     }
-                    game.unlockUserCards(u, [card]);
+                    if (card instanceof sgsCards.Tao) {
+                        let context = {
+                            sourceUser: u,
+                            sourceCards: [card],
+                        };
+                        yield u.on('useTao', game, context);
+                    }
                     break;
                 case 'SKILL':
                     let skill = u.figure.skills[command.params[0]];

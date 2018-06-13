@@ -8,6 +8,7 @@ class ShaInitStage {
 
         let targetCount = 1;  // TODO: How many targets are required
 
+        game.lockUserCards(u, ctx.sourceCards);
         let command = yield game.wait(u, {
             validCmds: ['CANCEL', 'TARGET'],
             validator: (command) => {
@@ -22,12 +23,12 @@ class ShaInitStage {
                 return true;
             },
         });
+        game.unlockUserCards(u, ctx.sourceCards);
 
         if (command.cmd === 'CANCEL') {
             return yield Promise.resolve('cancel');
         }
         let targetPks = command.params;
-        ctx.sourceUser = u;
         ctx.targets = game.usersByPk(targetPks);
         ctx.damage = 1;
     }

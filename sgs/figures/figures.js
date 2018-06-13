@@ -208,6 +208,7 @@ class SiMaYi extends FigureBase {
     }
 
     * s1(game, ctx) {
+        // TODO 也可以选择装备区的牌
         let cards = utils.shuffle(ctx.sourceUser.cards.values()).slice(0, 1);
         game.removeUserCards(ctx.sourceUser, cards);
         game.addUserCards(this.owner, cards);
@@ -218,7 +219,10 @@ class SiMaYi extends FigureBase {
     }
 
     * demage(game, ctx) {
-        return yield this.useSkill(this.skills.WEI002s01, game, ctx);
+        let command = yield game.waitConfirm(this.owner, `是否使用技能【反馈】`);
+        if (command.cmd === C.CONFIRM.Y) {
+            return yield this.useSkill(this.skills.WEI002s01, game, ctx);
+        }
     }
 }
 
