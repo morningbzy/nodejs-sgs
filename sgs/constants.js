@@ -63,15 +63,23 @@ Constants = {
         NORMAL: 0,
         SILK_BAG: 1,
         DELAYED_SILK_BAG: 2,
+        EQUIPMENT: 3,
     },
     CONFIRM: {
         Y: 'Y',
         N: 'N',
     },
+    EQUIP_TYPE: {
+        WEAPON: 'weapon',
+        ARMOR: 'armor',
+        ATTACKHORSE: 'attackHorse',
+        DEFENSEHORSE: 'defenseHorse',
+    }
 };
 Constants.ROLES_MAPPING = {
     2: [Constants.ROLE.ZHUGONG, Constants.ROLE.FANZEI],
     3: [Constants.ROLE.ZHUGONG, Constants.ROLE.FANZEI, Constants.ROLE.NEIJIAN],
+    4: [Constants.ROLE.ZHUGONG, Constants.ROLE.ZHONGCHEN, Constants.ROLE.FANZEI, Constants.ROLE.NEIJIAN],
     // TODO
 };
 

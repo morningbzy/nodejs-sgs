@@ -7,9 +7,21 @@
                 <span class="name">{{name}}</span>
                 <span class="role badge float-right"></span>
             </h6>
-            <div class="card-body p-1">
+            <div class="card-body p-1 d-flex flex-column">
                 <div class="sgs-figure">
                     <span class="name">{{#figure}}{{name}}{{/figure}}</span>
+                </div>
+                <div class="sgs-equipments flex-grow-1 d-flex flex-column-reverse">
+                    <div class="btn-group btn-group-sm">
+                        <button class="sgs-equipment sgs-equipment-weapon btn btn-sm btn-light col-6 {{^equipments.weapon}}disabled{{/equipments.weapon}}">
+                            武器{{equipments.weapon}}
+                        </button>
+                        <button class="sgs-equipment sgs-equipment-weapon btn btn-sm btn-light col-6 disabled">防具</button>
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        <button class="sgs-equipment sgs-equipment-weapon btn btn-sm btn-light col-6 disabled">-1马</button>
+                        <button class="sgs-equipment sgs-equipment-weapon btn btn-sm btn-light col-6 disabled">+1马</button>
+                    </div>
                 </div>
             </div>
             <div class="card-footer p-1">

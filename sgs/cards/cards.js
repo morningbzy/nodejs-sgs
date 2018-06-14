@@ -83,6 +83,31 @@ class DelayedSilkBagCard extends CardBase {
 }
 
 
+class EquipmentCard extends CardBase {
+    constructor(suit, number) {
+        super(suit, number);
+        this.category = C.CARD_CATEGORY.EQUIPMENT;
+    }
+
+    static* start(game, ctx) {
+        let u = ctx.sourceUser;
+
+        game.removeUserCards(u, ctx.sourceCards);
+        game.equipUserCard(u, ctx.sourceCards[0]);
+
+        return yield Promise.resolve(R.success);
+    }
+}
+
+
+class WeaponCard extends EquipmentCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.equipType = C.EQUIP_TYPE.WEAPON;
+    }
+}
+
+
 class Sha extends NormalCard {
     constructor(suit, number) {
         super(suit, number);
@@ -203,21 +228,12 @@ class LeBuSiShu extends DelayedSilkBagCard {
 }
 
 
-cardClasses = {
-    CardBase,
-    NormalCard,
-    SilkBagCard,
-    DelayedSilkBagCard,
-
-    Sha,
-    Shan,
-    Tao,
-
-    JueDou,
-    WuZhongShengYou,
-
-    LeBuSiShu,
-};
+class QingLongYanYueDao extends WeaponCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '青龙偃月刀';
+    }
+}
 
 
 const cardSet = new Map();
@@ -253,6 +269,28 @@ const cardSet = new Map();
     new LeBuSiShu(C.CARD_SUIT.SPADE, 6),
     new LeBuSiShu(C.CARD_SUIT.HEART, 6),
     new LeBuSiShu(C.CARD_SUIT.CLUB, 6),
+
+    new QingLongYanYueDao(C.CARD_SUIT.SPADE, 5),
 ].map((c) => cardSet.set(c.pk, c));
 
-module.exports = Object.assign(cardClasses, {cardSet});
+module.exports = {
+    cardSet,
+
+    CardBase,
+    NormalCard,
+    SilkBagCard,
+    DelayedSilkBagCard,
+    EquipmentCard,
+    WeaponCard,
+
+    Sha,
+    Shan,
+    Tao,
+
+    JueDou,
+    WuZhongShengYou,
+
+    LeBuSiShu,
+
+    QingLongYanYueDao,
+};

@@ -160,7 +160,7 @@ class Game {
 
     startIfReady() {
         if (this.usersNotInState(C.USER_STATE.READY).length === 0 &&
-            this.usersInState(C.USER_STATE.READY).length >= 3) {
+            this.usersInState(C.USER_STATE.READY).length >= 4) {
             this.start();
         }
     }
@@ -201,6 +201,7 @@ class Game {
     initRound(user) {
         this.roundOwner = user;
         user.roundOwner = true;
+        this.broadcastUserInfo(user);
         for(let k of Object.keys(user.phases)) {
             user.phases[k] = 1;
         }
@@ -258,6 +259,21 @@ class Game {
 
     removeUserCards(user, cards) {
         this.removeUserCardPks(user, cards.map(c => c.pk));
+    }
+
+    equipUserCard(user, card) {
+        this.unequipUserCard(user, card.equipType);
+        user.equipments[card.equipType] = card;
+        this.broadcastUserInfo(user);
+    }
+
+    unequipUserCard(user, equipType) {
+        let oldCard = user.equipments[equipType];
+        if(oldCard) {
+            user.equipments[equipType] = null;
+            this.discardCards([oldCard]);
+            this.broadcastUserInfo(user);
+        }
     }
 
     discardCardPks(cardPks) {

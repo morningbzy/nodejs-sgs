@@ -52,6 +52,11 @@ module.exports = class extends EventListener {
             cards.push(c.toJsonString());
         });
 
+        let equipments = {};
+        for(let k in this.equipments) {
+            equipments[k] = this.equipments[k] && this.equipments[k].toJson();
+        }
+
         return {
             id: this.id,
             name: this.name,
@@ -66,6 +71,8 @@ module.exports = class extends EventListener {
             hp: this.showFigure ? this.hp : 0,
             maxHp: this.showFigure ? this.maxHp : 0,
             faceUp: this.faceUp,
+
+            equipments,
 
             cardCount: this.cards.size,
             cards,
@@ -147,6 +154,12 @@ module.exports = class extends EventListener {
 
     popJudge() {
         return this.judgeStack.shift();
+    }
+
+    equipCard(card) {
+        let oldCard = this.equipments[card.equipType];
+
+        this.equipments[card.equipType] = card;
     }
 
     * on(event, game, ctx = {}) {

@@ -29,21 +29,22 @@ class RoundPlayPhase extends Phase {
         asClass = asClass || cards[0].constructor;
 
         let result;
-        // if (asClass === sgsCards.Sha || cards[0] instanceof sgsCards.Sha) {
         if (asClass === sgsCards.Sha) {
             result = yield ShaStage.start(game, u, context);
         }
-        // if (asClass === sgsCards.Tao || cards[0] instanceof sgsCards.Tao) {
         if (asClass === sgsCards.Tao) {
             result = yield u.on('useTao', game, context);
         }
-        // if (asClass.__proto__ === sgsCards.SilkBagCard || cards[0] instanceof sgsCards.SilkBagCard) {
         if (asClass.__proto__ === sgsCards.SilkBagCard) {
             result = yield asClass.start(game, context);
         }
         if (asClass.__proto__ === sgsCards.DelayedSilkBagCard) {
             result = yield asClass.start(game, context);
         }
+        if (cards.length === 1 && cards[0] instanceof sgsCards.EquipmentCard) {
+            result = yield asClass.start(game, context);
+        }
+
         return yield Promise.resolve(result);
     }
 
