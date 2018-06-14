@@ -200,9 +200,15 @@ class Game {
 
     initRound(user) {
         this.roundOwner = user;
+        user.roundOwner = true;
         for(let k of Object.keys(user.phases)) {
             user.phases[k] = 1;
         }
+    }
+
+    uninitRound(user) {
+        user.roundOwner = false;
+        this.broadcastUserInfo(user);
     }
 
     userDead(user) {

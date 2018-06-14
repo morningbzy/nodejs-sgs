@@ -44,8 +44,8 @@ module.exports = class extends Phase {
                 console.log(`|<G> ${u.name}(${u.figure.name})'s ROUND BEGIN`);
 
                 game.initRound(u);
-
                 yield this.roundPhases(game);
+                game.uninitRound(u);
                 console.log(`|<G> ${u.name}(${u.figure.name})'s ROUND END`);
             }
         }

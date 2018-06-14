@@ -2,8 +2,8 @@
      seat-num="{{ seatNum }}" pk={{id}}>
     {{#name}}
     <div class="card-body p-1 d-flex">
-        <div class="sgs-player-card card">
-            <h6 class="card-header p-1">
+        <div class="sgs-player-card card {{#roundOwner}}border-warning{{/roundOwner}}">
+            <h6 class="card-header p-1 {{#roundOwner}}bg-warning text-white{{/roundOwner}}">
                 <span class="name">{{name}}</span>
                 <span class="role badge float-right"></span>
             </h6>

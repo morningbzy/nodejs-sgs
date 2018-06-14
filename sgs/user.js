@@ -32,6 +32,7 @@ module.exports = class extends EventListener {
         this.judgeStack = [];
         this.restoreCmds = [];
 
+        this.roundOwner = false;
         this.phases = {
             RoundStartPhase: 1,
             RoundPreparePhase: 1,
@@ -58,6 +59,7 @@ module.exports = class extends EventListener {
 
             state: this.state,
             waiting: this.waiting,
+            roundOwner: this.roundOwner,
 
             role: (u.id === this.id || this.role === C.ROLE.ZHUGONG || this.state === C.USER_STATE.DEAD) ? this.role : '?',
             figure: ((u.id === this.id || this.showFigure) && this.figure) ? this.figure.toJson() : null,
