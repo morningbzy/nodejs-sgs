@@ -80,6 +80,7 @@ Constants.ROLES_MAPPING = {
     2: [Constants.ROLE.ZHUGONG, Constants.ROLE.FANZEI],
     3: [Constants.ROLE.ZHUGONG, Constants.ROLE.FANZEI, Constants.ROLE.NEIJIAN],
     4: [Constants.ROLE.ZHUGONG, Constants.ROLE.ZHONGCHEN, Constants.ROLE.FANZEI, Constants.ROLE.NEIJIAN],
+    5: [Constants.ROLE.ZHUGONG, Constants.ROLE.ZHONGCHEN, Constants.ROLE.FANZEI, Constants.ROLE.FANZEI, Constants.ROLE.NEIJIAN],
     // TODO
 };
 
