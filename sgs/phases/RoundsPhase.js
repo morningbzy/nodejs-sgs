@@ -17,11 +17,16 @@ module.exports = class extends Phase {
     }
 
     static roundPhases(game) {
+        let u = game.roundOwner;
         return function* gen() {
             for (let p of subPhases) {
-                if(game.roundOwner.state === C.USER_STATE.DEAD || game.state === C.GAME_STATE.ENDING)
-                    return;
-                yield p.start(game);
+                console.log(p.name);
+                while (u.phases[p.name]) {
+                    if (u.state === C.USER_STATE.DEAD || game.state === C.GAME_STATE.ENDING)
+                        return;
+                    yield p.start(game);
+                    u.phases[p.name]--;
+                }
             }
         };
     };
@@ -33,11 +38,13 @@ module.exports = class extends Phase {
         while (game.state !== C.GAME_STATE.ENDING) {
             let userRound = game.userRound(game.zhugong);
             for (let u of userRound) {
-                if([C.USER_STATE.DEAD].includes(u.state)) {
+                if ([C.USER_STATE.DEAD].includes(u.state)) {
                     continue;
                 }
                 console.log(`|<G> ${u.name}(${u.figure.name})'s ROUND BEGIN`);
-                game.roundOwner = u;
+
+                game.initRound(u);
+
                 yield this.roundPhases(game);
                 console.log(`|<G> ${u.name}(${u.figure.name})'s ROUND END`);
             }

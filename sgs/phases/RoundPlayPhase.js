@@ -6,7 +6,7 @@ const sgsCards = require('../cards/cards');
 const ShaStage = require('./sha/ShaStage');
 
 
-module.exports = class extends Phase {
+class RoundPlayPhase extends Phase {
     constructor(game) {
         super(game);
     }
@@ -15,26 +15,34 @@ module.exports = class extends Phase {
         let cards = context.sourceCards;
         let u = context.sourceUser;
 
+        if (!asClass && cards.length !== 1) {
+            console.log(`|<!> Invalid useCard invoking: !asClass && cards.length !== 1`);
+            return yield Promise.resolve(R.fail);
+        }
+
         if (asClass) {
             console.log(`|[i] use card ${cards[0].name} as ${asClass}`);
         } else {
             console.log(`|[i] use card ${cards[0].name}`);
         }
 
-        if (!asClass && cards.length !== 1) {
-            console.log(`|<!> Invalid useCard invoking: !asClass && cards.length !== 1`);
-            return yield Promise.resolve(R.fail);
-        }
+        asClass = asClass || cards[0].constructor;
 
         let result;
-        if (asClass === sgsCards.Sha || cards[0] instanceof sgsCards.Sha) {
+        // if (asClass === sgsCards.Sha || cards[0] instanceof sgsCards.Sha) {
+        if (asClass === sgsCards.Sha) {
             result = yield ShaStage.start(game, u, context);
         }
-        if (asClass === sgsCards.Tao || cards[0] instanceof sgsCards.Tao) {
+        // if (asClass === sgsCards.Tao || cards[0] instanceof sgsCards.Tao) {
+        if (asClass === sgsCards.Tao) {
             result = yield u.on('useTao', game, context);
         }
-        if (asClass === sgsCards.SilkBagCard || cards[0] instanceof sgsCards.SilkBagCard) {
-            result = yield cards[0].start(game, context);
+        // if (asClass.__proto__ === sgsCards.SilkBagCard || cards[0] instanceof sgsCards.SilkBagCard) {
+        if (asClass.__proto__ === sgsCards.SilkBagCard) {
+            result = yield asClass.start(game, context);
+        }
+        if (asClass.__proto__ === sgsCards.DelayedSilkBagCard) {
+            result = yield asClass.start(game, context);
         }
         return yield Promise.resolve(result);
     }
@@ -96,4 +104,7 @@ module.exports = class extends Phase {
             }
         }
     }
-};
+}
+
+RoundPlayPhase.name = 'RoundPlayPhase';
+module.exports = RoundPlayPhase;

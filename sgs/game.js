@@ -198,6 +198,25 @@ class Game {
         return round;
     }
 
+    initRound(user) {
+        this.roundOwner = user;
+        for(let k of Object.keys(user.phases)) {
+            user.phases[k] = 1;
+        }
+    }
+
+    userDead(user) {
+        let cardPks = user.cards.keys();
+        this.removeUserCardPks(user, cardPks);
+        this.discardCardPks(cardPks);
+
+        if(this.usersNotInState(C.USER_STATE.DEAD).length <= 1) {
+            this.state = C.GAME_STATE.ENDING;
+        }
+    }
+
+    // ----- Card related
+
     dispatchCards(user, count = 1) {
         let cards = cardManager.shiftCards(count);
         user.addCards(cards);
@@ -243,14 +262,13 @@ class Game {
         this.discardCardPks(cards.map(c => c.pk));
     }
 
-    userDead(user) {
-        let cardPks = user.cards.keys();
-        this.removeUserCardPks(user, cardPks);
-        this.discardCardPks(cardPks);
+    // ----- Judgement related
+    pushUserJudge(user, judgeCard, asClass) {
+        user.pushJudge(judgeCard, asClass);
+    }
 
-        if(this.usersNotInState(C.USER_STATE.DEAD).length <= 1) {
-            this.state = C.GAME_STATE.ENDING;
-        }
+    getJudgeCard() {
+        return cardManager.shiftCards()[0];
     }
 
     // -----

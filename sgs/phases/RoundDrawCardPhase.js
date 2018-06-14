@@ -2,7 +2,7 @@ const C = require('../constants');
 const Phase = require('./phase');
 
 
-module.exports = class extends Phase {
+class RoundDrawCardPhase extends Phase {
     constructor(game) {
         super(game);
     }
@@ -12,4 +12,7 @@ module.exports = class extends Phase {
         const u = game.roundOwner;
         game.dispatchCards(u, 2);
     }
-};
+}
+
+RoundDrawCardPhase.name = 'RoundDrawCardPhase';
+module.exports = RoundDrawCardPhase;

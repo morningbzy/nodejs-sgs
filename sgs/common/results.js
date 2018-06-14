@@ -45,9 +45,14 @@ class CardResult extends ResultBase {
     }
 
     set(cards, asClass) {
+        if (!asClass && cards.length !== 1) {
+            console.log(`|<!> Invalid useCard invoking: !asClass && cards.length !== 1`);
+            throw `|<!> Invalid useCard invoking: !asClass && cards.length !== 1`;
+        }
+
         this._resultObj = {
             cards: Array.from(cards),
-            asClass: asClass,
+            asClass: asClass || cards[0].constructor,
         };
     }
 
@@ -56,12 +61,20 @@ class CardResult extends ResultBase {
     }
 }
 
+class JudgeResult extends ResultBase {
+    constructor(result) {
+        super(result ? RESULT_STATE.SUCCESS : RESULT_STATE.FAIL);
+    }
+}
+
 module.exports = {
     SuccessResult,
     FailResult,
     AbortResult,
     CardResult,
+    JudgeResult,
     success: new SuccessResult(),
     fail: new FailResult(),
     abort: new AbortResult(),
+    judge: (result) => new JudgeResult(result),
 };

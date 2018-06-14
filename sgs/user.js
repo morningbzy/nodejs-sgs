@@ -29,8 +29,18 @@ module.exports = class extends EventListener {
             attackHorse: null,
             defenseHorse: null,
         };
+        this.judgeStack = [];
         this.restoreCmds = [];
 
+        this.phases = {
+            RoundStartPhase: 1,
+            RoundPreparePhase: 1,
+            RoundJudgePhase: 1,
+            RoundDrawCardPhase: 1,
+            RoundPlayPhase: 1,
+            RoundDiscardPhase: 1,
+            RoundEndPhase: 1,
+        };
         this.shaCount = 1;
         this.setResp(messageResp);
     }
@@ -124,6 +134,19 @@ module.exports = class extends EventListener {
         return this.cards.has(cardPk);
     }
 
+    pushJudge(card, asClass) {
+        console.log(asClass);
+        console.log(card.constructor);
+        this.judgeStack.unshift({
+            card: card,
+            asClass: asClass || card.constructor
+        });
+    }
+
+    popJudge() {
+        return this.judgeStack.shift();
+    }
+
     * on(event, game, ctx = {}) {
         console.log(`|<U> ON ${this.name}(${this.figure.name}) ${event}`);
         return yield super.on(event, game, ctx);
@@ -192,7 +215,7 @@ module.exports = class extends EventListener {
 
         // TODO require Tao
         for (let u of game.userRound()) {
-            while(this.state === C.USER_STATE.DYING) {
+            while (this.state === C.USER_STATE.DYING) {
                 // 同一个人可以出多次桃救
                 let command = yield game.waitConfirm(u, `${this.figure.name}濒死，是否为其出【桃】？`);
                 if (command.cmd === C.CONFIRM.Y) {

@@ -2,7 +2,7 @@ const C = require('../constants');
 const Phase = require('./phase');
 
 
-module.exports = class extends Phase {
+class RoundEndPhase extends Phase {
     constructor(game) {
         super(game);
     }
@@ -11,4 +11,7 @@ module.exports = class extends Phase {
         console.log('ROUND-END-PHASE');
         const u = game.roundOwner;
     }
-};
+}
+
+RoundEndPhase.name = 'RoundEndPhase';
+module.exports = RoundEndPhase;

@@ -3,7 +3,7 @@ const utils = require('../utils');
 const Phase = require('./phase');
 
 
-module.exports = class extends Phase {
+class GameStartPhase extends Phase {
     constructor(game) {
         super(game);
     }
@@ -29,4 +29,7 @@ module.exports = class extends Phase {
             }
         }
     }
-};
+}
+
+GameStartPhase.name = 'GameStartPhase';
+module.exports = GameStartPhase;

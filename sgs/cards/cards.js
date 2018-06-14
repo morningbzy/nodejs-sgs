@@ -14,6 +14,7 @@ class CardBase {
         return {
             pk: this.pk,
             name: this.name,
+            shortName: this.shortName || this.name.substr(0, 1),
             category: this.category,
             suit: this.suit,
             number: this.number,
@@ -38,6 +39,46 @@ class SilkBagCard extends CardBase {
     constructor(suit, number) {
         super(suit, number);
         this.category = C.CARD_CATEGORY.SILK_BAG;
+    }
+}
+
+
+class DelayedSilkBagCard extends CardBase {
+    constructor(suit, number) {
+        super(suit, number);
+        this.category = C.CARD_CATEGORY.DELAYED_SILK_BAG;
+    }
+
+    static* start(game, ctx) {
+        let u = ctx.sourceUser;
+        game.lockUserCards(u, ctx.sourceCards);
+        let command = yield game.wait(u, {
+            validCmds: ['CANCEL', 'TARGET'],
+            validator: (command) => {
+                if (command.cmd === 'CANCEL') {
+                    return true;
+                }
+                if (command.params.length !== 1) {
+                    return false;
+                }
+                // TODO: validate distance & target-able
+                return true;
+            },
+        });
+        game.unlockUserCards(u, ctx.sourceCards);
+
+        if (command.cmd === 'CANCEL') {
+            return yield Promise.resolve(R.abort);
+        }
+
+        game.removeUserCards(u, ctx.sourceCards);
+
+        let targetPks = command.params;
+        ctx.targets = game.usersByPk(targetPks)[0];
+
+        game.pushUserJudge(ctx.targets, ctx.sourceCards[0]);
+
+        return yield Promise.resolve(R.success);
     }
 }
 
@@ -72,7 +113,7 @@ class JueDou extends SilkBagCard {
         this.name = '决斗';
     }
 
-    * start(game, ctx) {
+    static* start(game, ctx) {
         let u = ctx.sourceUser;
         game.lockUserCards(u, ctx.sourceCards);
         let command = yield game.wait(u, {
@@ -91,7 +132,7 @@ class JueDou extends SilkBagCard {
         game.unlockUserCards(u, ctx.sourceCards);
 
         if (command.cmd === 'CANCEL') {
-            return yield Promise.resolve('cancel');
+            return yield Promise.resolve(R.abort);
         }
 
         game.removeUserCards(u, ctx.sourceCards);
@@ -101,7 +142,7 @@ class JueDou extends SilkBagCard {
         let users = ctx.targets.concat(u);
         let done = false;
         let loser;
-        while(!done) {
+        while (!done) {
             for (let _u of users) {
                 let result = yield _u.on('requireSha', game, ctx);
                 if (result.success) {
@@ -131,7 +172,7 @@ class WuZhongShengYou extends SilkBagCard {
         this.name = '无中生有';
     }
 
-    * start(game, ctx) {
+    static* start(game, ctx) {
         const u = ctx.sourceUser;
         game.removeUserCards(u, ctx.sourceCards);
         game.dispatchCards(u, 2);
@@ -139,9 +180,33 @@ class WuZhongShengYou extends SilkBagCard {
     }
 }
 
+
+class LeBuSiShu extends DelayedSilkBagCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '乐不思蜀';
+        this.shortName = '乐';
+    }
+
+    static judge(card) {
+        let result = R.judge(C.CARD_SUIT.HEART !== card.suit);
+        console.log(result);
+        console.log(result.success);
+        console.log(result.fail);
+        console.log(result.abort);
+        return result;
+    }
+
+    static judgeEffect(u) {
+        u.phases.RoundPlayPhase = 0;
+    }
+}
+
+
 cardClasses = {
     NormalCard,
     SilkBagCard,
+    DelayedSilkBagCard,
 
     Sha,
     Shan,
@@ -149,7 +214,10 @@ cardClasses = {
 
     JueDou,
     WuZhongShengYou,
+
+    LeBuSiShu,
 };
+
 
 const cardSet = new Map();
 
@@ -180,6 +248,10 @@ const cardSet = new Map();
     new WuZhongShengYou(C.CARD_SUIT.HEART, 8),
     new WuZhongShengYou(C.CARD_SUIT.HEART, 9),
     new WuZhongShengYou(C.CARD_SUIT.HEART, 11),
+
+    new LeBuSiShu(C.CARD_SUIT.SPADE, 6),
+    new LeBuSiShu(C.CARD_SUIT.HEART, 6),
+    new LeBuSiShu(C.CARD_SUIT.CLUB, 6),
 ].map((c) => cardSet.set(c.pk, c));
 
 module.exports = Object.assign(cardClasses, {cardSet});

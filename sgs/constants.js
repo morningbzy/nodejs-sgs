@@ -62,7 +62,7 @@ Constants = {
     CARD_CATEGORY: {
         NORMAL: 0,
         SILK_BAG: 1,
-        SILK_BAG_DELAYED: 2,
+        DELAYED_SILK_BAG: 2,
     },
     CONFIRM: {
         Y: 'Y',

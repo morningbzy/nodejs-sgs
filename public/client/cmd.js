@@ -169,7 +169,7 @@ const Cmd = {
         let rendered = `<div class="sgs-cl-self alert alert-${alertClass} fade mb-0" role="alert">${alertHtml}</div>`;
         $('#sgs-table .alert').alert('close');
         $(rendered).appendTo('#sgs-table');
-        $('#sgs-table .alert:first').addClass('show');
+        $('#sgs-table .alert:last').addClass('show');
     },
 
     role: function (params, marker) {

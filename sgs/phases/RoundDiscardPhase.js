@@ -3,7 +3,7 @@ const utils = require('../utils');
 const Phase = require('./phase');
 
 
-module.exports = class extends Phase {
+class RoundDiscardPhase extends Phase {
     constructor(game) {
         super(game);
     }
@@ -34,4 +34,7 @@ module.exports = class extends Phase {
             discardCount = Math.max(u.cards.size - u.hp, 0);
         }
     }
-};
+}
+
+RoundDiscardPhase.name = 'RoundDiscardPhase';
+module.exports = RoundDiscardPhase;
