@@ -276,7 +276,7 @@ class SiMaYi extends FigureBase {
     }
 
     * s2(game, ctx) {
-
+        return yield this.owner.requireCard(game, sgsCards.CardBase);
     }
 
     * demage(game, ctx) {
@@ -284,6 +284,15 @@ class SiMaYi extends FigureBase {
         if (command.cmd === C.CONFIRM.Y) {
             return yield this.useSkill(this.skills.WEI002s01, game, ctx);
         }
+        return yield Promise.resolve(R.fail);
+    }
+
+    * beforeJudgeEffect(game, ctx) {
+        let command = yield game.waitConfirm(this.owner, `是否打出一张手牌代替判定牌？`);
+        if (command.cmd === C.CONFIRM.Y) {
+            return yield this.useSkill(this.skills.WEI002s02, game, ctx);
+        }
+        return yield Promise.resolve(R.fail);
     }
 }
 

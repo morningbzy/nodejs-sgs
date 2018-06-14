@@ -22,11 +22,17 @@ class RoundJudgePhase extends Phase {
             //     judgeCard = _u.on('beforeJudge');
             // }
             let judgeCard = game.getJudgeCard();
+            game.broadcast(`ALERT ${u.figure.name}判定${card.name}为${judgeCard.suit}${judgeCard.number}。`);
 
             // TODO: Before judge effective, ask SiMaYi & ZhangJiao
-            // for(let _u of game.userRound()) {
-            //     judgeCard = _u.on('beforeJudgeEffect');
-            // }
+            for(let _u of game.userRound()) {
+                let result = yield _u.on('beforeJudgeEffect', game);
+                if(result.success) {
+                    judgeCard = result.get().cards[0];
+                    game.broadcast(`ALERT ${u.figure.name}判定${card.name}为${judgeCard.suit}${judgeCard.number}。`);
+                }
+            }
+
             let result = asClass.judge(judgeCard);
             game.broadcast(`ALERT ${u.figure.name}判定${card.name}为${judgeCard.suit}${judgeCard.number}。${result.success?'生效':'未生效'}`);
             if(result.success) {

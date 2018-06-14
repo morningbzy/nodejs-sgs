@@ -247,7 +247,8 @@ module.exports = class extends EventListener {
         game.userDead(this);
     }
 
-    * _requireCard(game, cardClass) {
+    // NOTE: This is NOT an event handler
+    * requireCard(game, cardClass) {
         let command = yield game.wait(this, {
             validCmds: ['CANCEL', 'CARD'],
             validator: (command) => {
@@ -280,7 +281,7 @@ module.exports = class extends EventListener {
             result = yield this.equipments.armor.on('requireSha', game, ctx);
         }
         if (!result.abort && result.fail) {
-            result = yield this._requireCard(game, sgsCards.Sha);
+            result = yield this.requireCard(game, sgsCards.Sha);
         }
         return yield Promise.resolve(result);
     }
@@ -291,7 +292,7 @@ module.exports = class extends EventListener {
             result = yield this.equipments.armor.on('requireShan', game, ctx);
         }
         if (!result.abort && result.fail) {
-            result = yield this._requireCard(game, sgsCards.Shan);
+            result = yield this.requireCard(game, sgsCards.Shan);
         }
         return yield Promise.resolve(result);
     }
@@ -302,7 +303,15 @@ module.exports = class extends EventListener {
             result = yield this.equipments.armor.on('requireTao', game, ctx);
         }
         if (!result.abort && result.fail) {
-            result = yield this._requireCard(game, sgsCards.Tao);
+            result = yield this.requireCard(game, sgsCards.Tao);
+        }
+        return yield Promise.resolve(result);
+    }
+
+    * beforeJudgeEffect(game, ctx) {
+        let result = yield this.figure.on('beforeJudgeEffect', game, ctx);
+        if (!result.abort && result.fail && this.equipments.armor) {
+            result = yield this.equipments.armor.on('beforeJudgeEffect', game, ctx);
         }
         return yield Promise.resolve(result);
     }

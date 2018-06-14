@@ -204,6 +204,7 @@ class LeBuSiShu extends DelayedSilkBagCard {
 
 
 cardClasses = {
+    CardBase,
     NormalCard,
     SilkBagCard,
     DelayedSilkBagCard,
