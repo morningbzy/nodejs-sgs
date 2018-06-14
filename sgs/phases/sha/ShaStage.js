@@ -1,9 +1,12 @@
+const R = require('../../common/results');
+
+
 class ShaInitStage {
     static* start(game, u, ctx) {
         console.log('SHA-INIT-STAGE');
         let result = yield u.on('useSha', game, ctx);
-        if (result === 'cancel') {
-            return yield Promise.resolve('cancel');
+        if (result.abort) {
+            return yield Promise.resolve(result);
         }
 
         let targetCount = 1;  // TODO: How many targets are required
@@ -26,11 +29,12 @@ class ShaInitStage {
         game.unlockUserCards(u, ctx.sourceCards);
 
         if (command.cmd === 'CANCEL') {
-            return yield Promise.resolve('cancel');
+            return yield Promise.resolve(R.abort);
         }
         let targetPks = command.params;
         ctx.targets = game.usersByPk(targetPks);
         ctx.damage = 1;
+        return yield Promise.resolve(R.success);
     }
 }
 
@@ -41,8 +45,9 @@ class ShaValidateStage {
         if (shaAble) {
             game.removeUserCards(ctx.sourceUser, ctx.sourceCards);
         } else {
-            return yield Promise.resolve('cancel');
+            return yield Promise.resolve(R.abort);
         }
+        return yield Promise.resolve(R.success);
     }
 }
 
@@ -56,9 +61,7 @@ class ShaExecuteStage {
         if (shanAble) {
             for (let target of targets) {
                 let result = yield target.on('requireShan', game, ctx);
-                if (result) {
-                    //
-                } else {
+                if (result.fail) {
                     yield target.on('damage', game, ctx);
                 }
             }
@@ -66,6 +69,7 @@ class ShaExecuteStage {
 
         yield u.on('usedSha', game, ctx);
         game.discardCards(ctx.sourceCards);
+        return yield Promise.resolve(R.success);
     }
 }
 
@@ -81,12 +85,12 @@ class ShaStage {
             let result;
             for (let s of subStages) {
                 result = yield s.start(game, u, ctx);
-                if (result === 'cancel') {
+                if (result.abort) {
                     // 中止
                     break;
                 }
             }
-            return yield Promise.resolve(result);
+            return yield Promise.resolve(R.success);
         };
     };
 

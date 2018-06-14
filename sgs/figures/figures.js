@@ -1,11 +1,14 @@
 const C = require('../constants');
+const R = require('../common/results');
 const utils = require('../utils');
 const cardManager = require('../cards');
-const ShaStage = require('../phases/sha/ShaStage');
+const sgsCards = require('../cards/cards');
+const EventListener = require('../common/eventListener');
 
 
-class FigureBase {
+class FigureBase extends EventListener {
     constructor() {
+        super();
         this.owner = null;
     }
 
@@ -34,17 +37,16 @@ class FigureBase {
 
     * useSkill(skill, game, ctx) {
         console.log(`|<F> SKILL ${skill.name}`);
+        const oleState = skill.state;
         this.changeSkillState(skill, C.SKILL_STATE.FIRING);
         let result = yield this[skill.handler](game, ctx);
-        this.changeSkillState(skill, C.SKILL_STATE.DISABLED);
+        this.changeSkillState(skill, oleState);
         return result;
     }
 
     * on(event, game, ctx) {
         console.log(`|<F> ON ${this.name} ${event}`);
-        if (typeof(this[event]) === 'function') {
-            return yield this[event](game, ctx);
-        }
+        return yield super.on(event, game, ctx);
     }
 }
 
@@ -83,6 +85,7 @@ class CaoCao extends FigureBase {
     * s1(game, ctx) {
         game.addUserCards(this.owner, ctx.sourceCards);
         ctx.sourceCards = [];
+        return yield Promise.resolve(R.success);
     }
 
     * s2(game, ctx) {
@@ -95,12 +98,12 @@ class CaoCao extends FigureBase {
             let command = yield game.waitConfirm(u, `曹操使用技能【护驾】，是否为其出【闪】？`);
             if (command.cmd === C.CONFIRM.Y) {
                 let result = yield u.on('requireShan', game, ctx);
-                if (result) {
+                if (result.success) {
                     return yield Promise.resolve(result);
                 }
             }
         }
-        return yield Promise.resolve();
+        return yield Promise.resolve(R.fail);
     }
 
     * demage(game, ctx) {
@@ -112,6 +115,7 @@ class CaoCao extends FigureBase {
         if (command.cmd === C.CONFIRM.Y) {
             return yield this.useSkill(this.skills.WEI001s02, game, ctx);
         }
+        return yield Promise.resolve(R.fail);
     }
 }
 
@@ -138,6 +142,7 @@ class GuanYu extends FigureBase {
     }
 
     * s1(game, ctx) {
+        let result;
         const u = this.owner;
         let command = yield game.wait(u, {
             validCmds: ['CARD', 'CANCEL'],
@@ -160,22 +165,16 @@ class GuanYu extends FigureBase {
         });
 
         if (command.cmd === 'CANCEL') {
-            return yield Promise.resolve('cancel');
+            return yield Promise.resolve(R.fail);
         }
         let cards = cardManager.getCards(command.params);
         game.lockUserCards(u, cards);
-        ctx.sourceCards = cards;
-
-        if(ctx.mark === 'requireCard') {
-            game.removeUserCards(u, cards);
-            game.discardCards(cards);
-            return yield Promise.resolve(cards);
-        } else {
-            return yield ShaStage.start(game, u, ctx);
-        }
+        result = new R.CardResult();
+        result.set(cards, sgsCards.Sha);
+        return yield Promise.resolve(result);
     }
 
-    * requirePlay(game, ctx) {
+    * play(game, ctx) {
         if (this.owner.shaCount > 0) {
             this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.ENABLED);
         } else {
@@ -184,11 +183,58 @@ class GuanYu extends FigureBase {
     }
 
     * requireSha(game, ctx) {
-        let command = yield game.waitConfirm(this.owner, `是否使用技能【武圣】？`);
-        if (command.cmd === C.CONFIRM.Y) {
-            ctx.mark = 'requireCard';
-            return yield this.useSkill(this.skills.SHU002s01, game, ctx);
+        this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.ENABLED);
+        let result = R.fail;
+        while (result.fail) {
+            let u = this.owner;
+            let command = yield game.wait(u, {
+                waitingTag: C.WAITING_FOR.SOMETHING,
+                validCmds: ['CARD', 'SKILL', 'CANCEL'],
+                validator: (command) => {
+                    switch (command.cmd) {
+                        case 'CARD':
+                            let card = cardManager.getCards(command.params)[0];
+                            if (command.params.length !== 1) {
+                                return false;
+                            }
+                            if (!u.hasCard(card)) {
+                                return false;
+                            }
+                            if (!(card instanceof sgsCards.Sha)) {
+                                return false;
+                            }
+                            break;
+                        case 'SKILL':
+                            if (command.params[0] !== 'SHU002s01') {
+                                return false;
+                            }
+                            let skill = u.figure.skills.SHU002s01;
+                            if (skill.state !== C.SKILL_STATE.ENABLED) {
+                                return false;
+                            }
+                            break;
+                    }
+                    return true;
+                },
+            });
+            switch (command.cmd) {
+                case 'CANCEL':
+                    result = R.abort;
+                    break;
+                case 'CARD':
+                    let cards = cardManager.getCards(command.params);
+                    game.lockUserCards(u, cards);
+                    result = new R.CardResult();
+                    result.set(cards);
+                    break;
+                case 'SKILL':
+                    let skill = u.figure.skills[command.params[0]];
+                    result = yield u.figure.useSkill(skill, game, ctx);
+                    break;
+            }
         }
+        this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.DISABLED);
+        return yield Promise.resolve(result);
     }
 }
 
@@ -223,7 +269,7 @@ class SiMaYi extends FigureBase {
     }
 
     * s1(game, ctx) {
-        // TODO 也可以选择装备区的牌
+        // TODO equipment card can also be selected
         let cards = utils.shuffle(ctx.sourceUser.cards.values()).slice(0, 1);
         game.removeUserCards(ctx.sourceUser, cards);
         game.addUserCards(this.owner, cards);

@@ -8,6 +8,8 @@ const WAITING_FOR = {
     SOMETHING: 1,
     CARD: 2,
     TARGET: 3,
+    CONFIRM: 4,
+    PLAY: 5
 };
 
 const SKILL_STATE = {

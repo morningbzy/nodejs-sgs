@@ -22,6 +22,7 @@ Constants = {
         CARD: 2,
         TARGET: 3,
         CONFIRM: 4,
+        PLAY: 5,
     },
     ROLE: {
         ZHUGONG: 0,

@@ -304,7 +304,7 @@
             let table = $('#game-table');
             let panel = $('#sgs-player-panel');
             table.on('click', '.sgs-player:not(.sgs-dead) .sgs-player-card', (e) => {
-                if (Cmd.waitingTag === WAITING_FOR.TARGET) {
+                if ([WAITING_FOR.SOMETHING, WAITING_FOR.TARGET].includes(Cmd.waitingTag)) {
                     $(e.currentTarget).toggleClass(selectedPlayerClass);
                 }
             });
@@ -318,13 +318,20 @@
                 });
             });
             panel.on('click', '#sgs-card-panel .sgs-card', (e) => {
-                if (Cmd.waitingTag === WAITING_FOR.CARD) {
+                if ([WAITING_FOR.SOMETHING, WAITING_FOR.CARD].includes(Cmd.waitingTag)) {
                     $(e.currentTarget).toggleClass(selectedCardClass);
+                }
+                if (WAITING_FOR.PLAY === Cmd.waitingTag) {
+                    let pks = [$(e.currentTarget).attr('pk')];
+                    Cmd.send({
+                        cmd: 'CARD',
+                        params: pks,
+                    });
                 }
             });
             panel.on('click', '.sgs-action-ok', (e) => {
                 let pks = [];
-                if (Cmd.waitingTag === WAITING_FOR.CARD) {
+                if ([WAITING_FOR.SOMETHING, WAITING_FOR.CARD].includes(Cmd.waitingTag)) {
                     $('#sgs-card-panel .sgs-card.sgs-card-selected').each(
                         (i, el) => {
                             pks.push($(el).attr('pk'));
@@ -335,7 +342,7 @@
                         cmd: 'CARD',
                         params: pks,
                     });
-                } else if (Cmd.waitingTag === WAITING_FOR.TARGET) {
+                } else if ([WAITING_FOR.SOMETHING, WAITING_FOR.TARGET].includes(Cmd.waitingTag)) {
                     $('#game-table .sgs-player-selected').each((i, el) => {
                         pks.push($(el).parents('[pk]').attr('pk'));
                         $(el).removeClass(selectedPlayerClass);

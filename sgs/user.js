@@ -1,10 +1,13 @@
 const C = require('./constants');
+const R = require('./common/results');
 const cardManager = require('./cards');
 const sgsCards = require('./cards/cards');
+const EventListener = require('./common/eventListener');
 
 
-module.exports = class {
+module.exports = class extends EventListener {
     constructor(sessionId, messageResp) {
+        super();
         this.id = sessionId;
         this.state = C.USER_STATE.CREATED;
 
@@ -123,15 +126,13 @@ module.exports = class {
 
     * on(event, game, ctx = {}) {
         console.log(`|<U> ON ${this.name}(${this.figure.name}) ${event}`);
-        if (typeof(this[event]) === 'function') {
-            return yield this[event](game, ctx);
-        }
+        return yield super.on(event, game, ctx);
     }
 
-    * requirePlay(game, ctx) {
-        let result = yield this.figure.on('requirePlay', game, ctx);
+    * play(game, ctx) {
+        let result = yield this.figure.on('play', game, ctx);
         if (!result && this.equipments.armor) {
-            result = yield this.equipments.armor.on('requirePlay', game, ctx);
+            result = yield this.equipments.armor.on('play', game, ctx);
         }
         if (!result) {
         }
@@ -140,8 +141,9 @@ module.exports = class {
 
     * useSha(game, ctx) {
         if (this.shaCount < 1) {
-            return yield Promise.resolve('cancel');
+            return yield Promise.resolve(R.abort);
         }
+        return yield Promise.resolve(R.success);
     }
 
     * usedSha(game, ctx) {
@@ -149,7 +151,7 @@ module.exports = class {
     }
 
     * useTao(game, ctx) {
-        if(this.hp < this.maxHp) {
+        if (this.hp < this.maxHp) {
             ctx.heal = 1;
             yield this.on('heal', game, ctx);
             game.removeUserCards(ctx.sourceUser, ctx.sourceCards);
@@ -190,19 +192,30 @@ module.exports = class {
 
         // TODO require Tao
         for (let u of game.userRound()) {
-            let command = yield game.waitConfirm(u, `${this.figure.name}濒死，是否为其出【桃】？`);
-            if (command.cmd === C.CONFIRM.Y) {
-                let result = yield u.on('requireTao', game, ctx);
-                if (result) {
-                    ctx.heal = 1;
-                    yield this.on('heal', game, ctx);
+            while(this.state === C.USER_STATE.DYING) {
+                // 同一个人可以出多次桃救
+                let command = yield game.waitConfirm(u, `${this.figure.name}濒死，是否为其出【桃】？`);
+                if (command.cmd === C.CONFIRM.Y) {
+                    let result = yield u.on('requireTao', game, ctx);
+                    if (result.success) {
+                        let cards = result.get().cards;
+                        game.removeUserCards(u, cards);
+                        game.discardCards(cards);
+                        ctx.heal = 1;
+                        yield this.on('heal', game, ctx);
+                    }
+                } else {
                     break;
                 }
+            }
+
+            if (this.state === C.USER_STATE.ALIVE) {
+                break;
             }
         }
 
         if (this.hp <= 0) {
-            return yield this.on('die', game, ctx);
+            yield this.on('die', game, ctx);
         }
     }
 
@@ -211,96 +224,62 @@ module.exports = class {
         game.userDead(this);
     }
 
+    * _requireCard(game, cardClass) {
+        let command = yield game.wait(this, {
+            validCmds: ['CANCEL', 'CARD'],
+            validator: (command) => {
+                if (command.cmd === 'CANCEL') {
+                    return true;
+                }
+                let card = cardManager.getCards(command.params)[0];
+                if (card instanceof cardClass) {
+                    return true;
+                }
+                return false;
+            },
+        });
+
+        let result;
+        if (command.cmd === 'CANCEL') {
+            result = R.fail;
+        } else {
+            let cards = cardManager.getCards(command.params);
+            game.removeUserCards(this, cards);
+            result = new R.CardResult();
+            result.set(cards);
+        }
+        return yield Promise.resolve(result);
+    }
+
     * requireSha(game, ctx) {
         let result = yield this.figure.on('requireSha', game, ctx);
-        if (!result && this.equipments.armor) {
+        if (!result.abort && result.fail && this.equipments.armor) {
             result = yield this.equipments.armor.on('requireSha', game, ctx);
         }
-        if (!result) {
-            let command = yield game.wait(this, {
-                validCmds: ['CANCEL', 'CARD'],
-                validator: (command) => {
-                    if (command.cmd === 'CANCEL') {
-                        return true;
-                    }
-                    let card = cardManager.getCards(command.params)[0];
-                    if (card instanceof sgsCards.Sha) {
-                        return true;
-                    }
-                    return false;
-                },
-            });
-
-            if (command.cmd === 'CANCEL') {
-                result = false;
-            } else {
-                let cards = cardManager.getCards(command.params);
-                game.removeUserCards(this, cards);
-                game.discardCards(cards);
-                result = cards;
-            }
+        if (!result.abort && result.fail) {
+            result = yield this._requireCard(game, sgsCards.Sha);
         }
         return yield Promise.resolve(result);
     }
 
     * requireShan(game, ctx) {
-        let result= yield this.figure.on('requireShan', game, ctx);
-        if (!result && this.equipments.armor) {
+        let result = yield this.figure.on('requireShan', game, ctx);
+        if (!result.abort && result.fail && this.equipments.armor) {
             result = yield this.equipments.armor.on('requireShan', game, ctx);
         }
-        if (!result) {
-            let command = yield game.wait(this, {
-                validCmds: ['CANCEL', 'CARD'],
-                validator: (command) => {
-                    if (command.cmd === 'CANCEL') {
-                        return true;
-                    }
-                    let card = cardManager.getCards(command.params)[0];
-                    if (card instanceof sgsCards.Shan) {
-                        return true;
-                    }
-                    return false;
-                },
-            });
-
-            if (command.cmd === 'CANCEL') {
-                result = false;
-            } else {
-                game.removeUserCardPks(this, command.params);
-                game.discardCardPks(command.params);
-                result = true;
-            }
+        if (!result.abort && result.fail) {
+            result = yield this._requireCard(game, sgsCards.Shan);
         }
         return yield Promise.resolve(result);
     }
 
     * requireTao(game, ctx) {
         let result = yield this.figure.on('requireTao', game, ctx);
-        if (!result && this.equipments.armor) {
+        if (!result.abort && result.fail && this.equipments.armor) {
             result = yield this.equipments.armor.on('requireTao', game, ctx);
         }
-        if (!result) {
-            let command = yield game.wait(this, {
-                validCmds: ['CANCEL', 'CARD'],
-                validator: (command) => {
-                    if (command.cmd === 'CANCEL') {
-                        return true;
-                    }
-                    let card = cardManager.getCards(command.params)[0];
-                    if (card instanceof sgsCards.Tao) {
-                        return true;
-                    }
-                    return false;
-                },
-            });
-
-            if (command.cmd === 'CANCEL') {
-                result = false;
-            } else {
-                game.removeUserCardPks(this, command.params);
-                game.discardCardPks(command.params);
-                result = true;
-            }
+        if (!result.abort && result.fail) {
+            result = yield this._requireCard(game, sgsCards.Tao);
         }
         return yield Promise.resolve(result);
     }

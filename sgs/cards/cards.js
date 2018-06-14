@@ -1,5 +1,6 @@
 const uuid = require('uuid/v4');
 const C = require('../constants');
+const R = require('../common/results');
 
 
 class CardBase {
@@ -94,7 +95,6 @@ class JueDou extends SilkBagCard {
         }
 
         game.removeUserCards(u, ctx.sourceCards);
-        game.discardCards(ctx.sourceCards);
 
         let targetPks = command.params;
         ctx.targets = game.usersByPk(targetPks);
@@ -104,9 +104,11 @@ class JueDou extends SilkBagCard {
         while(!done) {
             for (let _u of users) {
                 let result = yield _u.on('requireSha', game, ctx);
-                if (result) {
+                if (result.success) {
+                    game.discardCards(ctx.sourceCards);
                     ctx.sourceUser = _u;
-                    ctx.sourceCards = result;
+                    ctx.sourceCards = result.get().cards;
+                    game.removeUserCards(_u, ctx.sourceCards);
                 } else {
                     done = true;
                     loser = _u;
@@ -116,7 +118,9 @@ class JueDou extends SilkBagCard {
         }
 
         ctx.damage = 1;
-        return yield loser.on('damage', game, ctx);
+        let result = yield loser.on('damage', game, ctx);
+        game.discardCards(ctx.sourceCards);
+        return yield Promise.resolve(result);
     }
 }
 
