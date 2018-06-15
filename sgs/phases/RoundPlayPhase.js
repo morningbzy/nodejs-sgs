@@ -42,7 +42,8 @@ class RoundPlayPhase extends Phase {
             result = yield asClass.start(game, context);
         }
         if (cards.length === 1 && cards[0] instanceof sgsCards.EquipmentCard) {
-            result = yield asClass.start(game, context);
+            game.equipUserCard(u, cards[0]);
+            result = yield Promise.resolve(R.success);
         }
 
         return yield Promise.resolve(result);

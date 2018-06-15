@@ -1,6 +1,9 @@
+const aggregation = require('aggregation/es6');
 const uuid = require('uuid/v4');
 const C = require('../constants');
 const R = require('../common/results');
+const EventListener = require('../common/eventListener');
+const ShaStage = require('../phases/sha/ShaStage');
 
 
 class CardBase {
@@ -83,19 +86,15 @@ class DelayedSilkBagCard extends CardBase {
 }
 
 
-class EquipmentCard extends CardBase {
+class EquipmentCard extends aggregation(CardBase, EventListener) {
     constructor(suit, number) {
         super(suit, number);
         this.category = C.CARD_CATEGORY.EQUIPMENT;
     }
 
-    static* start(game, ctx) {
-        let u = ctx.sourceUser;
-
-        game.removeUserCards(u, ctx.sourceCards);
-        game.equipUserCard(u, ctx.sourceCards[0]);
-
-        return yield Promise.resolve(R.success);
+    * on(event, game, ctx) {
+        console.log(`|<E> ON ${this.name} ${event}`);
+        return yield super.on(event, game, ctx);
     }
 }
 
@@ -233,6 +232,30 @@ class QingLongYanYueDao extends WeaponCard {
         super(suit, number);
         this.name = '青龙偃月刀';
         this.shortName = '龙';
+    }
+
+    * start(game, ctx) {
+        let u = ctx.sourceUser;
+        let result = yield u.on('requireSha', game, ctx);
+        if(result.success) {
+            let context = {
+                sourceUser: u,
+                sourceCards: result.get().cards,
+                targets: [ctx.shanPlayer],
+                skipShaInitStage: true,
+                damage: 1,
+            };
+            return yield ShaStage.start(game, u, context);
+        }
+    }
+
+    * shaBeenShan(game, ctx) {
+        let u = ctx.sourceUser;
+        let command = yield game.waitConfirm(u, `是否使用武器【青龙偃月刀】？`);
+        if (command.cmd === C.CONFIRM.Y) {
+            yield this.start(game, ctx);
+        }
+        return yield Promise.resolve(R.success);
     }
 }
 

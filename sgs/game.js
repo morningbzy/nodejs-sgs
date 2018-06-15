@@ -217,6 +217,14 @@ class Game {
         this.removeUserCardPks(user, cardPks);
         this.discardCardPks(cardPks);
 
+        for(let k in C.EQUIP_TYPE) {
+            this.unequipUserCard(C.EQUIP_TYPE[k]);
+        }
+
+        for(let j of user.judgeStack) {
+            this.discardCard(j.card);
+        }
+
         if(this.usersNotInState(C.USER_STATE.DEAD).length <= 1) {
             this.state = C.GAME_STATE.ENDING;
         }
@@ -263,14 +271,14 @@ class Game {
 
     equipUserCard(user, card) {
         this.unequipUserCard(user, card.equipType);
+        this.removeUserCards(user, [card]);
         user.equipCard(card);
         this.broadcastUserInfo(user);
     }
 
     unequipUserCard(user, equipType) {
-        let old = user.equipments[equipType];
+        let old = user.unequipCard(equipType);
         if(old) {
-            user.equipments[equipType] = null;
             this.discardCards([old.card]);
             this.broadcastUserInfo(user);
         }

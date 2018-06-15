@@ -3,6 +3,10 @@ const R = require('../../common/results');
 
 class ShaInitStage {
     static* start(game, u, ctx) {
+        if(ctx.skipShaInitStage) {
+            return yield Promise.resolve(R.success);
+        }
+
         console.log('SHA-INIT-STAGE');
         let result = yield u.on('useSha', game, ctx);
         if (result.abort) {
@@ -56,18 +60,23 @@ class ShaExecuteStage {
         console.log('SHA-EXECUTE-STAGE');
         const targets = ctx.targets;
 
+        yield u.on('usedSha', game, ctx);
+
         // TODO: SHAN-able?
         let shanAble = true;
         if (shanAble) {
             for (let target of targets) {
                 let result = yield target.on('requireShan', game, ctx);
-                if (result.fail) {
+                if(result.success) {
+                    ctx.shanPlayer = target;
+                    yield u.on('usedShan', game, ctx);
+                    yield u.on('shaBeenShan', game, ctx);
+                } else {
                     yield target.on('damage', game, ctx);
                 }
             }
         }
 
-        yield u.on('usedSha', game, ctx);
         game.discardCards(ctx.sourceCards);
         return yield Promise.resolve(R.success);
     }

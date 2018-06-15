@@ -14,7 +14,6 @@ class RoundJudgePhase extends Phase {
         let judge = u.popJudge();
         while(judge) {
             let {card, asClass} = judge;
-            console.log(`|[i] Judging ${card.name} as ${asClass}...`);
 
             // ---------------------------------
             // TODO: Before judge, ask WuXieKeJi

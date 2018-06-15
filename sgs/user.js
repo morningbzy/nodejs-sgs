@@ -139,8 +139,6 @@ module.exports = class extends EventListener {
     }
 
     pushJudge(card, asClass) {
-        console.log(asClass);
-        console.log(card.constructor);
         this.judgeStack.unshift({
             card: card,
             asClass: asClass || card.constructor
@@ -156,6 +154,12 @@ module.exports = class extends EventListener {
             card,
             state: C.SKILL_STATE.DISABLED,
         };
+    }
+
+    unequipCard(equipType) {
+        let old = this.equipments[equipType];
+        this.equipments[equipType] = null;
+        return old;
     }
 
     * on(event, game, ctx = {}) {
@@ -175,6 +179,7 @@ module.exports = class extends EventListener {
 
     * useSha(game, ctx) {
         if (this.shaCount < 1) {
+            console.log(`|<!> Use too many Sha`);
             return yield Promise.resolve(R.abort);
         }
         return yield Promise.resolve(R.success);
@@ -323,6 +328,14 @@ module.exports = class extends EventListener {
         let result = yield this.figure.on('beforeJudgeEffect', game, ctx);
         if (!result.abort && result.fail && this.equipments.armor) {
             result = yield this.equipments.armor.on('beforeJudgeEffect', game, ctx);
+        }
+        return yield Promise.resolve(result);
+    }
+
+    * shaBeenShan(game, ctx) {
+        let result = yield this.figure.on('shaBeenShan', game, ctx);
+        if (!result.abort && result.fail && this.equipments.weapon) {
+            result = yield this.equipments.weapon.card.on('shaBeenShan', game, ctx);
         }
         return yield Promise.resolve(result);
     }
