@@ -7,7 +7,7 @@
         <span class="badge badge-light">{{ category }}</span>
     </div>
     <div class="card-footer p-1">
-        <span class="sgs-card-number sgs-card-suit-{{ suit }} badge badge-light text-danger">{{ number }}</span>
+        <span class="sgs-card-number sgs-card-suit-{{ suit }} badge badge-light">{{ number }}</span>
     </div>
 </div>
 {{/cards}}

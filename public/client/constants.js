@@ -19,6 +19,13 @@ const SKILL_STATE = {
     FIRING: 4,
 };
 
+const EQUIP_TYPE = {
+    WEAPON: 'weapon',
+    ARMOR: 'armor',
+    ATTACK_HORSE: 'attackHorse',
+    DEFENSE_HORSE: 'defenseHorse',
+};
+
 function sleep(ms) {
     return new Promise((res, rej) => {
         setTimeout(res, ms);

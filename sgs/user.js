@@ -52,11 +52,6 @@ module.exports = class extends EventListener {
             cards.push(c.toJsonString());
         });
 
-        let equipments = {};
-        for(let k in this.equipments) {
-            equipments[k] = this.equipments[k] && this.equipments[k].toJson();
-        }
-
         return {
             id: this.id,
             name: this.name,
@@ -72,7 +67,7 @@ module.exports = class extends EventListener {
             maxHp: this.showFigure ? this.maxHp : 0,
             faceUp: this.faceUp,
 
-            equipments,
+            equipments: this.equipments,
 
             cardCount: this.cards.size,
             cards,
@@ -157,9 +152,10 @@ module.exports = class extends EventListener {
     }
 
     equipCard(card) {
-        let oldCard = this.equipments[card.equipType];
-
-        this.equipments[card.equipType] = card;
+        this.equipments[card.equipType] = {
+            card,
+            state: C.SKILL_STATE.DISABLED,
+        };
     }
 
     * on(event, game, ctx = {}) {

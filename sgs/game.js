@@ -160,7 +160,7 @@ class Game {
 
     startIfReady() {
         if (this.usersNotInState(C.USER_STATE.READY).length === 0 &&
-            this.usersInState(C.USER_STATE.READY).length >= 4) {
+            this.usersInState(C.USER_STATE.READY).length >= 3) {
             this.start();
         }
     }
@@ -263,15 +263,15 @@ class Game {
 
     equipUserCard(user, card) {
         this.unequipUserCard(user, card.equipType);
-        user.equipments[card.equipType] = card;
+        user.equipCard(card);
         this.broadcastUserInfo(user);
     }
 
     unequipUserCard(user, equipType) {
-        let oldCard = user.equipments[equipType];
-        if(oldCard) {
+        let old = user.equipments[equipType];
+        if(old) {
             user.equipments[equipType] = null;
-            this.discardCards([oldCard]);
+            this.discardCards([old.card]);
             this.broadcastUserInfo(user);
         }
     }

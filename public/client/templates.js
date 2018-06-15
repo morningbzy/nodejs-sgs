@@ -1,5 +1,5 @@
 
-let figureTpl, cardTpl, userTpl;
+let figureTpl, cardTpl, userTpl, equipmentTpl ;
 
 
 $(document).ready(() => {
@@ -12,6 +12,9 @@ $(document).ready(() => {
     });
     $.get('/client/tpl/user.tpl', (tpl) => {
         userTpl = tpl;
+    });
+    $.get('/client/tpl/equipment.tpl', (tpl) => {
+        equipmentTpl = tpl;
     });
 });
 

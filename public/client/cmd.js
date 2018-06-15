@@ -128,7 +128,9 @@ const Cmd = {
         };
 
         let el = getSeat(seatNum);
-        const rendered = Mustache.render(userTpl, userInfo);
+        const rendered = Mustache.render(userTpl, userInfo, {
+            equipments: equipmentTpl,
+        });
         el.replaceWith(rendered);
 
         if (userInfo.isYou) {

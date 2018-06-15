@@ -232,6 +232,7 @@ class QingLongYanYueDao extends WeaponCard {
     constructor(suit, number) {
         super(suit, number);
         this.name = '青龙偃月刀';
+        this.shortName = '龙';
     }
 }
 

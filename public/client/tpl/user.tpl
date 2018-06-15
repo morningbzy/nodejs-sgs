@@ -7,26 +7,19 @@
                 <span class="name">{{name}}</span>
                 <span class="role badge float-right"></span>
             </h6>
-            <div class="card-body p-1 d-flex flex-column">
-                <div class="sgs-figure">
-                    <span class="name">{{#figure}}{{name}}{{/figure}}</span>
+            <div class="card-body py-1 pl-1 pr-0 d-flex align-items-stretch">
+                <div class="sgs-figure flex-grow-1">
+                    <span class="name text-truncate">{{#figure}}{{name}}{{/figure}}</span>
                 </div>
-                <div class="sgs-equipments flex-grow-1 d-flex flex-column-reverse">
-                    <div class="btn-group btn-group-sm">
-                        <button class="sgs-equipment sgs-equipment-weapon btn btn-sm btn-light col-6 {{^equipments.weapon}}disabled{{/equipments.weapon}}">
-                            武器{{equipments.weapon}}
-                        </button>
-                        <button class="sgs-equipment sgs-equipment-weapon btn btn-sm btn-light col-6 disabled">防具</button>
-                    </div>
-                    <div class="btn-group btn-group-sm">
-                        <button class="sgs-equipment sgs-equipment-weapon btn btn-sm btn-light col-6 disabled">-1马</button>
-                        <button class="sgs-equipment sgs-equipment-weapon btn btn-sm btn-light col-6 disabled">+1马</button>
-                    </div>
+                <div class="d-flex flex-column justify-content-between text-center font-weight-bold">
+                    <span class="sgs-player-hp rounded-left bg-light text-danger d-block">{{hp}}/{{maxHp}}</span>
+                    <span class="sgs-hand-card-count rounded-left bg-secondary text-white text-center d-block">{{cardCount}}</span>
                 </div>
             </div>
-            <div class="card-footer p-1">
-                <span class="hp badge badge-danger">HP: {{hp}}</span>
-                <span class="hp badge badge-info">C: {{cardCount}}</span>
+            <div class="card-footer px-1 py-0">
+                {{#equipments}}
+                {{>equipments}}
+                {{/equipments}}
             </div>
         </div>
         {{#isYou}}

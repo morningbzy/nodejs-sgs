@@ -72,8 +72,8 @@ Constants = {
     EQUIP_TYPE: {
         WEAPON: 'weapon',
         ARMOR: 'armor',
-        ATTACKHORSE: 'attackHorse',
-        DEFENSEHORSE: 'defenseHorse',
+        ATTACK_HORSE: 'attackHorse',
+        DEFENSE_HORSE: 'defenseHorse',
     }
 };
 Constants.ROLES_MAPPING = {

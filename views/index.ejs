@@ -31,7 +31,7 @@
     }
 
     #msg {
-        max-height: 300px;
+        max-height: 200px;
         overflow: auto;
         border-radius: 5px;
         border: 1px solid #ccc;
@@ -57,7 +57,7 @@
 
     #game-table {
         width: 720px;
-        height: 550px;
+        height: 640px;
     }
 
     #game-table #sgs-table {
@@ -73,7 +73,7 @@
     #game-table .top,
     #game-table .middle,
     #game-table .bottom {
-        height: 180px;
+        height: 210px;
     }
 
     #game-table .sgs-player {
@@ -86,6 +86,11 @@
 
     #game-table .sgs-player.sgs-dead {
         opacity: .5;
+    }
+
+    .sgs-player .sgs-player-hp,
+    .sgs-player .sgs-hand-card-count {
+        width: 2rem;
     }
 
     #game-table .sgs-player .sgs-player-card {
@@ -149,18 +154,22 @@
 
     .sgs-card-suit-spade {
         color: #343a40 !important;
+        text-shadow: 0 2px #fff, 2px 0 #fff, 0 -2px #fff, -2px 0 #fff;
     }
 
     .sgs-card-suit-club {
         color: #343a40 !important;
+        text-shadow: 0 2px #fff, 2px 0 #fff, 0 -2px #fff, -2px 0 #fff;
     }
 
     .sgs-card-suit-heart {
         color: #dc3545 !important;
+        text-shadow: 0 2px #fff, 2px 0 #fff, 0 -2px #fff, -2px 0 #fff;
     }
 
     .sgs-card-suit-diamond {
         color: #dc3545 !important;
+        text-shadow: 0 2px #fff, 2px 0 #fff, 0 -2px #fff, -2px 0 #fff;
     }
 
     .sgs-card-suit-spade::before {
@@ -177,6 +186,12 @@
 
     .sgs-card-suit-diamond:before {
         content: "\2666";
+    }
+
+    .sgs-equipment-symbol {
+        letter-spacing: -0.35rem;
+        display: inline-block;
+        min-width: 0.7rem;
     }
 
 </style>
