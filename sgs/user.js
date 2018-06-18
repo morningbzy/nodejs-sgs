@@ -199,7 +199,12 @@ module.exports = class extends EventListener {
     }
 
     * damage(game, ctx) {
-        console.log(`<U> HP - ${ctx.damage}`);
+        let result = yield this.figure.on('beforeDamage', game, ctx);
+        if(result.abort) {
+            return yield Promise.resolve(result);
+        }
+
+        console.log(`|<U> HP - ${ctx.damage}`);
         this.hp -= ctx.damage;
         game.broadcastUserInfo(this);
 
@@ -209,7 +214,7 @@ module.exports = class extends EventListener {
         }
 
         if (this.state === C.USER_STATE.ALIVE) {
-            yield this.figure.on('demage', game, ctx);
+            yield this.figure.on('damage', game, ctx);
         }
     }
 

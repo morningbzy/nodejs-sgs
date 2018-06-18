@@ -106,7 +106,7 @@ class CaoCao extends FigureBase {
         return yield Promise.resolve(R.fail);
     }
 
-    * demage(game, ctx) {
+    * damage(game, ctx) {
         return yield this.useSkill(this.skills.WEI001s01, game, ctx);
     }
 
@@ -279,7 +279,7 @@ class SiMaYi extends FigureBase {
         return yield this.owner.requireCard(game, sgsCards.CardBase);
     }
 
-    * demage(game, ctx) {
+    * damage(game, ctx) {
         let command = yield game.waitConfirm(this.owner, `是否使用技能【反馈】`);
         if (command.cmd === C.CONFIRM.Y) {
             return yield this.useSkill(this.skills.WEI002s01, game, ctx);
@@ -297,14 +297,110 @@ class SiMaYi extends FigureBase {
 }
 
 
+class XiaoQiao extends FigureBase {
+// 【小乔】 吴，女，3血
+// 【天香】
+// 【红颜】
+    constructor() {
+        super();
+        this.name = '小乔';
+        this.pk = XiaoQiao.pk;
+        this.country = C.COUNTRY.WEI;
+        this.gender = C.GENDER.FEMALE;
+        this.hp = 3;
+        this.skills = {
+            WU011s01: {
+                pk: 'WU011s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '天香',
+                desc: '当你受到伤害时，你可以弃置一张红桃手牌并选择一名'
+                + '其他角色。若如此做，你将此伤害转移给该角色，然后其'
+                + '摸X张牌（X为该角色已损失的体力值）。',
+                handler: 's1',
+            },
+            WU011s02: {
+                pk: 'WU011s02',
+                style: C.SKILL_STYLE.SUODING,
+                name: '红颜',
+                desc: '【锁定技】你的黑桃牌均视为红桃牌。',
+                handler: 's2',
+            },
+        };
+    }
+
+    * s1(game, ctx) {
+        const u = this.owner;
+        let command = yield game.wait(u, {
+            validCmds: ['CANCEL', 'CARD'],
+            validator: (command) => {
+                if (command.cmd === 'CANCEL') {
+                    return true;
+                }
+                let card = cardManager.getCards(command.params)[0];
+                if ([C.CARD_SUIT.SPADE, C.CARD_SUIT.HEART].includes(card.suit)) {
+                    return true;
+                }
+                return false;
+            },
+        });
+
+        if (command.cmd === 'CANCEL') {
+            return yield Promise.resolve(R.abort);
+        }
+
+        let cards = cardManager.getCards(command.params);
+        game.lockUserCards(u, cards);
+        command = yield game.wait(u, {
+            validCmds: ['CANCEL', 'TARGET'],
+            validator: (command) => {
+                if (command.cmd === 'CANCEL') {
+                    return true;
+                }
+                if (command.params.length !== 1) {
+                    return false;
+                }
+                return true;
+            },
+        });
+        game.unlockUserCards(u, cards);
+
+        if (command.cmd === 'CANCEL') {
+            return yield Promise.resolve(R.abort);
+        }
+
+        game.removeUserCards(u, cards);
+        game.discardCards(cards);
+        let targetPks = command.params;
+        ctx.targets = game.usersByPk(targetPks);
+        let t = ctx.targets[0];
+        yield t.on('damage', game, ctx);
+
+        game.dispatchCards(t, t.maxHp - t.hp);
+        return yield Promise.resolve(R.success);
+    }
+
+    * beforeDamage(game, ctx) {
+        let command = yield game.waitConfirm(this.owner, `是否使用技能【天香】`);
+        if (command.cmd === C.CONFIRM.Y) {
+            let result = yield this.useSkill(this.skills.WU011s01, game, ctx);
+            if(result.success) {
+                return yield Promise.resolve(R.abort);
+            }
+        }
+        return yield Promise.resolve(R.fail);
+    }
+}
+
 CaoCao.pk = 'WEI001';
 GuanYu.pk = 'SHU002';
 SiMaYi.pk = 'WEI002';
+XiaoQiao.pk = 'WU011';
 
 figures = {
     CaoCao,
     GuanYu,
     SiMaYi,
+    XiaoQiao,
 };
 
 const figureSet = {};

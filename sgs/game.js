@@ -218,7 +218,7 @@ class Game {
         this.discardCardPks(cardPks);
 
         for(let k in C.EQUIP_TYPE) {
-            this.unequipUserCard(C.EQUIP_TYPE[k]);
+            this.unequipUserCard(user, C.EQUIP_TYPE[k]);
         }
 
         for(let j of user.judgeStack) {
