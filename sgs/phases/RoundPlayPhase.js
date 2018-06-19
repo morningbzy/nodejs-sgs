@@ -11,52 +11,51 @@ class RoundPlayPhase extends Phase {
         super(game);
     }
 
-    static* useCard(game, context, asClass) {
-        let cards = context.sourceCards;
+    static* useCard(game, context) {
+        let result;
+        let card = context.sourceCards[0];
         let u = context.sourceUser;
 
-        if (!asClass && cards.length !== 1) {
-            console.log(`|<!> Invalid useCard invoking: !asClass && cards.length !== 1`);
-            return yield Promise.resolve(R.fail);
-        }
-
-        if (asClass) {
-            console.log(`|[i] use card ${cards[0].name} as ${asClass}`);
+        if(card.faked) {
+            console.log(`|[i] Use card [${Array.from(card.originCards, c => c.name).join(', ')}] as [${card.name}]`);
         } else {
-            console.log(`|[i] use card ${cards[0].name}`);
+            console.log(`|[i] Use card [${card.name}]`);
         }
 
-        asClass = asClass || cards[0].constructor;
-
-        let result;
-        if (asClass === sgsCards.Sha) {
+        if (card instanceof sgsCards.Sha) {
             result = yield ShaStage.start(game, u, context);
         }
-        if (asClass === sgsCards.Tao) {
+        if (card instanceof sgsCards.Tao) {
             result = yield u.on('useTao', game, context);
         }
-        if (asClass.__proto__ === sgsCards.SilkBagCard) {
-            result = yield asClass.start(game, context);
+        if (card instanceof sgsCards.SilkBagCard) {
+            result = yield card.start(game, context);
         }
-        if (asClass.__proto__ === sgsCards.DelayedSilkBagCard) {
-            result = yield asClass.start(game, context);
+        if (card instanceof sgsCards.DelayedSilkBagCard) {
+            result = yield card.start(game, context);
         }
-        if (cards.length === 1 && cards[0] instanceof sgsCards.EquipmentCard) {
-            game.equipUserCard(u, cards[0]);
+        if (card instanceof sgsCards.EquipmentCard) {
+            game.equipUserCard(u, card);
             result = yield Promise.resolve(R.success);
         }
-
         return yield Promise.resolve(result);
     }
+
+
 
     static* start(game) {
         console.log('ROUND-PLAY-PHASE');
         const u = game.roundOwner;
+
+        let context = {};
+        let result;
+
+        yield u.on('roundPlayPhaseStart', game, context);
         u.shaCount = 1;
 
         let pass = false;
         while (!pass && u.state !== C.USER_STATE.DEAD && game.state !== C.GAME_STATE.ENDING) {
-            yield u.on('play', game, {});
+            yield u.on('play', game, context);
 
             let command = yield game.wait(u, {
                 waitingTag: C.WAITING_FOR.PLAY,
@@ -78,17 +77,16 @@ class RoundPlayPhase extends Phase {
                 },
             });
 
-            let context = {
+            context = {
                 sourceUser: u,
             };
-            let result;
             switch (command.cmd) {
                 case 'PASS':
                     pass = true;
                     continue;
                 case 'CARD':
-                    let card = cardManager.getCards(command.params)[0];
-                    context.sourceCards = [card];
+                    let cards = cardManager.getCards(command.params);
+                    context.sourceCards = cards;
                     result = yield this.useCard(game, context);
                     break;
                 case 'SKILL':
@@ -97,14 +95,16 @@ class RoundPlayPhase extends Phase {
                     if (skill.state === C.SKILL_STATE.ENABLED) {
                         result = yield u.figure.useSkill(skill, game, context);
                         if (result instanceof R.CardResult) {
-                            let obj = result.get();
-                            context.sourceCards = obj.cards;
-                            result = yield this.useCard(game, context, obj.asClass);
+                            let {cards} = result.get();
+                            context.sourceCards = cards;
+                            result = yield this.useCard(game, context);
                         }
                     }
                     break;
             }
         }
+
+        yield u.on('roundPlayPhaseEnd', game, context);
     }
 }
 

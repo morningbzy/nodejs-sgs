@@ -166,18 +166,18 @@ class Game {
     }
 
     usersByPk(pks) {
-        return Array.from(pks, (pk) => this.users[pk]);
+        return new Set(Array.from(pks, (pk) => this.users[pk]));
     }
 
     usersNotInState(states) {
-        states = Array.isArray(states)? states: [states];
+        states = Array.isArray(states) ? states : [states];
         return Object.keys(this.users).filter(
             (k) => !states.includes(this.users[k].state)
         );
     }
 
     usersInState(states) {
-        states = Array.isArray(states)? states: [states];
+        states = Array.isArray(states) ? states : [states];
         return Object.keys(this.users).filter(
             (k) => states.includes(this.users[k].state)
         );
@@ -192,7 +192,7 @@ class Game {
         }
         if (filterUndead) {
             round = round.filter(u => {
-                return ![C.USER_STATE.DEAD].includes(u.state)
+                return ![C.USER_STATE.DEAD].includes(u.state);
             });
         }
         return round;
@@ -202,7 +202,7 @@ class Game {
         this.roundOwner = user;
         user.roundOwner = true;
         this.broadcastUserInfo(user);
-        for(let k of Object.keys(user.phases)) {
+        for (let k of Object.keys(user.phases)) {
             user.phases[k] = 1;
         }
     }
@@ -217,15 +217,16 @@ class Game {
         this.removeUserCardPks(user, cardPks);
         this.discardCardPks(cardPks);
 
-        for(let k in C.EQUIP_TYPE) {
-            this.unequipUserCard(user, C.EQUIP_TYPE[k]);
+        for (let k in C.EQUIP_TYPE) {
+            let old = this.unequipUserCard(user, C.EQUIP_TYPE[k]);
+            this.discardCards([old.card]);
         }
 
-        for(let j of user.judgeStack) {
+        for (let j of user.judgeStack) {
             this.discardCard(j.card);
         }
 
-        if(this.usersNotInState(C.USER_STATE.DEAD).length <= 1) {
+        if (this.usersNotInState(C.USER_STATE.DEAD).length <= 1) {
             this.state = C.GAME_STATE.ENDING;
         }
     }
@@ -239,7 +240,7 @@ class Game {
     }
 
     addUserCards(user, cards) {
-        user.addCards(cards);
+        user.addCards(cardManager.unfakeCards(cards));
         this.broadcastUserInfo(user);
     }
 
@@ -248,7 +249,7 @@ class Game {
     }
 
     lockUserCards(user, cards) {
-        this.lockUserCardPks(user, cards.map(c => c.pk));
+        this.lockUserCardPks(user, cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
     unlockUserCardPks(user, cardPks) {
@@ -257,7 +258,7 @@ class Game {
     }
 
     unlockUserCards(user, cards) {
-        this.unlockUserCardPks(user, cards.map(c => c.pk));
+        this.unlockUserCardPks(user, cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
     removeUserCardPks(user, cardPks) {
@@ -266,11 +267,15 @@ class Game {
     }
 
     removeUserCards(user, cards) {
-        this.removeUserCardPks(user, cards.map(c => c.pk));
+        this.removeUserCardPks(user, cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
     equipUserCard(user, card) {
-        this.unequipUserCard(user, card.equipType);
+        let old = this.unequipUserCard(user, card.equipType);
+        if(old) {
+            this.discardCards([old.card]);
+        }
+
         this.removeUserCards(user, [card]);
         user.equipCard(card);
         this.broadcastUserInfo(user);
@@ -278,9 +283,9 @@ class Game {
 
     unequipUserCard(user, equipType) {
         let old = user.unequipCard(equipType);
-        if(old) {
-            this.discardCards([old.card]);
+        if (old) {
             this.broadcastUserInfo(user);
+            return old;
         }
     }
 
@@ -289,12 +294,12 @@ class Game {
     }
 
     discardCards(cards) {
-        this.discardCardPks(cards.map(c => c.pk));
+        this.discardCardPks(cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
     // ----- Judgement related
-    pushUserJudge(user, judgeCard, asClass) {
-        user.pushJudge(judgeCard, asClass);
+    pushUserJudge(user, judgeCard) {
+        user.pushJudge(judgeCard);
     }
 
     getJudgeCard() {

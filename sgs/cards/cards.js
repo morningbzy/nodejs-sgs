@@ -8,9 +8,24 @@ const ShaStage = require('../phases/sha/ShaStage');
 
 class CardBase {
     constructor(suit, number) {
+        this.pk = uuid();
         this.suit = suit;
         this.number = number;
-        this.pk = uuid();
+
+        this.faked = false;
+        this.originCards = null;
+    }
+
+    getOriginCards() {
+        let result = new Set();
+        if (this.faked) {
+            this.originCards.forEach(oc => {
+                result = new Set([...result, ...oc.getOriginCards()]);
+            });
+        } else {
+            result.add(this);
+        }
+        return result;
     }
 
     toJson() {
@@ -21,6 +36,7 @@ class CardBase {
             category: this.category,
             suit: this.suit,
             number: this.number,
+            faked: this.faked,
         };
     }
 
@@ -52,7 +68,7 @@ class DelayedSilkBagCard extends CardBase {
         this.category = C.CARD_CATEGORY.DELAYED_SILK_BAG;
     }
 
-    static* start(game, ctx) {
+    * start(game, ctx) {
         let u = ctx.sourceUser;
         game.lockUserCards(u, ctx.sourceCards);
         let command = yield game.wait(u, {
@@ -77,9 +93,8 @@ class DelayedSilkBagCard extends CardBase {
         game.removeUserCards(u, ctx.sourceCards);
 
         let targetPks = command.params;
-        ctx.targets = game.usersByPk(targetPks)[0];
-
-        game.pushUserJudge(ctx.targets, ctx.sourceCards[0]);
+        ctx.targets = game.usersByPk(targetPks);
+        ctx.targets.forEach((t) => game.pushUserJudge(t, ctx.sourceCards[0]));
 
         return yield Promise.resolve(R.success);
     }
@@ -137,7 +152,7 @@ class JueDou extends SilkBagCard {
         this.name = '决斗';
     }
 
-    static* start(game, ctx) {
+    * start(game, ctx) {
         let u = ctx.sourceUser;
         game.lockUserCards(u, ctx.sourceCards);
         let command = yield game.wait(u, {
@@ -163,7 +178,7 @@ class JueDou extends SilkBagCard {
 
         let targetPks = command.params;
         ctx.targets = game.usersByPk(targetPks);
-        let users = ctx.targets.concat(u);
+        let users = Array.from(ctx.targets).concat(u);
         let done = false;
         let loser;
         while (!done) {
@@ -196,7 +211,7 @@ class WuZhongShengYou extends SilkBagCard {
         this.name = '无中生有';
     }
 
-    static* start(game, ctx) {
+    * start(game, ctx) {
         const u = ctx.sourceUser;
         game.removeUserCards(u, ctx.sourceCards);
         game.dispatchCards(u, 2);
@@ -212,7 +227,7 @@ class LeBuSiShu extends DelayedSilkBagCard {
         this.shortName = '乐';
     }
 
-    static judge(card) {
+    judge(card) {
         let result = R.judge(C.CARD_SUIT.HEART !== card.suit);
         console.log(result);
         console.log(result.success);
@@ -221,7 +236,7 @@ class LeBuSiShu extends DelayedSilkBagCard {
         return result;
     }
 
-    static judgeEffect(u) {
+    judgeEffect(u) {
         u.phases.RoundPlayPhase = 0;
     }
 }
@@ -241,7 +256,7 @@ class QingLongYanYueDao extends WeaponCard {
             let context = {
                 sourceUser: u,
                 sourceCards: result.get().cards,
-                targets: [ctx.shanPlayer],
+                targets: new Set([ctx.shanPlayer]),
                 skipShaInitStage: true,
                 damage: 1,
             };

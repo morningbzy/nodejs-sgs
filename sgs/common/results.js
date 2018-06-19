@@ -44,15 +44,9 @@ class CardResult extends ResultBase {
         super();
     }
 
-    set(cards, asClass) {
-        if (!asClass && cards.length !== 1) {
-            console.log(`|<!> Invalid useCard invoking: !asClass && cards.length !== 1`);
-            throw `|<!> Invalid useCard invoking: !asClass && cards.length !== 1`;
-        }
-
+    set(cards) {
         this._resultObj = {
-            cards: Array.from(cards),
-            asClass: asClass || cards[0].constructor,
+            cards: Array.isArray(cards) ? cards : Array.from([cards]),
         };
     }
 

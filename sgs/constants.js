@@ -58,6 +58,7 @@ Constants = {
         HEART: 'heart',
         CLUB: 'club',
         DIAMOND: 'diamond',
+        NONE: 'none',  // Sometimes, there's no suit
     },
     CARD_CATEGORY: {
         NORMAL: 0,

@@ -36,16 +36,16 @@ class FigureBase extends EventListener {
     }
 
     * useSkill(skill, game, ctx) {
-        console.log(`|<F> SKILL ${skill.name}`);
+        console.log(`|[F] SKILL ${skill.name}`);
         const oleState = skill.state;
         this.changeSkillState(skill, C.SKILL_STATE.FIRING);
         let result = yield this[skill.handler](game, ctx);
         this.changeSkillState(skill, oleState);
-        return result;
+        return yield Promise.resolve(result);
     }
 
     * on(event, game, ctx) {
-        console.log(`|<F> ON ${this.name} ${event}`);
+        console.log(`|[F] ON ${this.name} ${event}`);
         return yield super.on(event, game, ctx);
     }
 }
@@ -167,11 +167,17 @@ class GuanYu extends FigureBase {
         if (command.cmd === 'CANCEL') {
             return yield Promise.resolve(R.fail);
         }
+
         let cards = cardManager.getCards(command.params);
         game.lockUserCards(u, cards);
         result = new R.CardResult();
-        result.set(cards, sgsCards.Sha);
+        let fakeCard = cardManager.fakeCards(cards, {asClass: sgsCards.Sha});
+        result.set(fakeCard);
         return yield Promise.resolve(result);
+    }
+
+    * roundPlayPhaseStart(game, ctx) {
+        this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.ENABLED);
     }
 
     * play(game, ctx) {
@@ -180,6 +186,10 @@ class GuanYu extends FigureBase {
         } else {
             this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.DISABLED);
         }
+    }
+
+    * roundPlayPhaseEnd(game, ctx) {
+        this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.DISABLED);
     }
 
     * requireSha(game, ctx) {
@@ -297,6 +307,124 @@ class SiMaYi extends FigureBase {
 }
 
 
+class DaQiao extends FigureBase {
+// 【大乔】 吴，女，3血
+// 【国色】
+// 【流离】
+    constructor() {
+        super();
+        this.name = '大乔';
+        this.pk = DaQiao.pk;
+        this.country = C.COUNTRY.WU;
+        this.gender = C.GENDER.FEMALE;
+        this.hp = 3;
+        this.skills = {
+            WU006s01: {
+                pk: 'WU006s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '国色',
+                desc: '出牌阶段，你可以将你任意方块花色的牌当【乐不思蜀】'
+                + '使用。',
+                handler: 's1',
+            },
+            WU006s02: {
+                pk: 'WU006s02',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '流离',
+                desc: '当你成为【杀】的目标时，你可以弃一张牌，'
+                + '并将此【杀】转移给你攻击范围内的另一名角色。'
+                + '（该角色不得是【杀】的使用者）',
+                handler: 's2',
+            },
+        };
+    }
+
+    * s1(game, ctx) {
+        let result;
+        const u = this.owner;
+        let command = yield game.wait(u, {
+            validCmds: ['CANCEL', 'CARD'],
+            validator: (command) => {
+                if (command.cmd === 'CANCEL') {
+                    return true;
+                }
+                let card = cardManager.getCards(command.params)[0];
+                if (u.hasCard(card) && [C.CARD_SUIT.DIAMOND].includes(card.suit)) {
+                    return true;
+                }
+                return false;
+            },
+        });
+
+        if (command.cmd === 'CANCEL') {
+            return yield Promise.resolve(R.fail);
+        }
+
+        let cards = cardManager.getCards(command.params);
+        game.lockUserCards(u, cards);
+        result = new R.CardResult();
+        let fakeCard = cardManager.fakeCards(cards, {asClass: sgsCards.LeBuSiShu});
+        result.set(fakeCard);
+        return yield Promise.resolve(result);
+    }
+
+    * s2(game, ctx) {
+        const u = this.owner;
+        let result = yield u.requireCard(game, sgsCards.CardBase);
+        if (!result.success) {
+            return yield Promise.resolve(R.abort);
+        }
+
+        const cards = result.get().cards;
+        game.lockUserCards(u, cards);
+        let command = yield game.wait(u, {
+            validCmds: ['CANCEL', 'TARGET'],
+            validator: (command) => {
+                if (command.cmd === 'CANCEL') {
+                    return true;
+                }
+                if (command.params.length !== 1) {
+                    return false;
+                }
+                // TODO: validate distance & target-able
+                // const pks = command.params;
+                return true;
+            },
+        });
+        game.unlockUserCards(u, cards);
+
+        if (command.cmd === 'CANCEL') {
+            return yield Promise.resolve(R.abort);
+        }
+
+        game.removeUserCards(u, cards);
+        game.discardCards(cards);
+
+        let targetPks = command.params;
+        ctx.targets.delete(u);
+        game.usersByPk(targetPks).forEach(t => ctx.targets.add(t));
+
+        return yield Promise.resolve(R.success);
+    }
+
+    * roundPlayPhaseStart(game, ctx) {
+        this.changeSkillState(this.skills.WU006s01, C.SKILL_STATE.ENABLED);
+    }
+
+    * roundPlayPhaseEnd(game, ctx) {
+        this.changeSkillState(this.skills.WU006s01, C.SKILL_STATE.DISABLED);
+    }
+
+    * beShaTarget(game, ctx) {
+        let command = yield game.waitConfirm(this.owner, `是否使用技能【流离】`);
+        if (command.cmd === C.CONFIRM.Y) {
+            return yield this.useSkill(this.skills.WU006s02, game, ctx);
+        }
+        return yield Promise.resolve(R.fail);
+    }
+}
+
+
 class XiaoQiao extends FigureBase {
 // 【小乔】 吴，女，3血
 // 【天香】
@@ -305,7 +433,7 @@ class XiaoQiao extends FigureBase {
         super();
         this.name = '小乔';
         this.pk = XiaoQiao.pk;
-        this.country = C.COUNTRY.WEI;
+        this.country = C.COUNTRY.WU;
         this.gender = C.GENDER.FEMALE;
         this.hp = 3;
         this.skills = {
@@ -372,10 +500,12 @@ class XiaoQiao extends FigureBase {
         game.discardCards(cards);
         let targetPks = command.params;
         ctx.targets = game.usersByPk(targetPks);
-        let t = ctx.targets[0];
-        yield t.on('damage', game, ctx);
 
-        game.dispatchCards(t, t.maxHp - t.hp);
+        for (let t of ctx.targets) {
+            yield t.on('damage', game, ctx);
+            game.dispatchCards(t, t.maxHp - t.hp);
+        }
+
         return yield Promise.resolve(R.success);
     }
 
@@ -383,7 +513,7 @@ class XiaoQiao extends FigureBase {
         let command = yield game.waitConfirm(this.owner, `是否使用技能【天香】`);
         if (command.cmd === C.CONFIRM.Y) {
             let result = yield this.useSkill(this.skills.WU011s01, game, ctx);
-            if(result.success) {
+            if (result.success) {
                 return yield Promise.resolve(R.abort);
             }
         }
@@ -394,12 +524,14 @@ class XiaoQiao extends FigureBase {
 CaoCao.pk = 'WEI001';
 GuanYu.pk = 'SHU002';
 SiMaYi.pk = 'WEI002';
+DaQiao.pk = 'WU006';
 XiaoQiao.pk = 'WU011';
 
 figures = {
     CaoCao,
     GuanYu,
     SiMaYi,
+    DaQiao,
     XiaoQiao,
 };
 

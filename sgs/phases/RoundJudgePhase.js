@@ -13,7 +13,7 @@ class RoundJudgePhase extends Phase {
 
         let judge = u.popJudge();
         while(judge) {
-            let {card, asClass} = judge;
+            let {card} = judge;
 
             // ---------------------------------
             // TODO: Before judge, ask WuXieKeJi
@@ -21,7 +21,6 @@ class RoundJudgePhase extends Phase {
             //     judgeCard = _u.on('beforeJudge');
             // }
             let judgeCard = game.getJudgeCard();
-            game.broadcast(`ALERT ${u.figure.name}判定${card.name}为${judgeCard.suit}${judgeCard.number}。`);
 
             // TODO: Before judge effective, ask SiMaYi & ZhangJiao
             for(let _u of game.userRound()) {
@@ -32,10 +31,10 @@ class RoundJudgePhase extends Phase {
                 }
             }
 
-            let result = asClass.judge(judgeCard);
+            let result = card.judge(judgeCard);
             game.broadcast(`ALERT ${u.figure.name}判定${card.name}为${judgeCard.suit}${judgeCard.number}。${result.success?'生效':'未生效'}`);
             if(result.success) {
-                asClass.judgeEffect(u);
+                card.judgeEffect(u);
             }
             // TODO: After judge effective
             // for(let _u of game.userRound()) {

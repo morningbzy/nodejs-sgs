@@ -37,6 +37,11 @@ class ShaInitStage {
         }
         let targetPks = command.params;
         ctx.targets = game.usersByPk(targetPks);
+
+        for(let t of ctx.targets) {
+            yield t.on('beShaTarget', game, ctx);
+        }
+
         ctx.damage = 1;
         return yield Promise.resolve(R.success);
     }
@@ -68,6 +73,12 @@ class ShaExecuteStage {
             for (let target of targets) {
                 let result = yield target.on('requireShan', game, ctx);
                 if(result.success) {
+                    if(result instanceof R.CardResult) {
+                        let cards = result.get().cards;
+                        game.removeUserCards(target, cards);
+                        game.discardCards(cards);
+                    }
+
                     ctx.shanPlayer = target;
                     yield u.on('usedShan', game, ctx);
                     yield u.on('shaBeenShan', game, ctx);

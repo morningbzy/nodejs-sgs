@@ -1,6 +1,6 @@
 {{#cards}}
 <div class="sgs-card card position-absolute" pk="{{ pk }}">
-    <h6 class="card-header p-1">
+    <h6 class="card-header p-1 {{#faked}}bg-danger{{/faked}}">
         <span class="name">{{ name }}</span>
     </h6>
     <div class="card-body p-1">

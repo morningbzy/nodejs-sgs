@@ -28,11 +28,33 @@ class CardManager {
     }
 
     getCards(pks) {
-        return Array.from(pks).map((pk) => cards.cardSet.get(pk));
+        return Array.from(pks, (pk) => cards.cardSet.get(pk));
     }
 
-    useCards(pks){
+    useCards(pks) {
         this.used.push(...this.getCards(pks));
+    }
+
+    fakeCards(cards, fakeInfo = {}) {
+        console.assert(cards.length === 1 || fakeInfo.asClass !== undefined, 'Fake cards failed!');
+        let {
+            asClass = cards[0].constructor,
+            asSuit = cards[0].suit,
+            asNumber = cards[0].number
+        } = fakeInfo;
+
+        let faked = new asClass(asSuit, asNumber);
+        faked.faked = true;
+        faked.originCards = new Set(cards);
+        return faked;
+    }
+
+    unfakeCard(card) {
+        return Array.from(card.getOriginCards());
+    }
+
+    unfakeCards(cards) {
+        return cards.reduce((r, c) => r.concat(this.unfakeCard(c)), []);
     }
 }
 

@@ -138,10 +138,9 @@ module.exports = class extends EventListener {
         return this.cards.has(cardPk);
     }
 
-    pushJudge(card, asClass) {
+    pushJudge(card) {
         this.judgeStack.unshift({
             card: card,
-            asClass: asClass || card.constructor
         });
     }
 
@@ -162,10 +161,25 @@ module.exports = class extends EventListener {
         return old;
     }
 
+    // ------
+
     * on(event, game, ctx = {}) {
         console.log(`|<U> ON ${this.name}(${this.figure.name}) ${event}`);
         return yield super.on(event, game, ctx);
     }
+
+    // ------
+
+    * roundPlayPhaseStart(game, ctx) {
+        this.shaCount = 1;
+        return yield this.figure.on('roundPlayPhaseStart', game, ctx);
+    }
+
+    * roundPlayPhaseEnd(game, ctx) {
+        return yield this.figure.on('roundPlayPhaseEnd', game, ctx);
+    }
+
+    // ------
 
     * play(game, ctx) {
         let result = yield this.figure.on('play', game, ctx);
@@ -200,7 +214,7 @@ module.exports = class extends EventListener {
 
     * damage(game, ctx) {
         let result = yield this.figure.on('beforeDamage', game, ctx);
-        if(result.abort) {
+        if (result.abort) {
             return yield Promise.resolve(result);
         }
 
@@ -289,7 +303,6 @@ module.exports = class extends EventListener {
             result = R.fail;
         } else {
             let cards = cardManager.getCards(command.params);
-            game.removeUserCards(this, cards);
             result = new R.CardResult();
             result.set(cards);
         }
@@ -333,6 +346,14 @@ module.exports = class extends EventListener {
         let result = yield this.figure.on('beforeJudgeEffect', game, ctx);
         if (!result.abort && result.fail && this.equipments.armor) {
             result = yield this.equipments.armor.on('beforeJudgeEffect', game, ctx);
+        }
+        return yield Promise.resolve(result);
+    }
+
+    * beShaTarget(game, ctx) {
+        let result = yield this.figure.on('beShaTarget', game, ctx);
+        if (!result.abort && result.fail && this.equipments.armor) {
+            result = yield this.equipments.armor.card.on('beShaTarget', game, ctx);
         }
         return yield Promise.resolve(result);
     }
