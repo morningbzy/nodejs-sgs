@@ -3,7 +3,7 @@ const R = require('../../common/results');
 
 class ShaInitStage {
     static* start(game, u, ctx) {
-        if(ctx.skipShaInitStage) {
+        if (ctx.skipShaInitStage) {
             return yield Promise.resolve(R.success);
         }
 
@@ -37,12 +37,7 @@ class ShaInitStage {
         }
         let targetPks = command.params;
         ctx.targets = game.usersByPk(targetPks);
-
-        for(let t of ctx.targets) {
-            yield t.on('beShaTarget', game, ctx);
-        }
-
-        ctx.damage = 1;
+        game.message([ctx.sourceUser, '对', ctx.targets, '使用', ctx.sourceCards,]);
         return yield Promise.resolve(R.success);
     }
 }
@@ -51,11 +46,17 @@ class ShaValidateStage {
     static* start(game, u, ctx) {
         console.log('SHA-VALIDATE-STAGE');
         let shaAble = true;
-        if (shaAble) {
-            game.removeUserCards(ctx.sourceUser, ctx.sourceCards);
-        } else {
+        if (!shaAble) {
             return yield Promise.resolve(R.abort);
         }
+
+        game.removeUserCards(ctx.sourceUser, ctx.sourceCards);
+
+        for (let t of ctx.targets) {
+            yield t.on('beShaTarget', game, ctx);
+        }
+
+        ctx.damage = 1;
         return yield Promise.resolve(R.success);
     }
 }
@@ -72,9 +73,10 @@ class ShaExecuteStage {
         if (shanAble) {
             for (let target of targets) {
                 let result = yield target.on('requireShan', game, ctx);
-                if(result.success) {
-                    if(result instanceof R.CardResult) {
+                if (result.success) {
+                    if (result instanceof R.CardResult) {
                         let cards = result.get().cards;
+                        game.message([target, '使用了', cards]);
                         game.removeUserCards(target, cards);
                         game.discardCards(cards);
                     }

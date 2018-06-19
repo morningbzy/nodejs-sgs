@@ -5,7 +5,7 @@ const sgsCards = require('./cards/cards');
 const EventListener = require('./common/eventListener');
 
 
-module.exports = class extends EventListener {
+class User extends EventListener {
     constructor(sessionId, messageResp) {
         super();
         this.id = sessionId;
@@ -205,6 +205,7 @@ module.exports = class extends EventListener {
 
     * useTao(game, ctx) {
         if (this.hp < this.maxHp) {
+            game.message([ctx.sourceUser, '使用了', ctx.sourceCards]);
             ctx.heal = 1;
             yield this.on('heal', game, ctx);
             game.removeUserCards(ctx.sourceUser, ctx.sourceCards);
@@ -220,6 +221,7 @@ module.exports = class extends EventListener {
 
         console.log(`|<U> HP - ${ctx.damage}`);
         this.hp -= ctx.damage;
+        game.message([this, '受到', ctx.damage, '点伤害']);
         game.broadcastUserInfo(this);
 
         if (this.hp === 0) {
@@ -235,6 +237,7 @@ module.exports = class extends EventListener {
     * heal(game, ctx) {
         console.log(`<U> HP + ${ctx.heal}`);
         this.hp += ctx.heal;
+        game.message([this, '恢复', ctx.heal, '点体力']);
         game.broadcastUserInfo(this);
         yield this.figure.on('heal', game, ctx);
 
@@ -365,4 +368,6 @@ module.exports = class extends EventListener {
         }
         return yield Promise.resolve(result);
     }
-};
+}
+
+module.exports = User;

@@ -94,6 +94,7 @@ class DelayedSilkBagCard extends CardBase {
 
         let targetPks = command.params;
         ctx.targets = game.usersByPk(targetPks);
+        game.message([ctx.sourceUser, '对', ctx.targets, '使用了', ctx.sourceCards]);
         ctx.targets.forEach((t) => game.pushUserJudge(t, ctx.sourceCards[0]));
 
         return yield Promise.resolve(R.success);
@@ -178,6 +179,8 @@ class JueDou extends SilkBagCard {
 
         let targetPks = command.params;
         ctx.targets = game.usersByPk(targetPks);
+        game.message([ctx.sourceUser, '对', ctx.targets, '使用了', ctx.sourceCards]);
+
         let users = Array.from(ctx.targets).concat(u);
         let done = false;
         let loser;
@@ -188,6 +191,7 @@ class JueDou extends SilkBagCard {
                     game.discardCards(ctx.sourceCards);
                     ctx.sourceUser = _u;
                     ctx.sourceCards = result.get().cards;
+                    game.message([_u, '打出了', ctx.sourceCards]);
                     game.removeUserCards(_u, ctx.sourceCards);
                 } else {
                     done = true;
@@ -260,6 +264,7 @@ class QingLongYanYueDao extends WeaponCard {
                 skipShaInitStage: true,
                 damage: 1,
             };
+            game.message([u, '发动了', this, '使用了', context.sourceCards, '追杀', context.targets]);
             return yield ShaStage.start(game, u, context);
         }
     }
@@ -268,7 +273,7 @@ class QingLongYanYueDao extends WeaponCard {
         let u = ctx.sourceUser;
         let command = yield game.waitConfirm(u, `是否使用武器【青龙偃月刀】？`);
         if (command.cmd === C.CONFIRM.Y) {
-            yield this.start(game, ctx);
+            return yield this.start(game, ctx);
         }
         return yield Promise.resolve(R.success);
     }

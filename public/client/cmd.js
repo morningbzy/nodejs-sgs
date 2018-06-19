@@ -25,8 +25,8 @@ const Cmd = {
     },
 
     clear: function (params, marker) {
-        $('#game-table .sgs-cl-self').remove();
-        $('#game-table .sgs-cl-children *').remove();
+        $('.sgs-cl-self').remove();
+        $('.sgs-cl-children *').remove();
 
         let rendered = Mustache.render(userTpl, {
             name: null,
@@ -157,6 +157,9 @@ const Cmd = {
     },
 
     msg: function (params, marker) {
+        let msgHtml = `<li>${params.join(' ')}</li>`;
+        $(msgHtml).appendTo('#sgs-message-list');
+        $('#game-message').scrollTop($('#sgs-message-list').outerHeight());
     },
 
     confirm: function(params, marker) {

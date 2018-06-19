@@ -14,7 +14,7 @@ module.exports = class extends Phase {
         const zhugong = game.zhugong;
 
         zhugong.reply(`FIGURE_CANDIDATE ${JSON.stringify(figures.map((f) => f.toJson()))}`, true, true);
-        game.broadcast('MSG Waiting for ZG...');
+        game.broadcast('MSG 等待主公选择武将');
 
         let command = yield game.wait(zhugong, {
             validCmds: ['FIGURE'],
@@ -31,6 +31,7 @@ module.exports = class extends Phase {
         zhugong.showFigure = true;
         zhugong.reply(`CLEAR_FIGURE_CANDIDATE`);
         zhugong.popRestoreCmd();
+        game.message(['主公选择了武将', zhugong]);
         game.broadcastUserInfo(zhugong);
         zhugong.state = C.USER_STATE.ALIVE;
 

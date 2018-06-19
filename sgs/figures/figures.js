@@ -37,6 +37,7 @@ class FigureBase extends EventListener {
 
     * useSkill(skill, game, ctx) {
         console.log(`|[F] SKILL ${skill.name}`);
+        game.message([this.owner, '使用技能', skill.name]);
         const oleState = skill.state;
         this.changeSkillState(skill, C.SKILL_STATE.FIRING);
         let result = yield this[skill.handler](game, ctx);
@@ -83,6 +84,7 @@ class CaoCao extends FigureBase {
     }
 
     * s1(game, ctx) {
+        game.message([this.owner, '获得了', ctx.sourceCards]);
         game.addUserCards(this.owner, ctx.sourceCards);
         ctx.sourceCards = [];
         return yield Promise.resolve(R.success);
@@ -173,6 +175,7 @@ class GuanYu extends FigureBase {
         result = new R.CardResult();
         let fakeCard = cardManager.fakeCards(cards, {asClass: sgsCards.Sha});
         result.set(fakeCard);
+        game.message([u, '把', cards, '当作', fakeCard, '使用']);
         return yield Promise.resolve(result);
     }
 
@@ -281,12 +284,17 @@ class SiMaYi extends FigureBase {
     * s1(game, ctx) {
         // TODO equipment card can also be selected
         let cards = utils.shuffle(ctx.sourceUser.cards.values()).slice(0, 1);
+        game.message([this.owner, '从', ctx.sourceUser, '处获得', cards.length, '张牌']);
         game.removeUserCards(ctx.sourceUser, cards);
         game.addUserCards(this.owner, cards);
     }
 
     * s2(game, ctx) {
-        return yield this.owner.requireCard(game, sgsCards.CardBase);
+        let result = yield this.owner.requireCard(game, sgsCards.CardBase);
+        if(result.success) {
+            game.message([this.owner, '使用', result.get().cards, '替换了判定牌']);
+        }
+        return yield Promise.resolve(result);
     }
 
     * damage(game, ctx) {
@@ -402,7 +410,9 @@ class DaQiao extends FigureBase {
 
         let targetPks = command.params;
         ctx.targets.delete(u);
-        game.usersByPk(targetPks).forEach(t => ctx.targets.add(t));
+        let newTargets = game.usersByPk(targetPks)
+        newTargets.forEach(t => ctx.targets.add(t));
+        game.message([u, '弃置了', cards, '将【杀】的目标转移给', newTargets]);
 
         return yield Promise.resolve(R.success);
     }

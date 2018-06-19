@@ -4,6 +4,7 @@ const C = require('./constants');
 const User = require('./user');
 const cmdHandler = require('./cmd');
 const cardManager = require('./cards');
+const {buildMessage} = require('./common/message');
 
 
 class Command {
@@ -150,6 +151,10 @@ class Game {
         }
     }
 
+    message(elements) {
+        this.broadcast(`MSG ${buildMessage(elements)}`);
+    }
+
     resendUserInfo(user) {
         // Send ALL user info to one user, especially for the user's reconnecting
         for (let k in this.users) {
@@ -201,6 +206,7 @@ class Game {
     initRound(user) {
         this.roundOwner = user;
         user.roundOwner = true;
+        this.message([user, '的回合开始']);
         this.broadcastUserInfo(user);
         for (let k of Object.keys(user.phases)) {
             user.phases[k] = 1;
@@ -209,6 +215,7 @@ class Game {
 
     uninitRound(user) {
         user.roundOwner = false;
+        this.message([user, '的回合结束']);
         this.broadcastUserInfo(user);
     }
 
@@ -278,12 +285,14 @@ class Game {
 
         this.removeUserCards(user, [card]);
         user.equipCard(card);
+        this.message([user, '装备了', card]);
         this.broadcastUserInfo(user);
     }
 
     unequipUserCard(user, equipType) {
         let old = user.unequipCard(equipType);
         if (old) {
+            this.message([user, '失去了装备', old]);
             this.broadcastUserInfo(user);
             return old;
         }

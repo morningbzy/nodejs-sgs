@@ -13,7 +13,7 @@
 </head>
 <style>
     body {
-        width: 720px;
+        width: 960px;
         margin: 20px auto;
     }
 
@@ -55,9 +55,12 @@
         }
     }
 
-    #game-table {
-        width: 720px;
+    #game {
         height: 640px;
+    }
+
+    #game-table {
+        min-width: 720px;
     }
 
     #game-table #sgs-table {
@@ -194,6 +197,9 @@
         min-width: 0.7rem;
     }
 
+    #game-message {
+        overflow-y: auto;
+    }
 </style>
 <body>
 
@@ -207,17 +213,23 @@
     <button class="quit btn btn-outline-primary btn-sm">Quit</button>
 </section>
 
-<section id="game-table">
-    <div class="top sgs-cl-children card-group">
-    </div>
-    <div class="middle card-group">
-        <div id="sgs-table">
-            <div id="feature-candidate-panel"
-                 class="sgs-cl-children position-absolute w-100 h-100 d-inline-flex justify-content-around align-items-center"></div>
+<section id="game" class="d-flex">
+    <section id="game-table">
+        <div class="top sgs-cl-children card-group">
         </div>
-    </div>
-    <div id="sgs-player-panel" class="bottom mt-2 d-flex flex-row align-items-stretch position-relative">
-    </div>
+        <div class="middle card-group">
+            <div id="sgs-table">
+                <div id="feature-candidate-panel"
+                     class="sgs-cl-children position-absolute w-100 h-100 d-inline-flex justify-content-around align-items-center"></div>
+            </div>
+        </div>
+        <div id="sgs-player-panel" class="bottom mt-2 d-flex flex-row align-items-stretch position-relative">
+        </div>
+    </section>
+    <section id="game-message" class="flex-grow-1">
+        <ul id="sgs-message-list" class="sgs-cl-children d-block w-100">
+        </ul>
+    </section>
 </section>
 
 <div class="">
