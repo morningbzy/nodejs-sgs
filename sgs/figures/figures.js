@@ -74,7 +74,7 @@ class CaoCao extends FigureBase {
                 pk: 'WEI001s02',
                 style: C.SKILL_STYLE.ZHUGONG,
                 name: '护驾',
-                desc: '主公技，当你需要使用（或打出）一张【闪】时，'
+                desc: '【主公技】当你需要使用（或打出）一张【闪】时，'
                 + '你可以发动护驾。所有“魏”势力角色按行动顺序依次选择是'
                 + '否打出一张【闪】“提供”给你（然后视为由你使用或打出），'
                 + '直到有一名角色或没有任何角色决定如此做时为止。',
@@ -122,6 +122,155 @@ class CaoCao extends FigureBase {
 }
 
 
+class LiuBei extends FigureBase {
+// 【刘备】 蜀，男，4血
+// 【仁德】
+// 【激将】
+    constructor() {
+        super();
+        this.name = '刘备';
+        this.pk = LiuBei.pk;
+        this.country = C.COUNTRY.SHU;
+        this.gender = C.GENDER.MALE;
+        this.hp = 4;
+        this.skills = {
+            SHU001s01: {
+                pk: 'SHU001s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '仁德',
+                desc: '出牌阶段，你可以将至少一张手牌交给一名其他角色，'
+                + '若你在此阶段内给出的牌首次达到两张，你回复1点体力。',
+                handler: 's1',
+            },
+            SHU001s02: {
+                pk: 'SHU001s02',
+                style: C.SKILL_STYLE.ZHUGONG,
+                name: '激将',
+                desc: '【主公技】每当你需要使用或打出一张【杀】时，你可以令'
+                + '其他蜀势力角色选择是否打出一张【杀】（视为由你使用或打出）。',
+                handler: 's2',
+            },
+        };
+    }
+
+    * s2(game, ctx) {
+        const u = this.owner;
+        let command = yield game.wait(u, {
+            validCmds: ['CANCEL', 'TARGET'],
+            validator: (command) => {
+                if (command.cmd === 'CANCEL') {
+                    return true;
+                }
+                if (command.params.length !== 1) {
+                    return false;
+                }
+
+                let targetPks = command.params;
+                let targets = game.usersByPk(targetPks);
+
+                if (C.COUNTRY.SHU !== Array.from(targets)[0].figure.country) {
+                    return false;
+                }
+
+                return true;
+            },
+        });
+
+        if (command.cmd === 'CANCEL') {
+            return yield Promise.resolve(R.abort);
+        }
+
+        let targetPks = command.params;
+        let target = Array.from(game.usersByPk(targetPks))[0];
+
+        command = yield game.waitConfirm(target, `刘备使用技能【激将】，是否为其出【杀】？`);
+        if (command.cmd === C.CONFIRM.Y) {
+            let result = yield target.on('requireSha', game, ctx);
+            if (result.success) {
+                let cards = result.get().cards;
+                game.message([target, '替', u, '打出了', cards]);
+                game.removeUserCards(target, cards);
+                return yield Promise.resolve(result);
+            }
+        }
+
+        return yield Promise.resolve(R.fail);
+    }
+
+    * roundPlayPhaseStart(game, ctx) {
+        this.changeSkillState(this.skills.SHU001s01, C.SKILL_STATE.ENABLED);
+        this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.ENABLED);
+    }
+
+    * play(game, ctx) {
+        if (this.owner.shaCount > 0) {
+            this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.ENABLED);
+        } else {
+            this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.DISABLED);
+        }
+    }
+
+    * roundPlayPhaseEnd(game, ctx) {
+        this.changeSkillState(this.skills.SHU001s01, C.SKILL_STATE.DISABLED);
+        this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.DISABLED);
+    }
+
+    * requireSha(game, ctx) {
+        this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.ENABLED);
+        let result = R.fail;
+        while (result.fail) {
+            let u = this.owner;
+            let command = yield game.wait(u, {
+                waitingTag: C.WAITING_FOR.SOMETHING,
+                validCmds: ['CARD', 'SKILL', 'CANCEL'],
+                validator: (command) => {
+                    switch (command.cmd) {
+                        case 'CARD':
+                            let card = cardManager.getCards(command.params)[0];
+                            if (command.params.length !== 1) {
+                                return false;
+                            }
+                            if (!u.hasCard(card)) {
+                                return false;
+                            }
+                            if (!(card instanceof sgsCards.Sha)) {
+                                return false;
+                            }
+                            break;
+                        case 'SKILL':
+                            if (command.params[0] !== 'SHU001s02') {
+                                return false;
+                            }
+                            let skill = u.figure.skills.SHU001s02;
+                            if (skill.state !== C.SKILL_STATE.ENABLED) {
+                                return false;
+                            }
+                            break;
+                    }
+                    return true;
+                },
+            });
+            switch (command.cmd) {
+                case 'CANCEL':
+                    result = R.abort;
+                    break;
+                case 'CARD':
+                    let cards = cardManager.getCards(command.params);
+                    game.lockUserCards(u, cards);
+                    result = new R.CardResult();
+                    result.set(cards);
+                    break;
+                case 'SKILL':
+                    let skill = u.figure.skills[command.params[0]];
+                    result = yield u.figure.useSkill(skill, game, ctx);
+                    break;
+            }
+        }
+        this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.DISABLED);
+        return yield Promise.resolve(result);
+    }
+}
+
 class GuanYu extends FigureBase {
 // 【关羽】 蜀，男，4血
 // 【武圣】
@@ -148,7 +297,6 @@ class GuanYu extends FigureBase {
         const u = this.owner;
         let command = yield game.wait(u, {
             waitingTag: C.WAITING_FOR.CARD,
-            waitingNum: 1,
             validCmds: ['CARD', 'CANCEL'],
             validator: (command) => {
                 switch (command.cmd) {
@@ -544,15 +692,21 @@ class XiaoQiao extends FigureBase {
 }
 
 CaoCao.pk = 'WEI001';
-GuanYu.pk = 'SHU002';
 SiMaYi.pk = 'WEI002';
+
+LiuBei.pk = 'SHU001';
+GuanYu.pk = 'SHU002';
+
 DaQiao.pk = 'WU006';
 XiaoQiao.pk = 'WU011';
 
 figures = {
     CaoCao,
-    GuanYu,
     SiMaYi,
+
+    LiuBei,
+    GuanYu,
+
     DaQiao,
     XiaoQiao,
 };

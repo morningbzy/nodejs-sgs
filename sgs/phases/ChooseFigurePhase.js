@@ -10,7 +10,7 @@ module.exports = class extends Phase {
 
     static* start(game) {
         game.state = C.GAME_STATE.CHOOSING_FIGURE;
-        let figures = [new (Figures.CaoCao)(), new (Figures.GuanYu)()];
+        let figures = [new (Figures.CaoCao)(), new (Figures.LiuBei)()];
         const zhugong = game.zhugong;
 
         zhugong.reply(`FIGURE_CANDIDATE ${JSON.stringify(figures.map((f) => f.toJson()))}`, true, true);
