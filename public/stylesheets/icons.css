@@ -1,0 +1,28 @@
+
+i.sgs-icon {
+    display: inline-block;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: contain;
+}
+
+.sgs-icon-xs {
+    min-width: .75rem;
+    height: .75rem;
+}
+
+.sgs-icon-weapon {
+    background-image: url("/static/images/icons/weapon.png");
+}
+
+.sgs-icon-armor {
+    background-image: url("/static/images/icons/armor.png");
+}
+
+.sgs-icon-attack-horse {
+    background-image: url("/static/images/icons/attack-horse.png");
+}
+
+.sgs-icon-defense-horse {
+    background-image: url("/static/images/icons/defense-horse.png");
+}

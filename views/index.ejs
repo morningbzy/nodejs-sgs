@@ -6,6 +6,9 @@
     <link rel="stylesheet" href="static/bootstrap/css/bootstrap.css"/>
     <link rel="stylesheet" href="static/bootstrap/css/bootstrap-grid.css"/>
     <link rel="stylesheet" href="static/bootstrap/css/bootstrap-reboot.css"/>
+    <link rel="stylesheet" href="static/font-awesome/css/fontawesome-all.css"/>
+
+    <link rel="stylesheet" href="stylesheets/icons.css"/>
 
     <script src="static/jquery-3.3.1.js"></script>
     <script src="static/bootstrap/js/bootstrap.js"></script>
@@ -155,24 +158,29 @@
         display: block;
     }
 
+    .sgs-card-number {
+        text-shadow: 0 2px #fff, 2px 0 #fff, 0 -2px #fff, -2px 0 #fff;
+        vertical-align: text-top;
+    }
+
+    .sgs-card-number:before {
+        margin-right: 2px;
+    }
+
     .sgs-card-suit-spade {
         color: #343a40 !important;
-        text-shadow: 0 2px #fff, 2px 0 #fff, 0 -2px #fff, -2px 0 #fff;
     }
 
     .sgs-card-suit-club {
         color: #343a40 !important;
-        text-shadow: 0 2px #fff, 2px 0 #fff, 0 -2px #fff, -2px 0 #fff;
     }
 
     .sgs-card-suit-heart {
         color: #dc3545 !important;
-        text-shadow: 0 2px #fff, 2px 0 #fff, 0 -2px #fff, -2px 0 #fff;
     }
 
     .sgs-card-suit-diamond {
         color: #dc3545 !important;
-        text-shadow: 0 2px #fff, 2px 0 #fff, 0 -2px #fff, -2px 0 #fff;
     }
 
     .sgs-card-suit-spade::before {
@@ -191,10 +199,8 @@
         content: "\2666";
     }
 
-    .sgs-equipment-symbol {
-        letter-spacing: -0.35rem;
-        display: inline-block;
-        min-width: 0.7rem;
+    .sgs-equipment {
+        height: 1.5rem;
     }
 
     #game-message {
@@ -348,7 +354,7 @@
                 if ([WAITING_FOR.SOMETHING, WAITING_FOR.CARD].includes(Cmd.waitingTag)) {
                     $(e.currentTarget).toggleClass(selectedCardClass);
                 }
-                if (WAITING_FOR.PLAY === Cmd.waitingTag) {
+                if (Cmd.waitingNum === 1 || WAITING_FOR.PLAY === Cmd.waitingTag) {
                     let pks = [$(e.currentTarget).attr('pk')];
                     Cmd.send({
                         cmd: 'CARD',

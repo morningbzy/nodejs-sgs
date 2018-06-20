@@ -16,7 +16,7 @@ function buildMessage(elements) {
             strings.push(`<b>${e.figure.name}</b>`);
         } else if (e instanceof sgsCards.CardBase) {
             let suitClass = [C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND].includes(e.suit) ? 'text-danger' : 'text-dark';
-            strings.push(`【${e.name}<span class="sgs-card sgs-card-suit-${e.suit} ${suitClass}">${e.number}</span>】`);
+            strings.push(`【${e.name}<span class="sgs-card-text sgs-card-suit-${e.suit} ${suitClass}">${e.number}</span>】`);
 
             if(e.faked) {
                 strings.push('(');

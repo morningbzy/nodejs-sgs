@@ -51,7 +51,7 @@ class Game {
         const result = this.validateCmd(command);
 
         if (!result.valid) {
-            u.reply(`MSG Invalid CMD`, true);
+            u.reply(`TOAST 操作无效`, true);
             console.log(`|<!> invalid command!`);
             console.log(`+--------------------`);
             console.log(``);
@@ -91,6 +91,7 @@ class Game {
     }
 
     wait(u, waiting) {
+        let waitingNum = waiting.waitingNum || 0;
         let waitingTag = C.WAITING_FOR.SOMETHING;
         if (waiting.waitingTag !== undefined) {
             waitingTag = waiting.waitingTag;
@@ -102,8 +103,9 @@ class Game {
                 }
             }
         }
-        u.waiting = waitingTag;
-        this.broadcast(`WAITING ${u.seatNum} ${waitingTag}`, u);
+
+        u.waiting = {waitingTag, waitingNum};
+        this.broadcast(`WAITING ${u.seatNum} ${waitingTag} ${waitingNum}`, u);
         return new Promise((res, rej) => {
             waiting.u = u;
             waiting.resolve = res;

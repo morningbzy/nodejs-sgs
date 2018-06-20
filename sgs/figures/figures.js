@@ -147,6 +147,8 @@ class GuanYu extends FigureBase {
         let result;
         const u = this.owner;
         let command = yield game.wait(u, {
+            waitingTag: C.WAITING_FOR.CARD,
+            waitingNum: 1,
             validCmds: ['CARD', 'CANCEL'],
             validator: (command) => {
                 switch (command.cmd) {
@@ -470,6 +472,8 @@ class XiaoQiao extends FigureBase {
     * s1(game, ctx) {
         const u = this.owner;
         let command = yield game.wait(u, {
+            waitingTag: C.WAITING_FOR.CARD,
+            waitingNum: 1,
             validCmds: ['CANCEL', 'CARD'],
             validator: (command) => {
                 if (command.cmd === 'CANCEL') {

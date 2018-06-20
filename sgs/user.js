@@ -286,8 +286,10 @@ class User extends EventListener {
     }
 
     // NOTE: This is NOT an event handler
-    * requireCard(game, cardClass) {
+    * requireCard(game, cardClass, count = 1) {
         let command = yield game.wait(this, {
+            waitingTag: C.WAITING_FOR.CARD,
+            waitingNum: count,
             validCmds: ['CANCEL', 'CARD'],
             validator: (command) => {
                 if (command.cmd === 'CANCEL') {

@@ -14,6 +14,7 @@ function changeSeatStateClass(seatNum, marker, stateClass, remove = false) {
 
 const Cmd = {
     waitingTag: 0,  // 0:NOTHING, 1:SOMETHING, 2:CARD, 3:TARGET
+    waitingNum: 0,
 
     send: function (cmd) {
         const params = (cmd.params || []).join(' ');
@@ -141,8 +142,8 @@ const Cmd = {
         } else if (userInfo.state > 1) {
             Cmd.start();
         }
-        if (userInfo.waiting !== 0) {
-            Cmd.waiting([seatNum, userInfo.waiting], marker);
+        if (userInfo.waiting) {
+            Cmd.waiting([seatNum, userInfo.waiting.waitingTag, userInfo.waiting.waitingNum], marker);
         }
         if (userInfo.role !== null) {
             Cmd.role([seatNum, userInfo.role], marker);
@@ -175,6 +176,9 @@ const Cmd = {
         $('#sgs-table .alert').alert('close');
         $(rendered).appendTo('#sgs-table');
         $('#sgs-table .alert:last').addClass('show');
+    },
+
+    toast: function(params, marker) {
     },
 
     role: function (params, marker) {
@@ -223,6 +227,7 @@ const Cmd = {
 
         if (marker === '*') {
             Cmd.waitingTag = parseInt(params[1]);
+            Cmd.waitingNum = parseInt(params[2] || 0);
         }
     },
 
