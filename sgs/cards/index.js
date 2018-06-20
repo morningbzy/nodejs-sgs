@@ -39,8 +39,8 @@ class CardManager {
         console.assert(cards.length === 1 || fakeInfo.asClass !== undefined, 'Fake cards failed!');
         let {
             asClass = cards[0].constructor,
-            asSuit = cards[0].suit,
-            asNumber = cards[0].number
+            asSuit = cards.length === 1 ? cards[0].suit : C.CARD_SUIT.NONE,
+            asNumber = cards.length === 1 ? cards[0].number : 0,
         } = fakeInfo;
 
         let faked = new asClass(asSuit, asNumber);

@@ -12,7 +12,7 @@ class RoundJudgePhase extends Phase {
         const u = game.roundOwner;
 
         let judge = u.popJudge();
-        while(judge) {
+        while (judge) {
             let {card} = judge;
 
             // ---------------------------------
@@ -21,19 +21,17 @@ class RoundJudgePhase extends Phase {
             //     judgeCard = _u.on('beforeJudge');
             // }
             let judgeCard = game.getJudgeCard();
+            let context = {judgeCard};
 
             // TODO: Before judge effective, ask SiMaYi & ZhangJiao
-            for(let _u of game.userRound()) {
-                let result = yield _u.on('beforeJudgeEffect', game);
-                if(result.success) {
-                    judgeCard = result.get().cards[0];
-                    game.broadcast(`ALERT ${u.figure.name}判定${card.name}为${judgeCard.suit}${judgeCard.number}。`);
-                }
+            for (let _u of game.userRound()) {
+                yield _u.on('beforeJudgeEffect', game, context);
             }
 
-            let result = card.judge(judgeCard);
-            game.broadcast(`ALERT ${u.figure.name}判定${card.name}为${judgeCard.suit}${judgeCard.number}。${result.success?'生效':'未生效'}`);
-            if(result.success) {
+            yield u.on('judge', game, context);  // 目前仅用于小乔的【红颜】
+            let result = card.judge(context.judgeCard);
+            game.message([u, '判定', card, '为', context.judgeCard, '判定', result.success ? '生效' : '未生效']);
+            if (result.success) {
                 card.judgeEffect(u);
             }
             // TODO: After judge effective

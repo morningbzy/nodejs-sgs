@@ -291,8 +291,9 @@ class SiMaYi extends FigureBase {
 
     * s2(game, ctx) {
         let result = yield this.owner.requireCard(game, sgsCards.CardBase);
-        if(result.success) {
-            game.message([this.owner, '使用', result.get().cards, '替换了判定牌']);
+        if (result.success) {
+            ctx.judgeCard = result.get().cards;
+            game.message([this.owner, '使用', ctx.judgeCard, '替换了判定牌']);
         }
         return yield Promise.resolve(result);
     }
@@ -410,7 +411,7 @@ class DaQiao extends FigureBase {
 
         let targetPks = command.params;
         ctx.targets.delete(u);
-        let newTargets = game.usersByPk(targetPks)
+        let newTargets = game.usersByPk(targetPks);
         newTargets.forEach(t => ctx.targets.add(t));
         game.message([u, '弃置了', cards, '将【杀】的目标转移给', newTargets]);
 
@@ -510,6 +511,7 @@ class XiaoQiao extends FigureBase {
         game.discardCards(cards);
         let targetPks = command.params;
         ctx.targets = game.usersByPk(targetPks);
+        game.message([u, '弃置了', cards, '将伤害转移给', ctx.targets]);
 
         for (let t of ctx.targets) {
             yield t.on('damage', game, ctx);
@@ -528,6 +530,12 @@ class XiaoQiao extends FigureBase {
             }
         }
         return yield Promise.resolve(R.fail);
+    }
+
+    * judge(game, ctx) {
+        if (C.CARD_SUIT.SPADE === ctx.judgeCard.suit) {
+            ctx.judgeCard = cardManager.fakeCards([ctx.judgeCard], {asSuit: C.CARD_SUIT.HEART});
+        }
     }
 }
 

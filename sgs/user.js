@@ -345,11 +345,13 @@ class User extends EventListener {
         return yield Promise.resolve(result);
     }
 
+    * judge(game, ctx) {
+        let result = yield this.figure.on('judge', game, ctx);
+        return yield Promise.resolve(result);
+    }
+
     * beforeJudgeEffect(game, ctx) {
         let result = yield this.figure.on('beforeJudgeEffect', game, ctx);
-        if (!result.abort && result.fail && this.equipments.armor) {
-            result = yield this.equipments.armor.on('beforeJudgeEffect', game, ctx);
-        }
         return yield Promise.resolve(result);
     }
 

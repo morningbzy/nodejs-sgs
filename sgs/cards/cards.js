@@ -233,10 +233,6 @@ class LeBuSiShu extends DelayedSilkBagCard {
 
     judge(card) {
         let result = R.judge(C.CARD_SUIT.HEART !== card.suit);
-        console.log(result);
-        console.log(result.success);
-        console.log(result.fail);
-        console.log(result.abort);
         return result;
     }
 
