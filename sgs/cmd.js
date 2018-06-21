@@ -32,6 +32,11 @@ module.exports = {
     },
 
     card: (game, sender, params) => {
+        sender.reply(`SELECT CARD ${params}`);
+    },
+
+    uncard: (game, sender, params) => {
+        sender.reply(`UNSELECT CARD ${params}`);
     },
 
     skill: (game, sender, params) => {
@@ -41,6 +46,11 @@ module.exports = {
     },
 
     target: (game, sender, params) => {
+        sender.reply(`SELECT TARGET ${params}`);
+    },
+
+    untarget: (game, sender, params) => {
+        sender.reply(`UNSELECT TARGET ${params}`);
     },
 
     pass: (game, sender, params) => {

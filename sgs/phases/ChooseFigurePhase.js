@@ -10,11 +10,11 @@ module.exports = class extends Phase {
 
     static* start(game) {
         game.state = C.GAME_STATE.CHOOSING_FIGURE;
-        let figures = [new (Figures.CaoCao)(), new (Figures.LiuBei)()];
         const zhugong = game.zhugong;
-
+        let figures = [new (Figures.CaoCao)(), new (Figures.LiuBei)()];
         zhugong.reply(`FIGURE_CANDIDATE ${JSON.stringify(figures.map((f) => f.toJson()))}`, true, true);
         game.broadcast('MSG 等待主公选择武将');
+
 
         let command = yield game.wait(zhugong, {
             validCmds: ['FIGURE'],

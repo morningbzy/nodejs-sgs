@@ -22,6 +22,7 @@ class RoundJudgePhase extends Phase {
             // }
             let judgeCard = game.getJudgeCard();
             let context = {judgeCard};
+            game.message([u, '判定', card, '为', context.judgeCard]);
 
             // TODO: Before judge effective, ask SiMaYi & ZhangJiao
             for (let _u of game.userRound()) {

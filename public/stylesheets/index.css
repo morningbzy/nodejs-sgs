@@ -1,0 +1,191 @@
+body {
+    width: 960px;
+    margin: 20px auto;
+}
+
+#status {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin: 10px;
+    background: #999;
+}
+
+#status.working {
+    -webkit-animation: flash 1s infinite;
+    -webkit-animation-direction: alternate;
+}
+
+#msg {
+    max-height: 200px;
+    overflow: auto;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    margin: 20px 0;
+    padding: 5px 15px;
+    background: #eee;
+}
+
+#msg li {
+    margin: 5px 20px;
+}
+
+@-webkit-keyframes flash {
+    from {
+        box-shadow: 0 0 5px green;
+        background: green;
+    }
+    to {
+        box-shadow: 0 0 12px green;
+        background: green;
+    }
+}
+
+#game {
+    height: 640px;
+}
+
+#game-table {
+    min-width: 720px;
+}
+
+#game-table #sgs-table {
+    height: 100%;
+    flex: 1 0 40%;
+    position: relative;
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-direction: column;
+    flex-direction: column;
+}
+
+#game-table .top,
+#game-table .middle,
+#game-table .bottom {
+    height: 210px;
+}
+
+#game-table .sgs-player {
+    width: 144px;
+}
+
+#game-table .sgs-player.is-you {
+    width: 100%;
+}
+
+#game-table .sgs-player.sgs-dead {
+    opacity: .5;
+}
+
+.sgs-player .sgs-player-hp,
+.sgs-player .sgs-hand-card-count {
+    width: 2rem;
+}
+
+#game-table .sgs-player .sgs-player-card {
+    cursor: pointer;
+    width: 134px;
+}
+
+#game-table .sgs-player:not(.sgs-dead) .sgs-player-card:hover {
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.figure-candidate {
+    height: 160px;
+    width: 120px;
+}
+
+.figure-candidate > .card {
+    cursor: pointer;
+}
+
+.figure-candidate > .card:hover {
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+}
+
+.sgs-card {
+    width: 90px;
+    height: 120px;
+}
+
+#sgs-card-panel .sgs-card {
+    cursor: pointer;
+}
+
+.sgs-player:not(.sgs-dead) #sgs-card-panel .sgs-card:hover {
+    margin-top: -20px;
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
+    height: 144px;
+    width: 108px;
+    z-index: 1;
+}
+
+#sgs-card-panel .sgs-card.sgs-card-selected,
+#sgs-card-panel .sgs-card.sgs-card-locked {
+    top: -50px;
+}
+
+#sgs-action-panel {
+    right: 5px;
+    bottom: 5px;
+    display: none;
+}
+
+#sgs-skill-panel {
+    left: 144px;
+    bottom: 5px;
+}
+
+.waiting #sgs-action-panel {
+    display: block;
+}
+
+.sgs-card-number {
+    text-shadow: 0 2px #fff, 2px 0 #fff, 0 -2px #fff, -2px 0 #fff;
+    vertical-align: text-top;
+}
+
+.sgs-card-number:before {
+    margin-right: 2px;
+}
+
+.sgs-card-suit-spade {
+    color: #343a40 !important;
+}
+
+.sgs-card-suit-club {
+    color: #343a40 !important;
+}
+
+.sgs-card-suit-heart {
+    color: #dc3545 !important;
+}
+
+.sgs-card-suit-diamond {
+    color: #dc3545 !important;
+}
+
+.sgs-card-suit-spade::before {
+    content: "\2660";
+}
+
+.sgs-card-suit-club:before {
+    content: "\2663";
+}
+
+.sgs-card-suit-heart:before {
+    content: "\2665";
+}
+
+.sgs-card-suit-diamond:before {
+    content: "\2666";
+}
+
+.sgs-equipment {
+    height: 1.5rem;
+}
+
+#game-message {
+    overflow-y: auto;
+}

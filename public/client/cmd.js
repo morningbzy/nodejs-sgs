@@ -14,7 +14,6 @@ function changeSeatStateClass(seatNum, marker, stateClass, remove = false) {
 
 const Cmd = {
     waitingTag: 0,  // 0:NOTHING, 1:SOMETHING, 2:CARD, 3:TARGET
-    waitingNum: 0,
 
     send: function (cmd) {
         const params = (cmd.params || []).join(' ');
@@ -116,8 +115,8 @@ const Cmd = {
         userInfo.dead = () => {
             return userInfo.state === 5;
         };
-        userInfo.skillStateClass = function() {
-            switch(this.state) {
+        userInfo.skillStateClass = function () {
+            switch (this.state) {
                 case SKILL_STATE.DISABLED:
                     return 'btn-light disabled';
                 case SKILL_STATE.ENABLED:
@@ -143,7 +142,10 @@ const Cmd = {
             Cmd.start();
         }
         if (userInfo.waiting) {
-            Cmd.waiting([seatNum, userInfo.waiting.waitingTag, userInfo.waiting.waitingNum], marker);
+            Cmd.waiting([
+                seatNum,
+                userInfo.waiting.waitingTag,
+            ], marker);
         }
         if (userInfo.role !== null) {
             Cmd.role([seatNum, userInfo.role], marker);
@@ -163,7 +165,7 @@ const Cmd = {
         $('#game-message').scrollTop($('#sgs-message-list').outerHeight());
     },
 
-    confirm: function(params, marker) {
+    confirm: function (params, marker) {
         let alertHtml = params.join(' ');
         alertHtml += `<span class="sgs-confirm-action"><a href="#" class="sgs-confirm-action-y alert-link ml-3" cmd="Y">是</a><a href="#" class="sgs-confirm-action-n alert-link ml-3" cmd="N">否</a></span>`;
         Cmd.alert([alertHtml], marker);
@@ -178,7 +180,7 @@ const Cmd = {
         $('#sgs-table .alert:last').addClass('show');
     },
 
-    toast: function(params, marker) {
+    toast: function (params, marker) {
     },
 
     role: function (params, marker) {
@@ -227,7 +229,6 @@ const Cmd = {
 
         if (marker === '*') {
             Cmd.waitingTag = parseInt(params[1]);
-            Cmd.waitingNum = parseInt(params[2] || 0);
         }
     },
 
@@ -269,6 +270,37 @@ const Cmd = {
         $(`.sgs-card[pk=${pk}]`).remove();
     },
 
+    select: function (params, marker) {
+        let category = params[0];
+        let pk = params[1];
+
+        switch (category.toLowerCase()) {
+            case 'card':
+                $(`.sgs-card[pk=${pk}]`).addClass(selectedCardClass);
+                break;
+            case 'target':
+                $(`.sgs-player[pk=${pk}] .sgs-player-card`).addClass(selectedPlayerClass);
+                break;
+        }
+    },
+
+    unselect: function (params, marker) {
+        let category = params[0];
+        let pk = params[1];
+
+        switch (category.toLowerCase()) {
+            case 'all':
+                $('.sgs-card.selected').removeClass(selectedCardClass);
+                $('.sgs-player .selected').removeClass(selectedPlayerClass);
+                break;
+            case 'card':
+                $(`.sgs-card[pk=${pk}]`).removeClass(selectedCardClass);
+                break;
+            case 'target':
+                $(`.sgs-player[pk=${pk}] .sgs-player-card`).removeClass(selectedPlayerClass);
+                break;
+        }
+    },
 };
 
 

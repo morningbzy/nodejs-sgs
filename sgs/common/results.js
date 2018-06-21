@@ -19,6 +19,10 @@ class ResultBase {
         this.fail = this._status === RESULT_STATE.FAIL;
         this.success = this._status === RESULT_STATE.SUCCESS;
     }
+
+    get() {
+        return this._resultObj;
+    }
 }
 
 class SuccessResult extends ResultBase {
@@ -49,10 +53,6 @@ class CardResult extends ResultBase {
             cards: Array.isArray(cards) ? cards : Array.from([cards]),
         };
     }
-
-    get() {
-        return this._resultObj;
-    }
 }
 
 class JudgeResult extends ResultBase {
@@ -61,12 +61,25 @@ class JudgeResult extends ResultBase {
     }
 }
 
+class FsmResult extends ResultBase {
+    constructor() {
+        super();
+    }
+
+    set(obj) {
+        this._resultObj = obj;
+    }
+}
+
+
 module.exports = {
     SuccessResult,
     FailResult,
     AbortResult,
     CardResult,
     JudgeResult,
+    FsmResult,
+
     success: new SuccessResult(),
     fail: new FailResult(),
     abort: new AbortResult(),

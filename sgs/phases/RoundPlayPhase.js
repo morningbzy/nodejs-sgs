@@ -41,20 +41,19 @@ class RoundPlayPhase extends Phase {
         return yield Promise.resolve(result);
     }
 
-
-
     static* start(game) {
         console.log('ROUND-PLAY-PHASE');
-        const u = game.roundOwner;
-
         let context = {};
+        let pass = false;
         let result;
 
-        yield u.on('roundPlayPhaseStart', game, context);
+        const u = game.roundOwner;
         u.shaCount = 1;
 
-        let pass = false;
+        yield u.on('roundPlayPhaseStart', game, context);
+
         while (!pass && u.state !== C.USER_STATE.DEAD && game.state !== C.GAME_STATE.ENDING) {
+            u.reply('UNSELECT ALL');
             yield u.on('play', game, context);
 
             let command = yield game.wait(u, {
@@ -63,9 +62,6 @@ class RoundPlayPhase extends Phase {
                 validator: (command) => {
                     switch (command.cmd) {
                         case 'CARD':
-                            if (command.params.length !== 1) {
-                                return false;
-                            }
                             for (let cardPk of command.params) {
                                 if (!u.hasCardPk(cardPk)) {
                                     return false;

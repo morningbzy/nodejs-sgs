@@ -9,38 +9,64 @@ class ShaInitStage {
 
         console.log('SHA-INIT-STAGE');
         let result = yield u.on('useSha', game, ctx);
-        if (result.abort) {
-            return yield Promise.resolve(result);
-        }
+        return yield Promise.resolve(result);
+    }
+}
+
+class ShaSelectTargetStage {
+    static* start(game, u, ctx) {
+        console.log('SHA-SELECT-TARGET-STAGE');
 
         let targetCount = 1;  // TODO: How many targets are required
+        ctx.targets = new Set();
 
         game.lockUserCards(u, ctx.sourceCards);
-        let command = yield game.wait(u, {
-            validCmds: ['CANCEL', 'TARGET'],
-            validator: (command) => {
-                if (command.cmd === 'CANCEL') {
-                    return true;
-                }
-                if (command.params.length !== targetCount) {
-                    return false;
-                }
-                // TODO: validate distance & target-able
-                // const pks = command.params;
-                return true;
+        let result = yield game.waitFSM(u, {
+            _init: 'T',
+            T: {
+                TARGET: {
+                    next: 'O',
+                    action: (c, r) => {
+                        r.set(game.usersByPk(c.params));
+                        return r;
+                    }
+                },
+                CANCEL: {
+                    next: '_',
+                    action: (c, r) => {
+                        return R.abort;
+                    }
+                },
             },
+            O: {
+                UNTARGET: {
+                    next: 'T',
+                    action: (c, r) => {
+                        r.set(new Set());
+                        return r;
+                    }
+                },
+                OK: {next: '_'},
+                CANCEL: {
+                    next: '_',
+                    action: (c, r) => {
+                        return R.abort;
+                    }
+                },
+            }
         });
         game.unlockUserCards(u, ctx.sourceCards);
 
-        if (command.cmd === 'CANCEL') {
-            return yield Promise.resolve(R.abort);
+        if(result.success) {
+            ctx.targets = result.get();
+            game.message([ctx.sourceUser, '对', ctx.targets, '使用', ctx.sourceCards,]);
+            yield u.on('usedSha', game, ctx);
         }
-        let targetPks = command.params;
-        ctx.targets = game.usersByPk(targetPks);
-        game.message([ctx.sourceUser, '对', ctx.targets, '使用', ctx.sourceCards,]);
-        return yield Promise.resolve(R.success);
+
+        return yield Promise.resolve(result);
     }
 }
+
 
 class ShaValidateStage {
     static* start(game, u, ctx) {
@@ -65,8 +91,6 @@ class ShaExecuteStage {
     static* start(game, u, ctx) {
         console.log('SHA-EXECUTE-STAGE');
         const targets = ctx.targets;
-
-        yield u.on('usedSha', game, ctx);
 
         // TODO: SHAN-able?
         let shanAble = true;
@@ -97,6 +121,7 @@ class ShaExecuteStage {
 
 const subStages = [
     ShaInitStage,
+    ShaSelectTargetStage,
     ShaValidateStage,
     ShaExecuteStage,
 ];
@@ -108,8 +133,7 @@ class ShaStage {
             for (let s of subStages) {
                 result = yield s.start(game, u, ctx);
                 if (result.abort) {
-                    // 中止
-                    break;
+                    break; // 中止
                 }
             }
             return yield Promise.resolve(R.success);

@@ -1,15 +1,19 @@
 const waitingClass = 'waiting bg-warning';
 const readyClass = ' bg-success';
-const selectedCardClass = 'sgs-card-selected border-success';
-const selectedPlayerClass = 'sgs-player-selected border-success';
-const lockedCardClass = 'sgs-card-locked border-danger';
+const selectedCardClass = 'selected sgs-card-selected border-success';
+const selectedPlayerClass = 'selected sgs-player-selected border-success';
+const lockedCardClass = 'locked sgs-card-locked border-danger';
 const WAITING_FOR = {
-    NOTHING: 0,
-    SOMETHING: 1,
-    CARD: 2,
-    TARGET: 3,
-    CONFIRM: 4,
-    PLAY: 5
+    NOTHING: 0x0000,
+    SOMETHING: 0x0001,
+    CARD: 0x0002,
+    TARGET: 0x0004,
+    CONFIRM: 0x0008,
+    PLAY: 0x0010,
+    OK: 0x0020,
+    CANCEL: 0x0040,
+    UNCARD: 0x0080,
+    UNTARGET: 0x0100,
 };
 
 const SKILL_STATE = {

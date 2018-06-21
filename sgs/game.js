@@ -1,6 +1,7 @@
 let co = require('co');
 
 const C = require('./constants');
+const R = require('./common/results');
 const User = require('./user');
 const cmdHandler = require('./cmd');
 const cardManager = require('./cards');
@@ -91,21 +92,13 @@ class Game {
     }
 
     wait(u, waiting) {
-        let waitingNum = waiting.waitingNum || 0;
-        let waitingTag = C.WAITING_FOR.SOMETHING;
-        if (waiting.waitingTag !== undefined) {
-            waitingTag = waiting.waitingTag;
-        } else {
-            for (let k of Object.keys(C.WAITING_FOR)) {
-                if (waiting.validCmds.includes(k)) {
-                    waitingTag = C.WAITING_FOR[k];
-                    break;
-                }
-            }
+        let waitingTag = C.WAITING_FOR.NOTHING;
+        for (let k of waiting.validCmds) {
+            waitingTag += C.WAITING_FOR[k] || 0;
         }
-
-        u.waiting = {waitingTag, waitingNum};
-        this.broadcast(`WAITING ${u.seatNum} ${waitingTag} ${waitingNum}`, u);
+        console.log(`|[i] Waiting for CMD: ${waiting.validCmds} @ ${waitingTag}`);
+        u.waiting = {waitingTag};
+        this.broadcast(`WAITING ${u.seatNum} ${waitingTag}`, u);
         return new Promise((res, rej) => {
             waiting.u = u;
             waiting.resolve = res;
@@ -137,6 +130,42 @@ class Game {
                 return command;
             }
         });
+    }
+
+    waitOk(u) {
+        return this.wait(u, {
+            validCmds: ['OK', 'CANCEL'],
+            waitingTag: C.WAITING_FOR.OK,
+            value: (command) => {
+                return command.cmd === 'OK';
+            }
+        });
+    }
+
+    * waitFSM(u, fsm) {  // Finite state machine
+        let cs = fsm._init;  // Current state
+        let result = new R.FsmResult();
+        while (cs !== '_') {
+            let state = fsm[cs];
+            let validCmds = Object.keys(state);
+            let command = yield this.wait(u, {
+                validCmds: validCmds,
+                validator: (command) => {
+                    return state[command.cmd].validator ? state[command.cmd].validator(command) : true;
+                },
+                value: (command) => {
+                    return state[command.cmd].value ? state[command.cmd].value(command) : command;
+                },
+            });
+
+            if(state[command.cmd].action) {
+                result = state[command.cmd].action(command, result);
+            }
+            cs = state[command.cmd].next;
+        }
+
+        u.reply('UNSELECT ALL');
+        return yield Promise.resolve(result);
     }
 
     broadcast(msg, self, addToResoreCmd = false) {
@@ -228,7 +257,9 @@ class Game {
 
         for (let k in C.EQUIP_TYPE) {
             let old = this.unequipUserCard(user, C.EQUIP_TYPE[k]);
-            this.discardCards([old.card]);
+            if(old) {
+                this.discardCards([old.card]);
+            }
         }
 
         for (let j of user.judgeStack) {
@@ -254,7 +285,7 @@ class Game {
     }
 
     lockUserCardPks(user, cardPks) {
-        user.reply(`LOCK_CARD ${cardPks.join(' ')}`, true, true);
+        // user.reply(`LOCK_CARD ${cardPks.join(' ')}`, true, true);
     }
 
     lockUserCards(user, cards) {
@@ -262,8 +293,8 @@ class Game {
     }
 
     unlockUserCardPks(user, cardPks) {
-        user.reply(`UNLOCK_CARD ${cardPks.join(' ')}`);
-        user.popRestoreCmd();
+        // user.reply(`UNLOCK_CARD ${cardPks.join(' ')}`);
+        // user.popRestoreCmd();
     }
 
     unlockUserCards(user, cards) {
@@ -281,7 +312,7 @@ class Game {
 
     equipUserCard(user, card) {
         let old = this.unequipUserCard(user, card.equipType);
-        if(old) {
+        if (old) {
             this.discardCards([old.card]);
         }
 

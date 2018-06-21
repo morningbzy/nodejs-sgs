@@ -9,6 +9,7 @@ const EventListener = require('../common/eventListener');
 class FigureBase extends EventListener {
     constructor() {
         super();
+        this.pk = this.constructor.pk;
         this.owner = null;
     }
 
@@ -58,7 +59,6 @@ class CaoCao extends FigureBase {
     constructor() {
         super();
         this.name = '曹操';
-        this.pk = CaoCao.pk;
         this.country = C.COUNTRY.WEI;
         this.gender = C.GENDER.MALE;
         this.hp = 4;
@@ -256,7 +256,6 @@ class LiuBei extends FigureBase {
                     break;
                 case 'CARD':
                     let cards = cardManager.getCards(command.params);
-                    game.lockUserCards(u, cards);
                     result = new R.CardResult();
                     result.set(cards);
                     break;
@@ -270,6 +269,7 @@ class LiuBei extends FigureBase {
         return yield Promise.resolve(result);
     }
 }
+
 
 class GuanYu extends FigureBase {
 // 【关羽】 蜀，男，4血
@@ -321,7 +321,6 @@ class GuanYu extends FigureBase {
         }
 
         let cards = cardManager.getCards(command.params);
-        game.lockUserCards(u, cards);
         result = new R.CardResult();
         let fakeCard = cardManager.fakeCards(cards, {asClass: sgsCards.Sha});
         result.set(fakeCard);
@@ -386,7 +385,6 @@ class GuanYu extends FigureBase {
                     break;
                 case 'CARD':
                     let cards = cardManager.getCards(command.params);
-                    game.lockUserCards(u, cards);
                     result = new R.CardResult();
                     result.set(cards);
                     break;
@@ -520,7 +518,6 @@ class DaQiao extends FigureBase {
         }
 
         let cards = cardManager.getCards(command.params);
-        game.lockUserCards(u, cards);
         result = new R.CardResult();
         let fakeCard = cardManager.fakeCards(cards, {asClass: sgsCards.LeBuSiShu});
         result.set(fakeCard);
@@ -546,7 +543,11 @@ class DaQiao extends FigureBase {
                     return false;
                 }
                 // TODO: validate distance & target-able
-                // const pks = command.params;
+                let targetPks = command.params;
+                let targets = game.usersByPk(targetPks);
+                if (targets.has(ctx.sourceUser)) {
+                    return false;
+                }
                 return true;
             },
         });
@@ -691,6 +692,7 @@ class XiaoQiao extends FigureBase {
     }
 }
 
+
 CaoCao.pk = 'WEI001';
 SiMaYi.pk = 'WEI002';
 
@@ -717,4 +719,6 @@ Object.keys(figures).map((k) => {
     figureSet[figures[k].pk] = figures[k];
 });
 
-module.exports = Object.assign(figures, {figureSet});
+figures['figureSet'] = figureSet;
+
+module.exports = figures;
