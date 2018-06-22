@@ -1,5 +1,6 @@
 const C = require('../constants');
 const R = require('../common/results');
+const FSM = require('../common/stateMachines');
 const utils = require('../utils');
 const cardManager = require('../cards');
 const sgsCards = require('../cards/cards');
@@ -155,39 +156,23 @@ class LiuBei extends FigureBase {
 
     * s2(game, ctx) {
         const u = this.owner;
-        let command = yield game.wait(u, {
-            validCmds: ['CANCEL', 'TARGET'],
-            validator: (command) => {
-                if (command.cmd === 'CANCEL') {
-                    return true;
-                }
-                if (command.params.length !== 1) {
-                    return false;
-                }
+        let result = yield game.waitFSM(u, FSM.singleTargetFSMFactory((command) => {
+            let targets = game.usersByPk(command.params);
+            return (C.COUNTRY.SHU === Array.from(targets)[0].figure.country);
+        }), ctx);
 
-                let targetPks = command.params;
-                let targets = game.usersByPk(targetPks);
-
-                if (C.COUNTRY.SHU !== Array.from(targets)[0].figure.country) {
-                    return false;
-                }
-
-                return true;
-            },
-        });
-
-        if (command.cmd === 'CANCEL') {
+        if(!result.success) {
             return yield Promise.resolve(R.abort);
         }
 
-        let targetPks = command.params;
-        let target = Array.from(game.usersByPk(targetPks))[0];
-
-        command = yield game.waitConfirm(target, `刘备使用技能【激将】，是否为其出【杀】？`);
+        let target = Array.from(result.get())[0];
+        game.message([u, '请', target, '为其出【杀】。']);
+        let command = yield game.waitConfirm(target, `刘备使用技能【激将】，是否为其出【杀】？`);
         if (command.cmd === C.CONFIRM.Y) {
             let result = yield target.on('requireSha', game, ctx);
             if (result.success) {
-                let cards = result.get().cards;
+                let cards = result.get();
+                console.log(cards);
                 game.message([target, '替', u, '打出了', cards]);
                 game.removeUserCards(target, cards);
                 return yield Promise.resolve(result);
@@ -217,56 +202,7 @@ class LiuBei extends FigureBase {
 
     * requireSha(game, ctx) {
         this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.ENABLED);
-        let result = R.fail;
-        while (result.fail) {
-            let u = this.owner;
-            let command = yield game.wait(u, {
-                waitingTag: C.WAITING_FOR.SOMETHING,
-                validCmds: ['CARD', 'SKILL', 'CANCEL'],
-                validator: (command) => {
-                    switch (command.cmd) {
-                        case 'CARD':
-                            let card = cardManager.getCards(command.params)[0];
-                            if (command.params.length !== 1) {
-                                return false;
-                            }
-                            if (!u.hasCard(card)) {
-                                return false;
-                            }
-                            if (!(card instanceof sgsCards.Sha)) {
-                                return false;
-                            }
-                            break;
-                        case 'SKILL':
-                            if (command.params[0] !== 'SHU001s02') {
-                                return false;
-                            }
-                            let skill = u.figure.skills.SHU001s02;
-                            if (skill.state !== C.SKILL_STATE.ENABLED) {
-                                return false;
-                            }
-                            break;
-                    }
-                    return true;
-                },
-            });
-            switch (command.cmd) {
-                case 'CANCEL':
-                    result = R.abort;
-                    break;
-                case 'CARD':
-                    let cards = cardManager.getCards(command.params);
-                    result = new R.CardResult();
-                    result.set(cards);
-                    break;
-                case 'SKILL':
-                    let skill = u.figure.skills[command.params[0]];
-                    result = yield u.figure.useSkill(skill, game, ctx);
-                    break;
-            }
-        }
-        this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.DISABLED);
-        return yield Promise.resolve(result);
+        return yield Promise.resolve(R.success);
     }
 }
 
@@ -293,38 +229,25 @@ class GuanYu extends FigureBase {
     }
 
     * s1(game, ctx) {
-        let result;
         const u = this.owner;
-        let command = yield game.wait(u, {
-            waitingTag: C.WAITING_FOR.CARD,
-            validCmds: ['CARD', 'CANCEL'],
-            validator: (command) => {
-                switch (command.cmd) {
-                    case 'CANCEL':
-                        return true;
-                    case 'CARD':
-                        if (command.params.length !== 1) {
-                            return false;
-                        }
-                        let card = cardManager.getCards(command.params)[0];
-                        if (!u.hasCard(card) || ![C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND].includes(card.suit)) {
-                            return false;
-                        }
-                        break;
-                }
-                return true;
-            },
-        });
+        let result = yield game.waitFSM(u, FSM.singleCardFSMFactory(
+            (command) => {
+                let card = cardManager.getCards(command.params)[0];
+                return (u.hasCard(card) && [C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND].includes(card.suit));
+            }
+        ), ctx);
+        if(result.success) {
+            let card = result.get();
+            console.log(card);
+            let fakeCard = cardManager.fakeCards([card], {asClass: sgsCards.Sha});
+            console.log(fakeCard);
 
-        if (command.cmd === 'CANCEL') {
-            return yield Promise.resolve(R.fail);
+            result = new R.CardResult();
+            result.set(fakeCard);
+            game.message([u, '把', card, '当作', fakeCard, '使用']);
+        } else {
+            result = R.fail;
         }
-
-        let cards = cardManager.getCards(command.params);
-        result = new R.CardResult();
-        let fakeCard = cardManager.fakeCards(cards, {asClass: sgsCards.Sha});
-        result.set(fakeCard);
-        game.message([u, '把', cards, '当作', fakeCard, '使用']);
         return yield Promise.resolve(result);
     }
 
@@ -346,56 +269,7 @@ class GuanYu extends FigureBase {
 
     * requireSha(game, ctx) {
         this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.ENABLED);
-        let result = R.fail;
-        while (result.fail) {
-            let u = this.owner;
-            let command = yield game.wait(u, {
-                waitingTag: C.WAITING_FOR.SOMETHING,
-                validCmds: ['CARD', 'SKILL', 'CANCEL'],
-                validator: (command) => {
-                    switch (command.cmd) {
-                        case 'CARD':
-                            let card = cardManager.getCards(command.params)[0];
-                            if (command.params.length !== 1) {
-                                return false;
-                            }
-                            if (!u.hasCard(card)) {
-                                return false;
-                            }
-                            if (!(card instanceof sgsCards.Sha)) {
-                                return false;
-                            }
-                            break;
-                        case 'SKILL':
-                            if (command.params[0] !== 'SHU002s01') {
-                                return false;
-                            }
-                            let skill = u.figure.skills.SHU002s01;
-                            if (skill.state !== C.SKILL_STATE.ENABLED) {
-                                return false;
-                            }
-                            break;
-                    }
-                    return true;
-                },
-            });
-            switch (command.cmd) {
-                case 'CANCEL':
-                    result = R.abort;
-                    break;
-                case 'CARD':
-                    let cards = cardManager.getCards(command.params);
-                    result = new R.CardResult();
-                    result.set(cards);
-                    break;
-                case 'SKILL':
-                    let skill = u.figure.skills[command.params[0]];
-                    result = yield u.figure.useSkill(skill, game, ctx);
-                    break;
-            }
-        }
-        this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.DISABLED);
-        return yield Promise.resolve(result);
+        return yield Promise.resolve(R.success);
     }
 }
 
@@ -438,9 +312,9 @@ class SiMaYi extends FigureBase {
     }
 
     * s2(game, ctx) {
-        let result = yield this.owner.requireCard(game, sgsCards.CardBase);
+        let result = yield this.owner.requireCard(game, sgsCards.CardBase, ctx);
         if (result.success) {
-            ctx.judgeCard = result.get().cards;
+            ctx.judgeCard = result.get();
             game.message([this.owner, '使用', ctx.judgeCard, '替换了判定牌']);
         }
         return yield Promise.resolve(result);
@@ -526,12 +400,12 @@ class DaQiao extends FigureBase {
 
     * s2(game, ctx) {
         const u = this.owner;
-        let result = yield u.requireCard(game, sgsCards.CardBase);
+        let result = yield u.requireCard(game, sgsCards.CardBase, ctx);
         if (!result.success) {
             return yield Promise.resolve(R.abort);
         }
 
-        const cards = result.get().cards;
+        const cards = result.get();
         game.lockUserCards(u, cards);
         let command = yield game.wait(u, {
             validCmds: ['CANCEL', 'TARGET'],

@@ -27,8 +27,13 @@ class CardManager {
         this.unused.unshift(...(Array.isArray(cards) ? cards : [cards]));
     }
 
+    getCard(pk) {
+        pk = Array.isArray(pk) ? pk[0] : pk;
+        return cards.cardSet.get(pk);
+    }
+
     getCards(pks) {
-        return Array.from(pks, (pk) => cards.cardSet.get(pk));
+        return Array.from(pks, (pk) => this.getCard(pk));
     }
 
     useCards(pks) {

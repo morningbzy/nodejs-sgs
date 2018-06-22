@@ -22,22 +22,7 @@ class RoundPlayPhase extends Phase {
             console.log(`|[i] Use card [${card.name}]`);
         }
 
-        if (card instanceof sgsCards.Sha) {
-            result = yield ShaStage.start(game, u, context);
-        }
-        if (card instanceof sgsCards.Tao) {
-            result = yield u.on('useTao', game, context);
-        }
-        if (card instanceof sgsCards.SilkBagCard) {
-            result = yield card.start(game, context);
-        }
-        if (card instanceof sgsCards.DelayedSilkBagCard) {
-            result = yield card.start(game, context);
-        }
-        if (card instanceof sgsCards.EquipmentCard) {
-            game.equipUserCard(u, card);
-            result = yield Promise.resolve(R.success);
-        }
+        result = yield card.start(game, context);
         return yield Promise.resolve(result);
     }
 
@@ -91,8 +76,7 @@ class RoundPlayPhase extends Phase {
                     if (skill.state === C.SKILL_STATE.ENABLED) {
                         result = yield u.figure.useSkill(skill, game, context);
                         if (result instanceof R.CardResult) {
-                            let {cards} = result.get();
-                            context.sourceCards = cards;
+                            context.sourceCards = [result.get()];
                             result = yield this.useCard(game, context);
                         }
                     }

@@ -2,6 +2,7 @@ const aggregation = require('aggregation/es6');
 const uuid = require('uuid/v4');
 const C = require('../constants');
 const R = require('../common/results');
+const FSM = require('../common/stateMachines');
 const EventListener = require('../common/eventListener');
 const ShaStage = require('../phases/sha/ShaStage');
 
@@ -108,6 +109,11 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
         this.category = C.CARD_CATEGORY.EQUIPMENT;
     }
 
+    * start(game, ctx) {
+        game.equipUserCard(game.roundOwner, this);
+        return yield Promise.resolve(R.success);
+    }
+
     * on(event, game, ctx) {
         console.log(`|<E> ON ${this.name} ${event}`);
         return yield super.on(event, game, ctx);
@@ -128,6 +134,10 @@ class Sha extends NormalCard {
         super(suit, number);
         this.name = '杀';
     }
+
+    * start(game, ctx) {
+        return yield ShaStage.start(game, game.roundOwner, ctx);
+    }
 }
 
 
@@ -144,6 +154,10 @@ class Tao extends NormalCard {
         super(suit, number);
         this.name = '桃';
     }
+
+    * start(game, ctx) {
+        return yield game.roundOwner.on('useTao', game, ctx);
+    }
 }
 
 
@@ -156,29 +170,14 @@ class JueDou extends SilkBagCard {
     * start(game, ctx) {
         let u = ctx.sourceUser;
         game.lockUserCards(u, ctx.sourceCards);
-        let command = yield game.wait(u, {
-            validCmds: ['CANCEL', 'TARGET'],
-            validator: (command) => {
-                if (command.cmd === 'CANCEL') {
-                    return true;
-                }
-                if (command.params.length !== 1) {
-                    return false;
-                }
-                // TODO: validate distance & target-able
-                return true;
-            },
-        });
+        let result = yield game.waitFSM(u, FSM.SingleTargetFSM, ctx);
         game.unlockUserCards(u, ctx.sourceCards);
-
-        if (command.cmd === 'CANCEL') {
-            return yield Promise.resolve(R.abort);
+        if (!result.success) {
+            return yield Promise.resolve(result);
         }
 
         game.removeUserCards(u, ctx.sourceCards);
-
-        let targetPks = command.params;
-        ctx.targets = game.usersByPk(targetPks);
+        ctx.targets = result.get();
         game.message([ctx.sourceUser, '对', ctx.targets, '使用了', ctx.sourceCards]);
 
         let users = Array.from(ctx.targets).concat(u);
@@ -190,7 +189,7 @@ class JueDou extends SilkBagCard {
                 if (result.success) {
                     game.discardCards(ctx.sourceCards);
                     ctx.sourceUser = _u;
-                    ctx.sourceCards = result.get().cards;
+                    ctx.sourceCards = result.get();
                     game.message([_u, '打出了', ctx.sourceCards]);
                     game.removeUserCards(_u, ctx.sourceCards);
                 } else {
@@ -202,7 +201,7 @@ class JueDou extends SilkBagCard {
         }
 
         ctx.damage = 1;
-        let result = yield loser.on('damage', game, ctx);
+        result = yield loser.on('damage', game, ctx);
         game.discardCards(ctx.sourceCards);
         return yield Promise.resolve(result);
     }
@@ -249,13 +248,13 @@ class QingLongYanYueDao extends WeaponCard {
         this.shortName = '龙';
     }
 
-    * start(game, ctx) {
+    * s1(game, ctx) {
         let u = ctx.sourceUser;
         let result = yield u.on('requireSha', game, ctx);
-        if(result.success) {
+        if (result.success) {
             let context = {
                 sourceUser: u,
-                sourceCards: result.get().cards,
+                sourceCards: result.get(),
                 targets: new Set([ctx.shanPlayer]),
                 skipShaInitStage: true,
                 damage: 1,
@@ -269,7 +268,7 @@ class QingLongYanYueDao extends WeaponCard {
         let u = ctx.sourceUser;
         let command = yield game.waitConfirm(u, `是否使用武器【青龙偃月刀】？`);
         if (command.cmd === C.CONFIRM.Y) {
-            return yield this.start(game, ctx);
+            return yield this.s1(game, ctx);
         }
         return yield Promise.resolve(R.success);
     }

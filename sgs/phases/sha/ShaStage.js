@@ -1,4 +1,5 @@
 const R = require('../../common/results');
+const FSM = require('../../common/stateMachines');
 
 
 class ShaInitStage {
@@ -21,40 +22,7 @@ class ShaSelectTargetStage {
         ctx.targets = new Set();
 
         game.lockUserCards(u, ctx.sourceCards);
-        let result = yield game.waitFSM(u, {
-            _init: 'T',
-            T: {
-                TARGET: {
-                    next: 'O',
-                    action: (c, r) => {
-                        r.set(game.usersByPk(c.params));
-                        return r;
-                    }
-                },
-                CANCEL: {
-                    next: '_',
-                    action: (c, r) => {
-                        return R.abort;
-                    }
-                },
-            },
-            O: {
-                UNTARGET: {
-                    next: 'T',
-                    action: (c, r) => {
-                        r.set(new Set());
-                        return r;
-                    }
-                },
-                OK: {next: '_'},
-                CANCEL: {
-                    next: '_',
-                    action: (c, r) => {
-                        return R.abort;
-                    }
-                },
-            }
-        });
+        let result = yield game.waitFSM(u, FSM.SingleTargetFSM, ctx);
         game.unlockUserCards(u, ctx.sourceCards);
 
         if(result.success) {
@@ -99,7 +67,7 @@ class ShaExecuteStage {
                 let result = yield target.on('requireShan', game, ctx);
                 if (result.success) {
                     if (result instanceof R.CardResult) {
-                        let cards = result.get().cards;
+                        let cards = result.get();
                         game.message([target, '使用了', cards]);
                         game.removeUserCards(target, cards);
                         game.discardCards(cards);

@@ -48,10 +48,23 @@ class CardResult extends ResultBase {
         super();
     }
 
+    set(card) {
+        if(Array.isArray(card)) {
+            console.log(`|<!> CardResult can only set Card, but receive ${card}`);
+        }
+        this._resultObj = card;
+        return this;
+    }
+}
+
+class CardsResult extends ResultBase {
+    constructor() {
+        super();
+    }
+
     set(cards) {
-        this._resultObj = {
-            cards: Array.isArray(cards) ? cards : Array.from([cards]),
-        };
+        this._resultObj = Array.isArray(cards) ? cards : Array.from([cards]);
+        return this;
     }
 }
 
@@ -68,6 +81,7 @@ class FsmResult extends ResultBase {
 
     set(obj) {
         this._resultObj = obj;
+        return this;
     }
 }
 

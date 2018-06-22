@@ -1,5 +1,6 @@
 const C = require('./constants');
 const R = require('./common/results');
+const FSM = require('./common/stateMachines');
 const cardManager = require('./cards');
 const sgsCards = require('./cards/cards');
 const EventListener = require('./common/eventListener');
@@ -87,7 +88,7 @@ class User extends EventListener {
     }
 
     reply(data, selfMarker = true, addToResoreCmd = false) {
-        if (data != 'HB') console.log(`| <- ${data}`);
+        // if (data != 'HB') console.log(`| <- ${data}`);
         this.resp.write("data: " + (selfMarker ? '*' : '-') + data + "\n\n");
         if (addToResoreCmd) {
             this.pushRestoreCmd({
@@ -259,7 +260,7 @@ class User extends EventListener {
                 if (command.cmd === C.CONFIRM.Y) {
                     let result = yield u.on('requireTao', game, ctx);
                     if (result.success) {
-                        let cards = result.get().cards;
+                        let cards = result.get();
                         game.removeUserCards(u, cards);
                         game.discardCards(cards);
                         ctx.heal = 1;
@@ -286,42 +287,114 @@ class User extends EventListener {
     }
 
     // NOTE: This is NOT an event handler
-    * requireCard(game, cardClass, count = 1) {
-        let command = yield game.wait(this, {
-            waitingTag: C.WAITING_FOR.CARD,
-            waitingNum: count,
-            validCmds: ['CANCEL', 'CARD'],
-            validator: (command) => {
-                if (command.cmd === 'CANCEL') {
-                    return true;
-                }
+    * requireCard(game, cardClass, ctx) {
+        let result = yield game.waitFSM(this, FSM.singleCardFSMFactory(
+            (command) => {
                 let card = cardManager.getCards(command.params)[0];
-                if (card instanceof cardClass) {
-                    return true;
-                }
-                return false;
-            },
-        });
-
-        let result;
-        if (command.cmd === 'CANCEL') {
-            result = R.fail;
-        } else {
-            let cards = cardManager.getCards(command.params);
+                return (this.hasCard(card) && card instanceof cardClass);
+            }
+        ), ctx);
+        if (result.success) {
+            let cards = result.get();
             result = new R.CardResult();
             result.set(cards);
+            return yield Promise.resolve(result);
+        } else {
+            return yield Promise.resolve(R.fail);
         }
-        return yield Promise.resolve(result);
     }
 
     * requireSha(game, ctx) {
-        let result = yield this.figure.on('requireSha', game, ctx);
-        if (!result.abort && result.fail && this.equipments.armor) {
-            result = yield this.equipments.armor.on('requireSha', game, ctx);
+        let result;
+        let u = this;
+        let cardClass = sgsCards.Sha;
+        yield this.figure.on('requireSha', game, ctx);
+        if (this.equipments.armor) {
+            yield this.equipments.armor.on('requireSha', game, ctx);
         }
-        if (!result.abort && result.fail) {
-            result = yield this.requireCard(game, sgsCards.Sha);
+
+        const RequireCardFSM = {
+            _init: 'CSE',
+            CSE: {
+                CARD: {
+                    next: 'O',
+                    validator: (command) => {
+                        let card = cardManager.getCards(command.params)[0];
+                        return (this.hasCard(card) && card instanceof cardClass);
+                    },
+                },
+                SKILL: {
+                    next: 'S',
+                    validator: (command) => {
+                        let skill = u.figure.skills[command.params[0]];
+                        return (skill.state === C.SKILL_STATE.ENABLED);
+                    },
+                },
+                EQUIP: {
+                    next: 'E',
+                },
+                CANCEL: {
+                    next: '_',
+                    action: (game, c, r) => {
+                        return R.fail;
+                    },
+                },
+            },
+            O: {
+                UNCARD: {
+                    next: 'CSE',
+                },
+                OK: {
+                    next: '_',
+                    action: (game, c, r) => {
+                        let command = r.get();
+                        return new R.FsmResult().set(cardManager.getCards(command.params)[0]);
+                    }
+                },
+                CANCEL: {
+                    next: '_',
+                    action: (game, c, r) => {
+                        return R.fail;
+                    },
+                },
+            },
+            S: {
+                _SUB: function* (game, ctx, r) {
+                    let command = r.get();
+                    let rtn;
+                    let skill = u.figure.skills[command.params[0]];
+                    let result = yield u.figure.useSkill(skill, game, ctx);
+                    if (result.success) {
+                        rtn = new R.FsmResult().set(result.get());
+                    } else {
+                        rtn = new R.FsmResult();
+                    }
+                    let nextCmd = result.success ? 'OK' : 'CANCEL';
+                    return yield Promise.resolve({
+                        nextCmd,
+                        result: rtn
+                    });
+                },
+                OK: {
+                    next: '_',
+                },
+                CANCEL: {
+                    next: 'CSE',
+                },
+            },
+            E: {},
+        };
+
+        // result = yield this.requireCard(game, sgsCards.Sha);
+        result = yield game.waitFSM(this, RequireCardFSM, ctx);
+        if (result.success) {
+            let card = result.get();
+            result = new R.CardResult();
+            result.set(card);
+        } else {
+            result = R.fail;
         }
+
         return yield Promise.resolve(result);
     }
 
@@ -331,7 +404,7 @@ class User extends EventListener {
             result = yield this.equipments.armor.on('requireShan', game, ctx);
         }
         if (!result.abort && result.fail) {
-            result = yield this.requireCard(game, sgsCards.Shan);
+            result = yield this.requireCard(game, sgsCards.Shan, ctx);
         }
         return yield Promise.resolve(result);
     }
@@ -342,7 +415,7 @@ class User extends EventListener {
             result = yield this.equipments.armor.on('requireTao', game, ctx);
         }
         if (!result.abort && result.fail) {
-            result = yield this.requireCard(game, sgsCards.Tao);
+            result = yield this.requireCard(game, sgsCards.Tao, ctx);
         }
         return yield Promise.resolve(result);
     }
