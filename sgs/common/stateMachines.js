@@ -1,6 +1,113 @@
 const R = require('./results');
+const FSM = require('./fsm');
+
+
+class MachineFactory {
+    requireOk(game, opt) {
+        let m = new FSM.Machine(game);
+        m.addState(new FSM.State('O'), true);
+        m.addTransition(new FSM.Transition('O', 'OK', '_', null, R.success));
+        m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
+        m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
+        return m;
+    }
+
+    requireSingleCard(game, opt) {
+        let m = new FSM.Machine(game);
+        m.addState(new FSM.State('C'), true);
+        m.addState(new FSM.State('O'));
+
+        m.addTransition(new FSM.Transition('C', 'CARD', 'O',
+            opt.cardValidator,
+            (game, ctx) => {
+                ctx.card = game.cardByPk(ctx.command.params);
+            }
+        ));
+        m.addTransition(new FSM.Transition('C', 'CANCEL', '_'));
+        m.addTransition(new FSM.Transition('O', 'UNCARD', 'C', null,
+            (game, ctx) => {
+                ctx.card = null;
+            }
+        ));
+        m.addTransition(new FSM.Transition('O', 'OK', '_', null,
+            (game, ctx) => {
+                return new R.CardResult().set(ctx.card);
+            }
+        ));
+        m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
+
+        m.setFinalHandler((r) => {
+            return r.get().pop();
+        });
+        return m;
+    }
+
+    requireSingleTarget(game, opt) {
+        let m = new FSM.Machine(game);
+        m.addState(new FSM.State('T'), true);
+        m.addState(new FSM.State('O'));
+
+        m.addTransition(new FSM.Transition('T', 'TARGET', 'O',
+            opt.targetValidator,
+            (game, ctx) => {
+                ctx.target = game.userByPk(ctx.command.params);
+            }
+        ));
+        m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
+        m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T', null,
+            (game, ctx) => {
+                ctx.target = null;
+            }
+        ));
+        m.addTransition(new FSM.Transition('O', 'OK', '_', null,
+            (game, ctx) => {
+                return new R.TargetResult().set(ctx.target);
+            }
+        ));
+        m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
+
+        if (opt.cancelOnUncard === true) {
+            m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
+            m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
+        }
+
+        m.setFinalHandler((r) => {
+            return r.get().pop();
+        });
+        return m;
+    }
+}
+
+const factory = new MachineFactory();
 
 fsms = {
+    get: (name, game, opt = {}) => {
+        console.log(factory[name]);
+        return factory[name](game, opt);
+    },
+    requireOkFSM: {
+        _init: 'O',
+        O: {
+            OK: {
+                next: '_',
+                action: (game, c, r) => {
+                    return R.success;
+                },
+            },
+            UNCARD: {
+                next: '_',
+                action: (game, c, r) => {
+                    return R.abort;
+                },
+            },
+            CANCEL: {
+                next: '_',
+                action: (game, c, r) => {
+                    return R.abort;
+                },
+            },
+        },
+    },
     SingleCardFSM: {
         _init: 'C',
         C: {
@@ -26,7 +133,7 @@ fsms = {
                 next: '_',
                 action: (game, c, r) => {
                     let command = r.get();
-                    return new R.FsmResult().set(game.cardManager.getCards(command.params)[0]);
+                    return new R.FsmResult().set(game.cardByPk(command.params));
                 }
             },
             CANCEL: {
@@ -62,8 +169,6 @@ fsms = {
                 next: '_',
                 action: (game, c, r) => {
                     let command = r.get();
-                    console.log(command);
-                    console.log(game.usersByPk(command.params));
                     return new R.FsmResult().set(game.usersByPk(command.params));
                 }
             },
@@ -77,19 +182,6 @@ fsms = {
     },
 };
 
-function singleCardFSMFactory(validator) {
-    let rtn = Object.assign({}, fsms.SingleCardFSM);
-    rtn.C.CARD.validator = validator;
-    return rtn;
-}
-
-function singleTargetFSMFactory(validator) {
-    let rtn = Object.assign({}, fsms.SingleTargetFSM);
-    rtn.T.TARGET.validator = validator;
-    return rtn;
-}
-
-fsms.singleCardFSMFactory = singleCardFSMFactory;
-fsms.singleTargetFSMFactory = singleTargetFSMFactory;
+Object.assign(fsms, FSM);
 
 module.exports = fsms;

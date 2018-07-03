@@ -288,12 +288,14 @@ class User extends EventListener {
 
     // NOTE: This is NOT an event handler
     * requireCard(game, cardClass, ctx) {
-        let result = yield game.waitFSM(this, FSM.singleCardFSMFactory(
-            (command) => {
-                let card = cardManager.getCards(command.params)[0];
+        const u = this;
+        let result = yield game.waitFSM(u, FSM.get('requireSingleCard', game, {
+            cardValidator: (command) => {
+                let card = game.cardByPk(command.params);
                 return (this.hasCard(card) && card instanceof cardClass);
             }
-        ), ctx);
+        }), ctx);
+
         if (result.success) {
             let cards = result.get();
             result = new R.CardResult();
@@ -305,96 +307,79 @@ class User extends EventListener {
     }
 
     * requireSha(game, ctx) {
+        const u = this;
         let result;
-        let u = this;
         let cardClass = sgsCards.Sha;
         yield this.figure.on('requireSha', game, ctx);
         if (this.equipments.armor) {
             yield this.equipments.armor.on('requireSha', game, ctx);
         }
 
-        const RequireCardFSM = {
-            _init: 'CSE',
-            CSE: {
-                CARD: {
-                    next: 'O',
-                    validator: (command) => {
-                        let card = cardManager.getCards(command.params)[0];
-                        return (this.hasCard(card) && card instanceof cardClass);
-                    },
+        const requireShaFSM = () => {
+            let m = new FSM.Machine(game);
+            m.addState(new FSM.State('CSE'), true);
+            m.addState(new FSM.State('O'));
+            m.addState(new FSM.State('S', function* (game, ctx, fsmContext) {
+                let command = fsmContext.command;
+                let skill = u.figure.skills[command.params[0]];
+                let result = yield u.figure.useSkill(skill, game, ctx);
+                let nextCmd = result.success ? 'OK' : 'CANCEL';
+                fsmContext.result = result;
+                return yield Promise.resolve({
+                    command: nextCmd,
+                });
+            }));
+
+            m.addTransition(new FSM.Transition('CSE', 'CARD', 'O',
+                (command) => {
+                    let card = game.cardByPk(command.params);
+                    return (this.hasCard(card) && card instanceof cardClass);
                 },
-                SKILL: {
-                    next: 'S',
-                    validator: (command) => {
-                        let skill = u.figure.skills[command.params[0]];
-                        return (skill.state === C.SKILL_STATE.ENABLED);
-                    },
-                },
-                EQUIP: {
-                    next: 'E',
-                },
-                CANCEL: {
-                    next: '_',
-                    action: (game, c, r) => {
-                        return R.fail;
-                    },
-                },
-            },
-            O: {
-                UNCARD: {
-                    next: 'CSE',
-                },
-                OK: {
-                    next: '_',
-                    action: (game, c, r) => {
-                        let command = r.get();
-                        return new R.FsmResult().set(cardManager.getCards(command.params)[0]);
-                    }
-                },
-                CANCEL: {
-                    next: '_',
-                    action: (game, c, r) => {
-                        return R.fail;
-                    },
-                },
-            },
-            S: {
-                _SUB: function* (game, ctx, r) {
-                    let command = r.get();
-                    let rtn;
+                (game, ctx) => {
+                    ctx.card = game.cardByPk(ctx.command.params);
+                }
+            ));
+            m.addTransition(new FSM.Transition('CSE', 'SKILL', 'S',
+                (command) => {
                     let skill = u.figure.skills[command.params[0]];
-                    let result = yield u.figure.useSkill(skill, game, ctx);
-                    if (result.success) {
-                        rtn = new R.FsmResult().set(result.get());
-                    } else {
-                        rtn = new R.FsmResult();
-                    }
-                    let nextCmd = result.success ? 'OK' : 'CANCEL';
-                    return yield Promise.resolve({
-                        nextCmd,
-                        result: rtn
-                    });
-                },
-                OK: {
-                    next: '_',
-                },
-                CANCEL: {
-                    next: 'CSE',
-                },
-            },
-            E: {},
+                    return (skill.state === C.SKILL_STATE.ENABLED);
+                }
+            ));
+            m.addTransition(new FSM.Transition('CSE', 'CANCEL', '_'));
+            m.addTransition(new FSM.Transition('O', 'UNCARD', 'CSE', null,
+                (game, ctx) => {
+                    ctx.card = null;
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'OK', '_', null,
+                (game, ctx) => {
+                    return new R.CardResult().set(ctx.card);
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
+            m.addTransition(new FSM.Transition('S', 'OK', '_', null,
+                (game, ctx) => {
+                    return ctx.result;
+                }
+            ));
+            m.addTransition(new FSM.Transition('S', 'CANCEL', 'CSE'));
+
+            m.setFinalHandler((r) => {
+                return r.get().pop();
+            });
+
+            return m;
         };
 
         // result = yield this.requireCard(game, sgsCards.Sha);
-        result = yield game.waitFSM(this, RequireCardFSM, ctx);
-        if (result.success) {
-            let card = result.get();
-            result = new R.CardResult();
-            result.set(card);
-        } else {
-            result = R.fail;
-        }
-
+        result = yield game.waitFSM(this, requireShaFSM(), ctx);
+        // if (result.success) {
+        //     let card = result.get();
+        //     result = new R.CardResult();
+        //     result.set(card);
+        // } else {
+        //     result = R.fail;
+        // }
         return yield Promise.resolve(result);
     }
 

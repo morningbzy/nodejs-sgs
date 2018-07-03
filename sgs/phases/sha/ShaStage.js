@@ -16,17 +16,20 @@ class ShaInitStage {
 
 class ShaSelectTargetStage {
     static* start(game, u, ctx) {
+        if (ctx.skipShaInitStage) {
+            return yield Promise.resolve(R.success);
+        }
         console.log('SHA-SELECT-TARGET-STAGE');
 
         let targetCount = 1;  // TODO: How many targets are required
         ctx.targets = new Set();
 
         game.lockUserCards(u, ctx.sourceCards);
-        let result = yield game.waitFSM(u, FSM.SingleTargetFSM, ctx);
+        let result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {cancelOnUncard: true}), ctx);
         game.unlockUserCards(u, ctx.sourceCards);
 
-        if(result.success) {
-            ctx.targets = result.get();
+        if (result.success) {
+            ctx.targets.add(result.get());
             game.message([ctx.sourceUser, '对', ctx.targets, '使用', ctx.sourceCards,]);
             yield u.on('usedSha', game, ctx);
         }

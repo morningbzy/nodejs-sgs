@@ -156,17 +156,19 @@ class LiuBei extends FigureBase {
 
     * s2(game, ctx) {
         const u = this.owner;
-        let result = yield game.waitFSM(u, FSM.singleTargetFSMFactory((command) => {
-            let targets = game.usersByPk(command.params);
-            return (C.COUNTRY.SHU === Array.from(targets)[0].figure.country);
+        let result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {
+            targetValidator: (command) => {
+                let targets = game.usersByPk(command.params);
+                return (C.COUNTRY.SHU === Array.from(targets)[0].figure.country);
+            }
         }), ctx);
 
-        if(!result.success) {
+        if (!result.success) {
             return yield Promise.resolve(R.abort);
         }
 
-        let target = Array.from(result.get())[0];
-        game.message([u, '请', target, '为其出【杀】。']);
+        let target = result.get();
+        game.message([u, '使用技能【激将】，请', target, '为其出【杀】。']);
         let command = yield game.waitConfirm(target, `刘备使用技能【激将】，是否为其出【杀】？`);
         if (command.cmd === C.CONFIRM.Y) {
             let result = yield target.on('requireSha', game, ctx);
@@ -230,17 +232,16 @@ class GuanYu extends FigureBase {
 
     * s1(game, ctx) {
         const u = this.owner;
-        let result = yield game.waitFSM(u, FSM.singleCardFSMFactory(
-            (command) => {
-                let card = cardManager.getCards(command.params)[0];
+        let result = yield game.waitFSM(u, FSM.get('requireSingleCard', game, {
+            cardValidator: (command) => {
+                let card = game.cardByPk(command.params);
                 return (u.hasCard(card) && [C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND].includes(card.suit));
             }
-        ), ctx);
-        if(result.success) {
+        }), ctx);
+
+        if (result.success) {
             let card = result.get();
-            console.log(card);
             let fakeCard = cardManager.fakeCards([card], {asClass: sgsCards.Sha});
-            console.log(fakeCard);
 
             result = new R.CardResult();
             result.set(fakeCard);
@@ -494,6 +495,61 @@ class XiaoQiao extends FigureBase {
 
     * s1(game, ctx) {
         const u = this.owner;
+
+        // let result = yield game.waitFSM(u, {
+        //     _init: 'C',
+        //     C: {
+        //         CARD: {
+        //             next: 'T',
+        //             validator: (command) => {
+        //                 let card = cardManager.getCards(command.params)[0];
+        //                 return [C.CARD_SUIT.SPADE, C.CARD_SUIT.HEART].includes(card.suit);
+        //             },
+        //         },
+        //         CANCEL: {
+        //             next: '_',
+        //             action: (game, c, r) => {
+        //                 return R.abort;
+        //             }
+        //         },
+        //     },
+        //     T: {
+        //         UNCARD: {
+        //             next: 'C',
+        //             action: (game, c, r) => {
+        //                 r.set({});
+        //                 return r;
+        //             },
+        //         },
+        //         TARGET: {
+        //             next: 'O',
+        //             action: (game, c, r) => {
+        //                 let o = r.get();
+        //                 let target = game.usersByPk(command.params);
+        //                 o.target = target;
+        //                 return r;
+        //             },
+        //         },
+        //         CANCEL: {
+        //             next: '_',
+        //             action: (game, c, r) => {
+        //                 return R.abort;
+        //             }
+        //         },
+        //     },
+        //     O: {
+        //         UNTARGET: {
+        //         },
+        //         OK: {},
+        //         CANCEL: {
+        //             next: '_',
+        //             action: (game, c, r) => {
+        //                 return R.abort;
+        //             }
+        //         },
+        //     }
+        // }, ctx);
+
         let command = yield game.wait(u, {
             waitingTag: C.WAITING_FOR.CARD,
             waitingNum: 1,

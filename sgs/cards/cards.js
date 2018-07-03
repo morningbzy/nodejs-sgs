@@ -15,6 +15,8 @@ class CardBase {
 
         this.faked = false;
         this.originCards = null;
+
+        this.requireOk = false;
     }
 
     getOriginCards() {
@@ -44,6 +46,17 @@ class CardBase {
     toJsonString() {
         return JSON.stringify(this.toJson());
     }
+
+    * start(game, ctx) {
+        let u = ctx.sourceUser;
+        console.log(this.run);
+        if (!(this.run instanceof Function) ||
+            this.requireOk && !(yield game.waitFSM(u, FSM.get('requireOk', game), ctx)).success) {
+            return yield Promise.resolve(R.fail);
+        }
+
+        return yield this.run(game, ctx);
+    }
 }
 
 
@@ -69,7 +82,7 @@ class DelayedSilkBagCard extends CardBase {
         this.category = C.CARD_CATEGORY.DELAYED_SILK_BAG;
     }
 
-    * start(game, ctx) {
+    * run(game, ctx) {
         let u = ctx.sourceUser;
         game.lockUserCards(u, ctx.sourceCards);
         let command = yield game.wait(u, {
@@ -107,9 +120,11 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
     constructor(suit, number) {
         super(suit, number);
         this.category = C.CARD_CATEGORY.EQUIPMENT;
+
+        this.requireOk = true;
     }
 
-    * start(game, ctx) {
+    * run(game, ctx) {
         game.equipUserCard(game.roundOwner, this);
         return yield Promise.resolve(R.success);
     }
@@ -133,9 +148,11 @@ class Sha extends NormalCard {
     constructor(suit, number) {
         super(suit, number);
         this.name = '杀';
+
+        this.requireOk = false;
     }
 
-    * start(game, ctx) {
+    * run(game, ctx) {
         return yield ShaStage.start(game, game.roundOwner, ctx);
     }
 }
@@ -153,9 +170,11 @@ class Tao extends NormalCard {
     constructor(suit, number) {
         super(suit, number);
         this.name = '桃';
+
+        this.requireOk = true;
     }
 
-    * start(game, ctx) {
+    * run(game, ctx) {
         return yield game.roundOwner.on('useTao', game, ctx);
     }
 }
@@ -167,17 +186,20 @@ class JueDou extends SilkBagCard {
         this.name = '决斗';
     }
 
-    * start(game, ctx) {
+    * run(game, ctx) {
         let u = ctx.sourceUser;
         game.lockUserCards(u, ctx.sourceCards);
-        let result = yield game.waitFSM(u, FSM.SingleTargetFSM, ctx);
+        // let result = yield game.waitFSM(u, FSM.SingleTargetFSM, ctx);
+        let fsm = FSM.get('requireSingleTarget', game);
+        console.log(fsm);
+        let result = yield game.waitFSM(u, fsm, ctx);
         game.unlockUserCards(u, ctx.sourceCards);
         if (!result.success) {
             return yield Promise.resolve(result);
         }
 
         game.removeUserCards(u, ctx.sourceCards);
-        ctx.targets = result.get();
+        ctx.targets = [result.get()];
         game.message([ctx.sourceUser, '对', ctx.targets, '使用了', ctx.sourceCards]);
 
         let users = Array.from(ctx.targets).concat(u);
@@ -212,9 +234,11 @@ class WuZhongShengYou extends SilkBagCard {
     constructor(suit, number) {
         super(suit, number);
         this.name = '无中生有';
+
+        this.requireOk = true;
     }
 
-    * start(game, ctx) {
+    * run(game, ctx) {
         const u = ctx.sourceUser;
         game.removeUserCards(u, ctx.sourceCards);
         game.dispatchCards(u, 2);

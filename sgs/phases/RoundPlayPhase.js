@@ -16,7 +16,7 @@ class RoundPlayPhase extends Phase {
         let card = context.sourceCards[0];
         let u = context.sourceUser;
 
-        if(card.faked) {
+        if (card.faked) {
             console.log(`|[i] Use card [${Array.from(card.originCards, c => c.name).join(', ')}] as [${card.name}]`);
         } else {
             console.log(`|[i] Use card [${card.name}]`);
@@ -27,7 +27,6 @@ class RoundPlayPhase extends Phase {
     }
 
     static* start(game) {
-        console.log('ROUND-PLAY-PHASE');
         let context = {};
         let pass = false;
         let result;
@@ -53,6 +52,11 @@ class RoundPlayPhase extends Phase {
                                 }
                             }
                             break;
+                        case 'SKILL':
+                            let skill = u.figure.skills[command.params[0]];
+                            if (skill.state !== C.SKILL_STATE.ENABLED) {
+                                return false;
+                            }
                     }
                     return true;
                 },
@@ -73,12 +77,11 @@ class RoundPlayPhase extends Phase {
                 case 'SKILL':
                     let skill = u.figure.skills[command.params[0]];
                     context.skill = skill;
-                    if (skill.state === C.SKILL_STATE.ENABLED) {
-                        result = yield u.figure.useSkill(skill, game, context);
-                        if (result instanceof R.CardResult) {
-                            context.sourceCards = [result.get()];
-                            result = yield this.useCard(game, context);
-                        }
+                    result = yield u.figure.useSkill(skill, game, context);
+                    if (result instanceof R.CardResult) {
+                        context.sourceCards = [result.get()];
+                        result = yield this.useCard(game, context);
+                    } else {
                     }
                     break;
             }

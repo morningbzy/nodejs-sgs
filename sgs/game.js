@@ -144,7 +144,40 @@ class Game {
         });
     }
 
-    * waitFSM(u, fsm, ctx) {  // Finite state machine
+    * waitFSM(u, fsm, ctx) {
+        console.log(`|=F= FSM Start`);
+        let game = this;
+        fsm.start();
+        while (!fsm.done) {
+            let state = fsm.current;
+            console.log(`|= * ${state.pk}`);
+            let validCmds = state.getValidCmds();
+            console.log(`|= * Wating ${validCmds}`);
+            let command;
+
+            if (state.subMachine) {
+                console.log(`|= _SUB`);
+                let result = yield state.subMachine(game, ctx, fsm.context);
+                console.log(result.nextCmd);
+                command = new Command(u.pk, result.command, []);
+            } else {
+                command = yield this.wait(u, {
+                    validCmds: validCmds,
+                    validator: (command) => {
+                        return fsm.validate(command);
+                    },
+                });
+            }
+            console.log(`|= command < ${command.cmd}`);
+            fsm.next(command);
+        }
+
+        u.reply('UNSELECT ALL');
+        console.log(`|=F= FSM Done: ${fsm.result.get()}`);
+        return fsm.result;
+    }
+
+    * waitFSM__old(u, fsm, ctx) {  // Finite state machine
         console.log(`|=F= FSM Start`);
         let game = this;
         let cs = fsm._init;  // Current state
@@ -161,7 +194,7 @@ class Game {
                 nextCmd = result.nextCmd;
                 console.log(`|= _SUB < ${nextCmd}`);
 
-                if(result.result.success) {
+                if (result.result.success) {
                     fsmResult.set(result.result.get());
                     console.log(`|= _SUB < ${result.result.constructor.name}`);
                 }
@@ -182,7 +215,7 @@ class Game {
                     fsmResult.set(command);
                 }
 
-                if(fsmResult.success) {
+                if (fsmResult.success) {
                     console.log(`|= command < ${fsmResult.get().toString()}`);
                 }
             }
@@ -225,6 +258,18 @@ class Game {
             this.usersInState(C.USER_STATE.READY).length >= 3) {
             this.start();
         }
+    }
+
+    cardByPk(pk) {
+        return cardManager.getCard(pk);
+    }
+
+    cardsByPk(pks) {
+        return new Set(cardManager.getCards(pks));
+    }
+
+    userByPk(pk) {
+        return this.users[Array.isArray(pk) ? pk[0] : pk];
     }
 
     usersByPk(pks) {
@@ -306,7 +351,7 @@ class Game {
     }
 
     addUserCards(user, cards) {
-        cards = Array.isArray(cards)? cards: Array.from([cards]);
+        cards = Array.isArray(cards) ? cards : Array.from([cards]);
         user.addCards(cardManager.unfakeCards(cards));
         this.broadcastUserInfo(user);
     }
@@ -316,7 +361,7 @@ class Game {
     }
 
     lockUserCards(user, cards) {
-        cards = Array.isArray(cards)? cards: Array.from([cards]);
+        cards = Array.isArray(cards) ? cards : Array.from([cards]);
         this.lockUserCardPks(user, cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
@@ -326,7 +371,7 @@ class Game {
     }
 
     unlockUserCards(user, cards) {
-        cards = Array.isArray(cards)? cards: Array.from([cards]);
+        cards = Array.isArray(cards) ? cards : Array.from([cards]);
         this.unlockUserCardPks(user, cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
@@ -336,7 +381,7 @@ class Game {
     }
 
     removeUserCards(user, cards) {
-        cards = Array.isArray(cards)? cards: Array.from([cards]);
+        cards = Array.isArray(cards) ? cards : Array.from([cards]);
         this.removeUserCardPks(user, cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
@@ -366,7 +411,7 @@ class Game {
     }
 
     discardCards(cards) {
-        cards = Array.isArray(cards)? cards: Array.from([cards]);
+        cards = Array.isArray(cards) ? cards : Array.from([cards]);
         this.discardCardPks(cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
