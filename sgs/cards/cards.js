@@ -115,6 +115,15 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
         this.category = C.CARD_CATEGORY.EQUIPMENT;
 
         this.requireOk = true;
+        this.equiperPk = null;
+    }
+
+    setEquiper(user) {
+        this.equiperPk = user === null ? null : user.id;
+    }
+
+    equiper(game) {
+        return game.userByPk(this.equiperPk);
     }
 
     * run(game, ctx) {
@@ -133,6 +142,14 @@ class WeaponCard extends EquipmentCard {
     constructor(suit, number) {
         super(suit, number);
         this.equipType = C.EQUIP_TYPE.WEAPON;
+    }
+}
+
+
+class ArmorCard extends EquipmentCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.equipType = C.EQUIP_TYPE.ARMOR;
     }
 }
 
@@ -161,7 +178,6 @@ class Tao extends NormalCard {
     constructor(suit, number) {
         super(suit, number);
         this.name = '桃';
-
         this.requireOk = true;
     }
 
@@ -219,6 +235,32 @@ class JueDou extends SilkBagCard {
 }
 
 
+class NanManRuQin extends SilkBagCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '南蛮入侵';
+        this.requireOk = true;
+    }
+
+    * run(game, ctx) {
+        game.message([ctx.sourceUser, '使用了', this]);
+        ctx.damage = 1;
+
+        for(let _u of game.userRound(game.roundOwner, true)) {
+            let result = yield _u.on('requireSha', game, ctx);
+            if (result.success) {
+                let card = result.get();
+                game.message([_u, '打出了', card]);
+                game.removeUserCards(_u, card);
+                game.discardCards(card);
+            } else {
+                yield _u.on('damage', game, ctx);
+            }
+        }
+    }
+}
+
+
 class WuZhongShengYou extends SilkBagCard {
     constructor(suit, number) {
         super(suit, number);
@@ -244,8 +286,7 @@ class LeBuSiShu extends DelayedSilkBagCard {
     }
 
     judge(card) {
-        let result = R.judge(C.CARD_SUIT.HEART !== card.suit);
-        return result;
+        return R.judge(C.CARD_SUIT.HEART !== card.suit);
     }
 
     judgeEffect(u) {
@@ -262,7 +303,7 @@ class QingLongYanYueDao extends WeaponCard {
     }
 
     * s1(game, ctx) {
-        let u = ctx.sourceUser;
+        let u = this.equiper(game);
         let result = yield u.on('requireSha', game, ctx);
         if (result.success) {
             let context = {
@@ -278,8 +319,55 @@ class QingLongYanYueDao extends WeaponCard {
     }
 
     * shaBeenShan(game, ctx) {
-        let u = ctx.sourceUser;
-        let command = yield game.waitConfirm(u, `是否使用武器【青龙偃月刀】？`);
+        let u = this.equiper(game);
+        let command = yield game.waitConfirm(u, `是否使用武器【${this.name}】？`);
+        if (command.cmd === C.CONFIRM.Y) {
+            return yield this.s1(game, ctx);
+        }
+        return yield Promise.resolve(R.success);
+    }
+}
+
+
+class BaGuaZhen extends ArmorCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '八卦阵';
+        this.shortName = '卦';
+    }
+
+    judge(card) {
+        return R.judge([C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND].includes(card.suit));
+    }
+
+    * s1(game, ctx) {
+        let u = this.equiper(game);
+
+        // ---------------------------------
+        // TODO: Before judge, ask WuXieKeJi
+        // for(let _u of game.userRound()) {
+        //     judgeCard = _u.on('beforeJudge');
+        // }
+        let judgeCard = game.getJudgeCard();
+        let context = {judgeCard};
+        game.message([u, '发动了【', this.name, '】，判定为', context.judgeCard]);
+        game.discardCards([judgeCard]);
+
+        // TODO: Before judge effective, ask SiMaYi & ZhangJiao
+        for (let _u of game.userRound()) {
+            yield _u.on('beforeJudgeEffect', game, context);
+        }
+
+        yield u.on('judge', game, context);  // 目前仅用于小乔的【红颜】
+        let result = this.judge(context.judgeCard);
+        game.message([u, '判定【', this.name, '】为', context.judgeCard, '判定', result.success ? '生效' : '未生效']);
+
+        return result;
+    }
+
+    * requireShan(game, ctx) {
+        let u = this.equiper(game);
+        let command = yield game.waitConfirm(u, `是否使用防具【${this.name}】？`);
         if (command.cmd === C.CONFIRM.Y) {
             return yield this.s1(game, ctx);
         }
@@ -318,11 +406,18 @@ const cardSet = new Map();
     new WuZhongShengYou(C.CARD_SUIT.HEART, 9),
     new WuZhongShengYou(C.CARD_SUIT.HEART, 11),
 
+    new NanManRuQin(C.CARD_SUIT.SPADE, 7),
+    new NanManRuQin(C.CARD_SUIT.CLUB, 7),
+
     new LeBuSiShu(C.CARD_SUIT.SPADE, 6),
     new LeBuSiShu(C.CARD_SUIT.HEART, 6),
     new LeBuSiShu(C.CARD_SUIT.CLUB, 6),
 
     new QingLongYanYueDao(C.CARD_SUIT.SPADE, 5),
+
+    new BaGuaZhen(C.CARD_SUIT.SPADE, 2),
+    new BaGuaZhen(C.CARD_SUIT.CLUB, 2),
+
 ].map((c) => cardSet.set(c.pk, c));
 
 module.exports = {

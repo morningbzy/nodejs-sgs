@@ -68,10 +68,10 @@ class User extends EventListener {
             maxHp: this.showFigure ? this.maxHp : 0,
             faceUp: this.faceUp,
 
-            equipments: this.equipments,
-
             cardCount: this.cards.size,
             cards,
+
+            equipments: this.equipments,
         };
     }
 
@@ -154,10 +154,15 @@ class User extends EventListener {
             card,
             state: C.SKILL_STATE.DISABLED,
         };
+
+        card.setEquiper(this);
     }
 
     unequipCard(equipType) {
         let old = this.equipments[equipType];
+        if (old) {
+            old.setEquiper(null);
+        }
         this.equipments[equipType] = null;
         return old;
     }
@@ -185,7 +190,7 @@ class User extends EventListener {
     * play(game, ctx) {
         let result = yield this.figure.on('play', game, ctx);
         if (!result && this.equipments.armor) {
-            result = yield this.equipments.armor.on('play', game, ctx);
+            result = yield this.equipments.armor.card.on('play', game, ctx);
         }
         if (!result) {
         }
@@ -297,10 +302,8 @@ class User extends EventListener {
         }), ctx);
 
         if (result.success) {
-            let cards = result.get();
-            result = new R.CardResult();
-            result.set(cards);
-            return yield Promise.resolve(result);
+            let card = result.get();
+            return yield Promise.resolve(new R.CardResult().set(card));
         } else {
             return yield Promise.resolve(R.fail);
         }
@@ -311,8 +314,8 @@ class User extends EventListener {
         let result;
         let cardClass = sgsCards.Sha;
         yield this.figure.on('requireSha', game, ctx);
-        if (this.equipments.armor) {
-            yield this.equipments.armor.on('requireSha', game, ctx);
+        if (this.equipments.weapon) {
+            yield this.equipments.weapon.card.on('requireSha', game, ctx);
         }
 
         const requireShaFSM = () => {
@@ -370,23 +373,14 @@ class User extends EventListener {
 
             return m;
         };
-
-        // result = yield this.requireCard(game, sgsCards.Sha);
         result = yield game.waitFSM(this, requireShaFSM(), ctx);
-        // if (result.success) {
-        //     let card = result.get();
-        //     result = new R.CardResult();
-        //     result.set(card);
-        // } else {
-        //     result = R.fail;
-        // }
         return yield Promise.resolve(result);
     }
 
     * requireShan(game, ctx) {
         let result = yield this.figure.on('requireShan', game, ctx);
         if (!result.abort && result.fail && this.equipments.armor) {
-            result = yield this.equipments.armor.on('requireShan', game, ctx);
+            result = yield this.equipments.armor.card.on('requireShan', game, ctx);
         }
         if (!result.abort && result.fail) {
             result = yield this.requireCard(game, sgsCards.Shan, ctx);
@@ -396,9 +390,6 @@ class User extends EventListener {
 
     * requireTao(game, ctx) {
         let result = yield this.figure.on('requireTao', game, ctx);
-        if (!result.abort && result.fail && this.equipments.armor) {
-            result = yield this.equipments.armor.on('requireTao', game, ctx);
-        }
         if (!result.abort && result.fail) {
             result = yield this.requireCard(game, sgsCards.Tao, ctx);
         }

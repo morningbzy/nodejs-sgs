@@ -183,7 +183,6 @@ const factory = new MachineFactory();
 
 fsms = {
     get: (name, game, opt = {}) => {
-        console.log(factory[name]);
         return factory[name](game, opt);
     },
     requireOkFSM: {

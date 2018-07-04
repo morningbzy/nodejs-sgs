@@ -91,6 +91,10 @@ body {
     box-shadow: 0 .5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
+#game-table .sgs-player-card.sgs-player-selected {
+    border-color: #28a745 !important;
+}
+
 .figure-candidate {
     height: 160px;
     width: 120px;

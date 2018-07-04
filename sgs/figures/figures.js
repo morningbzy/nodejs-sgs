@@ -102,6 +102,15 @@ class CaoCao extends FigureBase {
             if (command.cmd === C.CONFIRM.Y) {
                 let result = yield u.on('requireShan', game, ctx);
                 if (result.success) {
+                    if (result instanceof R.CardResult) {
+                        let card = result.get();
+                        game.message([u, '替曹操打出了', card]);
+                        game.removeUserCards(u, card);
+                        game.discardCards(card);
+                    } else {
+                        game.message([u, '替曹操打出了【闪】']);
+                    }
+
                     return yield Promise.resolve(result);
                 }
             }
@@ -479,12 +488,12 @@ class XiaoQiao extends FigureBase {
         if (result.success) {
             let card = result.get().card;
             let target = result.get().target;
+            ctx.targets = new Set();
+            ctx.targets.add(target);
 
             game.removeUserCards(u, card);
             game.discardCards(card);
-
-            ctx.targets = new Set(target);
-            game.message([u, '弃置了', card, '将伤害转移给', ctx.targets]);
+            game.message([u, '弃置了', card, '将伤害转移给', target]);
 
             for (let t of ctx.targets) {
                 yield t.on('damage', game, ctx);
