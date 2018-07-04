@@ -525,6 +525,59 @@ class XiaoQiao extends FigureBase {
 }
 
 
+class SunShangXiang extends FigureBase {
+// 【孙尚香】 吴，女，3血
+// 【结姻】
+// 【枭姬】
+    constructor() {
+        super();
+        this.name = '孙尚香';
+        this.pk = SunShangXiang.pk;
+        this.country = C.COUNTRY.WU;
+        this.gender = C.GENDER.FEMALE;
+        this.hp = 3;
+        this.skills = {
+            WU008s01: {
+                pk: 'WU008s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '结姻',
+                desc: '出牌阶段，你可以弃置两张手牌并选择一名已受伤的男性角色，' +
+                '令你与其各回复1点体力。每阶段限用一次。',
+                handler: 's1',
+            },
+            WU008s02: {
+                pk: 'WU008s02',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '枭姬',
+                desc: '当你失去装备区里的一张装备牌时，你可以摸两张牌。',
+                handler: 's2',
+            },
+        };
+    }
+
+    * s1(game, ctx) {
+        return yield Promise.resolve(R.fail);
+    }
+
+    * play(game, ctx) {
+        this.changeSkillState(this.skills.WU008s01, C.SKILL_STATE.DISABLED);
+
+        if (!ctx.usedWU008s01) {
+            for (let u of game.userRound()) {
+                if (u.gender === C.GENDER.MALE && u.hp < u.maxHp) {
+                    this.changeSkillState(this.skills.WU008s01, C.SKILL_STATE.ENABLED);
+                    break;
+                }
+            }
+        }
+    }
+
+    * roundPlayPhaseEnd(game, ctx) {
+        this.changeSkillState(this.skills.WU008s01, C.SKILL_STATE.DISABLED);
+    }
+}
+
+
 CaoCao.pk = 'WEI001';
 SiMaYi.pk = 'WEI002';
 
@@ -532,6 +585,7 @@ LiuBei.pk = 'SHU001';
 GuanYu.pk = 'SHU002';
 
 DaQiao.pk = 'WU006';
+SunShangXiang.pk = 'WU008';
 XiaoQiao.pk = 'WU011';
 
 figures = {
