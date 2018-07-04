@@ -38,7 +38,6 @@ class ShaSelectTargetStage {
     }
 }
 
-
 class ShaValidateStage {
     static* start(game, u, ctx) {
         console.log('SHA-VALIDATE-STAGE');

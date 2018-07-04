@@ -1,9 +1,6 @@
 const C = require('../constants');
 const R = require('../common/results');
 const Phase = require('./phase');
-const cardManager = require('../cards');
-const sgsCards = require('../cards/cards');
-const ShaStage = require('./sha/ShaStage');
 
 
 class RoundPlayPhase extends Phase {
@@ -70,8 +67,8 @@ class RoundPlayPhase extends Phase {
                     pass = true;
                     continue;
                 case 'CARD':
-                    let cards = cardManager.getCards(command.params);
-                    context.sourceCards = cards;
+                    let card = game.cardByPk(command.params);
+                    context.sourceCards = [card];
                     result = yield this.useCard(game, context);
                     break;
                 case 'SKILL':

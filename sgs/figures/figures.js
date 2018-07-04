@@ -174,7 +174,6 @@ class LiuBei extends FigureBase {
             let result = yield target.on('requireSha', game, ctx);
             if (result.success) {
                 let cards = result.get();
-                console.log(cards);
                 game.message([target, '替', u, '打出了', cards]);
                 game.removeUserCards(target, cards);
                 return yield Promise.resolve(result);
@@ -372,76 +371,50 @@ class DaQiao extends FigureBase {
     }
 
     * s1(game, ctx) {
-        let result;
         const u = this.owner;
-        let command = yield game.wait(u, {
-            validCmds: ['CANCEL', 'CARD'],
-            validator: (command) => {
-                if (command.cmd === 'CANCEL') {
-                    return true;
-                }
-                let card = cardManager.getCards(command.params)[0];
-                if (u.hasCard(card) && [C.CARD_SUIT.DIAMOND].includes(card.suit)) {
-                    return true;
-                }
-                return false;
-            },
-        });
+        let result = yield game.waitFSM(u, FSM.get('requireSingleCard', game, {
+            cardValidator: (command) => {
+                let card = game.cardByPk(command.params);
+                return (u.hasCard(card) && [C.CARD_SUIT.DIAMOND].includes(card.suit));
+            }
+        }), ctx);
 
-        if (command.cmd === 'CANCEL') {
-            return yield Promise.resolve(R.fail);
+        if (result.success) {
+            let card = result.get();
+            let fakeCard = cardManager.fakeCards([cards], {asClass: sgsCards.LeBuSiShu});
+
+            result = new R.CardResult();
+            result.set(fakeCard);
+            game.message([u, '把', card, '当作', fakeCard, '使用']);
+        } else {
+            result = R.fail;
         }
-
-        let cards = cardManager.getCards(command.params);
-        result = new R.CardResult();
-        let fakeCard = cardManager.fakeCards(cards, {asClass: sgsCards.LeBuSiShu});
-        result.set(fakeCard);
         return yield Promise.resolve(result);
     }
 
     * s2(game, ctx) {
         const u = this.owner;
-        let result = yield u.requireCard(game, sgsCards.CardBase, ctx);
-        if (!result.success) {
-            return yield Promise.resolve(R.abort);
+        let result = yield game.waitFSM(u, FSM.get('requireSingleCardAndTarget', game, {
+            targetValidator: (command) => {
+                let target = game.userByPk(command.params);
+                return target !== ctx.sourceUser;
+            }
+        }), ctx);
+
+        if (result.success) {
+            let card = result.get().card;
+            let target = result.get().target;
+
+            game.removeUserCards(u, card);
+            game.discardCards(card);
+
+            ctx.targets.delete(u);
+            ctx.targets.add(target);
+            game.message([u, '弃置了', card, '将【杀】的目标转移给', target]);
+            return yield Promise.resolve(R.success);
+        } else {
+            return yield Promise.resolve(R.fail);
         }
-
-        const cards = result.get();
-        game.lockUserCards(u, cards);
-        let command = yield game.wait(u, {
-            validCmds: ['CANCEL', 'TARGET'],
-            validator: (command) => {
-                if (command.cmd === 'CANCEL') {
-                    return true;
-                }
-                if (command.params.length !== 1) {
-                    return false;
-                }
-                // TODO: validate distance & target-able
-                let targetPks = command.params;
-                let targets = game.usersByPk(targetPks);
-                if (targets.has(ctx.sourceUser)) {
-                    return false;
-                }
-                return true;
-            },
-        });
-        game.unlockUserCards(u, cards);
-
-        if (command.cmd === 'CANCEL') {
-            return yield Promise.resolve(R.abort);
-        }
-
-        game.removeUserCards(u, cards);
-        game.discardCards(cards);
-
-        let targetPks = command.params;
-        ctx.targets.delete(u);
-        let newTargets = game.usersByPk(targetPks);
-        newTargets.forEach(t => ctx.targets.add(t));
-        game.message([u, '弃置了', cards, '将【杀】的目标转移给', newTargets]);
-
-        return yield Promise.resolve(R.success);
     }
 
     * roundPlayPhaseStart(game, ctx) {
@@ -496,112 +469,32 @@ class XiaoQiao extends FigureBase {
     * s1(game, ctx) {
         const u = this.owner;
 
-        // let result = yield game.waitFSM(u, {
-        //     _init: 'C',
-        //     C: {
-        //         CARD: {
-        //             next: 'T',
-        //             validator: (command) => {
-        //                 let card = cardManager.getCards(command.params)[0];
-        //                 return [C.CARD_SUIT.SPADE, C.CARD_SUIT.HEART].includes(card.suit);
-        //             },
-        //         },
-        //         CANCEL: {
-        //             next: '_',
-        //             action: (game, c, r) => {
-        //                 return R.abort;
-        //             }
-        //         },
-        //     },
-        //     T: {
-        //         UNCARD: {
-        //             next: 'C',
-        //             action: (game, c, r) => {
-        //                 r.set({});
-        //                 return r;
-        //             },
-        //         },
-        //         TARGET: {
-        //             next: 'O',
-        //             action: (game, c, r) => {
-        //                 let o = r.get();
-        //                 let target = game.usersByPk(command.params);
-        //                 o.target = target;
-        //                 return r;
-        //             },
-        //         },
-        //         CANCEL: {
-        //             next: '_',
-        //             action: (game, c, r) => {
-        //                 return R.abort;
-        //             }
-        //         },
-        //     },
-        //     O: {
-        //         UNTARGET: {
-        //         },
-        //         OK: {},
-        //         CANCEL: {
-        //             next: '_',
-        //             action: (game, c, r) => {
-        //                 return R.abort;
-        //             }
-        //         },
-        //     }
-        // }, ctx);
+        let result = yield game.waitFSM(u, FSM.get('requireSingleCardAndTarget', game, {
+            cardValidator: (command) => {
+                let card = game.cardByPk(command.params);
+                return (u.hasCard(card) && [C.CARD_SUIT.SPADE, C.CARD_SUIT.HEART].includes(card.suit));
+            }
+        }), ctx);
 
-        let command = yield game.wait(u, {
-            waitingTag: C.WAITING_FOR.CARD,
-            waitingNum: 1,
-            validCmds: ['CANCEL', 'CARD'],
-            validator: (command) => {
-                if (command.cmd === 'CANCEL') {
-                    return true;
-                }
-                let card = cardManager.getCards(command.params)[0];
-                if ([C.CARD_SUIT.SPADE, C.CARD_SUIT.HEART].includes(card.suit)) {
-                    return true;
-                }
-                return false;
-            },
-        });
+        if (result.success) {
+            let card = result.get().card;
+            let target = result.get().target;
 
-        if (command.cmd === 'CANCEL') {
-            return yield Promise.resolve(R.abort);
+            game.removeUserCards(u, card);
+            game.discardCards(card);
+
+            ctx.targets = new Set(target);
+            game.message([u, '弃置了', card, '将伤害转移给', ctx.targets]);
+
+            for (let t of ctx.targets) {
+                yield t.on('damage', game, ctx);
+                game.dispatchCards(t, t.maxHp - t.hp);
+            }
+
+            return yield Promise.resolve(R.success);
+        } else {
+            return yield Promise.resolve(R.fail);
         }
-
-        let cards = cardManager.getCards(command.params);
-        game.lockUserCards(u, cards);
-        command = yield game.wait(u, {
-            validCmds: ['CANCEL', 'TARGET'],
-            validator: (command) => {
-                if (command.cmd === 'CANCEL') {
-                    return true;
-                }
-                if (command.params.length !== 1) {
-                    return false;
-                }
-                return true;
-            },
-        });
-        game.unlockUserCards(u, cards);
-
-        if (command.cmd === 'CANCEL') {
-            return yield Promise.resolve(R.abort);
-        }
-
-        game.removeUserCards(u, cards);
-        game.discardCards(cards);
-        let targetPks = command.params;
-        ctx.targets = game.usersByPk(targetPks);
-        game.message([u, '弃置了', cards, '将伤害转移给', ctx.targets]);
-
-        for (let t of ctx.targets) {
-            yield t.on('damage', game, ctx);
-            game.dispatchCards(t, t.maxHp - t.hp);
-        }
-
-        return yield Promise.resolve(R.success);
     }
 
     * beforeDamage(game, ctx) {

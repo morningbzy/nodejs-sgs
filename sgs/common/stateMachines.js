@@ -24,6 +24,14 @@ class MachineFactory {
             }
         ));
         m.addTransition(new FSM.Transition('C', 'CANCEL', '_'));
+        m.addTransition(new FSM.Transition('O', 'CARD', 'O',
+            opt.cardValidator,
+            (game, ctx) => {
+                let u = game.userByPk(ctx.command.uid);
+                u.reply(`UNSELECT CARD ${ctx.card.pk}`);
+                ctx.card = game.cardByPk(ctx.command.params);
+            }
+        ));
         m.addTransition(new FSM.Transition('O', 'UNCARD', 'C', null,
             (game, ctx) => {
                 ctx.card = null;
@@ -54,6 +62,14 @@ class MachineFactory {
             }
         ));
         m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
+        m.addTransition(new FSM.Transition('O', 'TARGET', 'O',
+            opt.targetValidator,
+            (game, ctx) => {
+                let u = game.userByPk(ctx.command.uid);
+                u.reply(`UNSELECT TARGET ${ctx.target.id}`);
+                ctx.target = game.userByPk(ctx.command.params);
+            }
+        ));
         m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T', null,
             (game, ctx) => {
                 ctx.target = null;
@@ -74,6 +90,91 @@ class MachineFactory {
         m.setFinalHandler((r) => {
             return r.get().pop();
         });
+        return m;
+    }
+
+    requireSingleCardAndTarget(game, opt) {
+        let m = new FSM.Machine(game);
+        m.addState(new FSM.State('C'), true);
+        m.addState(new FSM.State('T'));
+        m.addState(new FSM.State('O'));
+
+        m.addTransition(new FSM.Transition('C', 'CARD', 'T',
+            opt.cardValidator,
+            (game, ctx) => {
+                ctx.card = game.cardByPk(ctx.command.params);
+            }
+        ));
+        m.addTransition(new FSM.Transition('C', 'CANCEL', '_'));
+
+        m.addTransition(new FSM.Transition('T', 'TARGET', 'O',
+            opt.targetValidator,
+            (game, ctx) => {
+                ctx.target = game.userByPk(ctx.command.params);
+            }
+        ));
+        m.addTransition(new FSM.Transition('T', 'CARD', 'T',
+            opt.cardValidator,
+            (game, ctx) => {
+                let u = game.userByPk(ctx.command.uid);
+                u.reply(`UNSELECT CARD ${ctx.card.pk}`);
+                ctx.card = game.cardByPk(ctx.command.params);
+            }
+        ));
+        m.addTransition(new FSM.Transition('T', 'UNCARD', 'C', null,
+            (game, ctx) => {
+                ctx.card = null;
+            }
+        ));
+        m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
+
+        m.addTransition(new FSM.Transition('O', 'TARGET', 'O',
+            opt.targetValidator,
+            (game, ctx) => {
+                let u = game.userByPk(ctx.command.uid);
+                u.reply(`UNSELECT TARGET ${ctx.target.id}`);
+                ctx.target = game.userByPk(ctx.command.params);
+            }
+        ));
+        m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T', null,
+            (game, ctx) => {
+                ctx.target = null;
+            }
+        ));
+        m.addTransition(new FSM.Transition('O', 'CARD', 'T',
+            opt.cardValidator,
+            (game, ctx) => {
+                let u = game.userByPk(ctx.command.uid);
+                u.reply(`UNSELECT CARD ${ctx.card.pk}`);
+                u.reply(`UNSELECT TARGET ${ctx.target.id}`);
+                ctx.card = game.cardByPk(ctx.command.params);
+                ctx.target = null;
+            }
+        ));
+        m.addTransition(new FSM.Transition('O', 'UNCARD', 'C', null,
+            (game, ctx) => {
+                let u = game.userByPk(ctx.command.uid);
+                u.reply(`UNSELECT TARGET ${ctx.target.id}`);
+                ctx.card = null;
+                ctx.target = null;
+            }
+        ));
+        m.addTransition(new FSM.Transition('O', 'OK', '_', null,
+            (game, ctx) => {
+                return new R.CardTargetResult().set(ctx.card, ctx.target);
+            }
+        ));
+        m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
+
+        if (opt.cancelOnUncard === true) {
+            m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
+            m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
+        }
+
+        m.setFinalHandler((r) => {
+            return r.get().pop();
+        });
+
         return m;
     }
 }

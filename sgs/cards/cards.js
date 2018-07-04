@@ -49,7 +49,6 @@ class CardBase {
 
     * start(game, ctx) {
         let u = ctx.sourceUser;
-        console.log(this.run);
         if (!(this.run instanceof Function) ||
             this.requireOk && !(yield game.waitFSM(u, FSM.get('requireOk', game), ctx)).success) {
             return yield Promise.resolve(R.fail);
@@ -85,33 +84,27 @@ class DelayedSilkBagCard extends CardBase {
     * run(game, ctx) {
         let u = ctx.sourceUser;
         game.lockUserCards(u, ctx.sourceCards);
-        let command = yield game.wait(u, {
-            validCmds: ['CANCEL', 'TARGET'],
-            validator: (command) => {
-                if (command.cmd === 'CANCEL') {
-                    return true;
-                }
-                if (command.params.length !== 1) {
-                    return false;
-                }
+        let result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {
+            targetValidator: (command) => {
                 // TODO: validate distance & target-able
+                // let targets = game.usersByPk(command.params);
                 return true;
-            },
-        });
+            }
+        }), ctx);
         game.unlockUserCards(u, ctx.sourceCards);
 
-        if (command.cmd === 'CANCEL') {
+        if (result.success) {
+            game.removeUserCards(u, ctx.sourceCards);
+
+            let target = result.get();
+            ctx.targets = new Set(target);
+            game.message([ctx.sourceUser, '对', ctx.targets, '使用了', ctx.sourceCards]);
+            ctx.targets.forEach((t) => game.pushUserJudge(t, ctx.sourceCards[0]));
+
+            return yield Promise.resolve(R.success);
+        } else {
             return yield Promise.resolve(R.abort);
         }
-
-        game.removeUserCards(u, ctx.sourceCards);
-
-        let targetPks = command.params;
-        ctx.targets = game.usersByPk(targetPks);
-        game.message([ctx.sourceUser, '对', ctx.targets, '使用了', ctx.sourceCards]);
-        ctx.targets.forEach((t) => game.pushUserJudge(t, ctx.sourceCards[0]));
-
-        return yield Promise.resolve(R.success);
     }
 }
 
@@ -148,8 +141,6 @@ class Sha extends NormalCard {
     constructor(suit, number) {
         super(suit, number);
         this.name = '杀';
-
-        this.requireOk = false;
     }
 
     * run(game, ctx) {
@@ -189,9 +180,7 @@ class JueDou extends SilkBagCard {
     * run(game, ctx) {
         let u = ctx.sourceUser;
         game.lockUserCards(u, ctx.sourceCards);
-        // let result = yield game.waitFSM(u, FSM.SingleTargetFSM, ctx);
         let fsm = FSM.get('requireSingleTarget', game);
-        console.log(fsm);
         let result = yield game.waitFSM(u, fsm, ctx);
         game.unlockUserCards(u, ctx.sourceCards);
         if (!result.success) {

@@ -91,6 +91,17 @@ class CardResult extends ResultBase {
 //     }
 // }
 
+class CardTargetResult extends ResultBase {
+    constructor() {
+        super();
+    }
+
+    set(card, target) {
+        this._resultObj = {card, target};
+        return this;
+    }
+}
+
 class JudgeResult extends ResultBase {
     constructor(result) {
         super(result ? RESULT_STATE.SUCCESS : RESULT_STATE.FAIL);
@@ -120,7 +131,7 @@ class Fsm2Result extends ResultBase {
     }
 
     set(value) {
-        if(value) {
+        if (value) {
             this._resultObj.push(value);
             if (value instanceof ResultBase) {
                 this.setStatus(value.getStatus());
@@ -136,6 +147,7 @@ module.exports = {
     AbortResult,
     TargetResult,
     CardResult,
+    CardTargetResult,
     JudgeResult,
     FsmResult,
     Fsm2Result,
