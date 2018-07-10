@@ -1,7 +1,7 @@
 const C = require('../constants');
 const R = require('../common/results');
+const U = require('../utils');
 const FSM = require('../common/stateMachines');
-const utils = require('../utils');
 const cardManager = require('../cards');
 const sgsCards = require('../cards/cards');
 const EventListener = require('../common/eventListener');
@@ -163,6 +163,84 @@ class LiuBei extends FigureBase {
         };
     }
 
+    * s1(game, ctx) {
+        const u = this.owner;
+        const requireCardsAndTargetFSM = () => {
+            let m = new FSM.Machine(game);
+            m.addState(new FSM.State('CTO'), true);
+
+            m.addTransition(new FSM.Transition('CTO', 'CARD', 'CTO',
+                (command) => {
+                    let card = game.cardByPk(command.params);
+                    return u.hasCard(card);
+                },
+                (game, ctx) => {
+                    if (ctx.cards) {
+                        ctx.cards.add(game.cardByPk(ctx.command.params));
+                    } else {
+                        ctx.cards = U.toSet(game.cardByPk(ctx.command.params));
+                    }
+                }
+            ));
+            m.addTransition(new FSM.Transition('CTO', 'UNCARD', 'CTO', null,
+                (game, ctx) => {
+                    ctx.cards.delete(game.cardByPk(ctx.command.params));
+                }
+            ));
+            m.addTransition(new FSM.Transition('CTO', 'TARGET', 'CTO',
+                (command) => {
+                    return u.id !== command.params[0];
+                },
+                (game, ctx) => {
+                    if (ctx.target) {
+                        u.reply(`UNSELECT TARGET ${ctx.target.id}`);
+                    }
+                    ctx.target = game.userByPk(ctx.command.params);
+                }
+            ));
+            m.addTransition(new FSM.Transition('CTO', 'UNTARGET', 'CTO', null,
+                (game, ctx) => {
+                    ctx.target = null;
+                }
+            ));
+            m.addTransition(new FSM.Transition('CTO', 'OK', '_',
+                (command, ctx) => {
+                    return (ctx.target && ctx.cards && ctx.cards.size > 0);
+                },
+                (game, ctx) => {
+                    return new R.CardTargetResult().set(ctx.cards, ctx.target);
+                }
+            ));
+
+            m.setFinalHandler((r) => {
+                return r.get().pop();
+            });
+
+            return m;
+        };
+        let result = yield game.waitFSM(u, requireCardsAndTargetFSM(), ctx);
+        if (result.success) {
+            let cards = Array.from(result.get().card);
+            let target = result.get().target;
+
+            game.message([u, '使用技能【仁德】，将', cards, '交给', target]);
+
+            game.removeUserCards(u, cards);
+            game.addUserCards(target, cards);
+
+            console.log(this.s1_param);
+            console.log(this.s1_param + cards.length);
+            console.log(this.s1_param < 2 && (this.s1_param + cards.length) >= 2);
+            if (this.s1_param < 2 && (this.s1_param + cards.length) >= 2) {
+                console.log('here');
+                ctx.heal = 1;
+                yield u.on('heal', game, ctx);
+            }
+            this.s1_param += cards.length;
+        }
+        return yield Promise.resolve(result);
+    }
+
     * s2(game, ctx) {
         const u = this.owner;
         let result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {
@@ -193,6 +271,7 @@ class LiuBei extends FigureBase {
     }
 
     * roundPlayPhaseStart(game, ctx) {
+        this.s1_param = 0;  // 本阶段【仁德】送出的牌数
         this.changeSkillState(this.skills.SHU001s01, C.SKILL_STATE.ENABLED);
         this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.ENABLED);
     }
@@ -314,7 +393,7 @@ class SiMaYi extends FigureBase {
 
     * s1(game, ctx) {
         // TODO equipment card can also be selected
-        let cards = utils.shuffle(ctx.sourceUser.cards.values()).slice(0, 1);
+        let cards = U.shuffle(ctx.sourceUser.cards.values()).slice(0, 1);
         game.message([this.owner, '从', ctx.sourceUser, '处获得', cards.length, '张牌']);
         game.removeUserCards(ctx.sourceUser, cards);
         game.addUserCards(this.owner, cards);

@@ -50,7 +50,7 @@ class Machine {
     }
 
     validate(command) {
-        return this.current.validate(command);
+        return this.current.validate(command, this.context);
     }
 
     next(command) {
@@ -96,9 +96,9 @@ class State {
         return Array.from(this.transitions.keys());
     }
 
-    validate(command) {
+    validate(command, ctx) {
         let cmd = command.cmd;
-        return this.transitions.get(cmd).validate(command);
+        return this.transitions.get(cmd).validate(command, ctx);
     }
 }
 
@@ -121,9 +121,9 @@ class Transition {
         }
     }
 
-    validate(command) {
+    validate(command, ctx) {
         for (let cond of this.conditions) {
-            if (false === cond(command)) {
+            if (false === Boolean(cond(command, ctx))) {
                 return false;
             }
         }

@@ -329,7 +329,7 @@ class Game {
         for (let k in C.EQUIP_TYPE) {
             let old = this.unequipUserCard(user, C.EQUIP_TYPE[k]);
             if (old) {
-                this.discardCards(old.card);
+                this.discardCards(old);
             }
         }
 
@@ -381,7 +381,7 @@ class Game {
     }
 
     removeUserCards(user, cards) {
-        cards = Array.isArray(cards) ? cards : Array.from([cards]);
+        cards = Array.isArray(cards) ? cards : [cards];
         this.removeUserCardPks(user, cardManager.unfakeCards(cards).map(x => x.pk));
     }
 

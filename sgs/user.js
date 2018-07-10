@@ -161,10 +161,11 @@ class User extends EventListener {
     unequipCard(equipType) {
         let old = this.equipments[equipType];
         if (old) {
-            old.setEquiper(null);
+            old.card.setEquiper(null);
+            this.equipments[equipType] = null;
+            return old.card;
         }
-        this.equipments[equipType] = null;
-        return old;
+        return null;
     }
 
     // ------
@@ -242,8 +243,9 @@ class User extends EventListener {
 
     * heal(game, ctx) {
         console.log(`<U> HP + ${ctx.heal}`);
-        this.hp += ctx.heal;
-        game.message([this, '恢复', ctx.heal, '点体力']);
+        let willHeal = Math.min(this.maxHp - this.hp, ctx.heal);
+        this.hp += willHeal;
+        game.message([this, '恢复', willHeal, '点体力']);
         game.broadcastUserInfo(this);
         yield this.figure.on('heal', game, ctx);
 
