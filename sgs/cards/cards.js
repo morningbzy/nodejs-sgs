@@ -2,6 +2,7 @@ const aggregation = require('aggregation/es6');
 const uuid = require('uuid/v4');
 const C = require('../constants');
 const R = require('../common/results');
+const U = require('../utils');
 const FSM = require('../common/stateMachines');
 const EventListener = require('../common/eventListener');
 const ShaStage = require('../phases/sha/ShaStage');
@@ -85,6 +86,7 @@ class DelayedSilkBagCard extends CardBase {
         let u = ctx.sourceUser;
         game.lockUserCards(u, ctx.sourceCards);
         let result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {
+            cancelOnUncard: true,
             targetValidator: (command) => {
                 // TODO: validate distance & target-able
                 // let targets = game.usersByPk(command.params);
@@ -97,7 +99,7 @@ class DelayedSilkBagCard extends CardBase {
             game.removeUserCards(u, ctx.sourceCards);
 
             let target = result.get();
-            ctx.targets = new Set(target);
+            ctx.targets = U.toSet(target);
             game.message([ctx.sourceUser, '对', ctx.targets, '使用了', ctx.sourceCards]);
             ctx.targets.forEach((t) => game.pushUserJudge(t, ctx.sourceCards[0]));
 
@@ -196,8 +198,9 @@ class JueDou extends SilkBagCard {
     * run(game, ctx) {
         let u = ctx.sourceUser;
         game.lockUserCards(u, ctx.sourceCards);
-        let fsm = FSM.get('requireSingleTarget', game);
-        let result = yield game.waitFSM(u, fsm, ctx);
+        let result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {
+            cancelOnUncard: true,
+        }), ctx);
         game.unlockUserCards(u, ctx.sourceCards);
         if (!result.success) {
             return yield Promise.resolve(result);
@@ -243,10 +246,11 @@ class NanManRuQin extends SilkBagCard {
     }
 
     * run(game, ctx) {
-        game.message([ctx.sourceUser, '使用了', this]);
+        const u = ctx.sourceUser;
+        game.message([u, '使用了', this]);
         ctx.damage = 1;
 
-        for(let _u of game.userRound(game.roundOwner, true)) {
+        for (let _u of game.userRound(game.roundOwner, true)) {
             let result = yield _u.on('requireSha', game, ctx);
             if (result.success) {
                 let card = result.get();
@@ -257,6 +261,9 @@ class NanManRuQin extends SilkBagCard {
                 yield _u.on('damage', game, ctx);
             }
         }
+
+        game.removeUserCards(u, ctx.sourceCards);
+        game.discardCards(ctx.sourceCards);
     }
 }
 

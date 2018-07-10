@@ -329,12 +329,12 @@ class Game {
         for (let k in C.EQUIP_TYPE) {
             let old = this.unequipUserCard(user, C.EQUIP_TYPE[k]);
             if (old) {
-                this.discardCards([old.card]);
+                this.discardCards(old.card);
             }
         }
 
         for (let j of user.judgeStack) {
-            this.discardCard(j.card);
+            this.discardCards(j.card);
         }
 
         if (this.usersNotInState(C.USER_STATE.DEAD).length <= 1) {
@@ -388,7 +388,7 @@ class Game {
     equipUserCard(user, card) {
         let old = this.unequipUserCard(user, card.equipType);
         if (old) {
-            this.discardCards([old.card]);
+            this.discardCards(old.card);
         }
 
         this.removeUserCards(user, [card]);
@@ -411,7 +411,7 @@ class Game {
     }
 
     discardCards(cards) {
-        cards = Array.isArray(cards) ? cards : Array.from([cards]);
+        cards = Array.isArray(cards) ? cards : [cards];
         this.discardCardPks(cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
