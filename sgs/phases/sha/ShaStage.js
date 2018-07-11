@@ -37,6 +37,7 @@ class ShaSelectTargetStage {
         if (result.success) {
             ctx.targets.add(result.get());
             game.message([ctx.sourceUser, '对', ctx.targets, '使用', ctx.sourceCards,]);
+            game.removeUserCards(ctx.sourceUser, ctx.sourceCards);
             yield u.on('usedSha', game, ctx);
         }
 
@@ -51,8 +52,9 @@ class ShaValidateStage {
         if (!shaAble) {
             return yield Promise.resolve(R.abort);
         }
+        ctx.shanAble = new Map();
 
-        game.removeUserCards(ctx.sourceUser, ctx.sourceCards);
+        yield u.on('shaTarget', game, ctx);
 
         for (let t of ctx.targets) {
             yield t.on('beShaTarget', game, ctx);
@@ -67,11 +69,9 @@ class ShaExecuteStage {
     static* start(game, u, ctx) {
         console.log('SHA-EXECUTE-STAGE');
         const targets = ctx.targets;
-
         // TODO: SHAN-able?
-        let shanAble = true;
-        if (shanAble) {
-            for (let target of targets) {
+        for (let target of targets) {
+            if (!ctx.shanAble.has(target) || ctx.shanAble.get(target)) {
                 let result = yield target.on('requireShan', game, ctx);
                 if (result.success) {
                     if (result instanceof R.CardResult) {
@@ -87,6 +87,8 @@ class ShaExecuteStage {
                 } else {
                     yield target.on('damage', game, ctx);
                 }
+            } else {
+                yield target.on('damage', game, ctx);
             }
         }
 

@@ -362,30 +362,15 @@ class BaGuaZhen extends ArmorCard {
     }
 
     judge(card) {
-        return R.judge([C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND].includes(card.suit));
+        return [C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND].includes(card.suit);
     }
 
     * s1(game, ctx) {
         let u = this.equiper(game);
 
-        // ---------------------------------
-        // TODO: Before judge, ask WuXieKeJi
-        // for(let _u of game.userRound()) {
-        //     judgeCard = _u.on('beforeJudge');
-        // }
-        let judgeCard = game.getJudgeCard();
-        let context = {judgeCard};
-        game.message([u, '发动了【', this.name, '】，判定为', context.judgeCard]);
-
-        // TODO: Before judge effective, ask SiMaYi & ZhangJiao
-        for (let _u of game.userRound()) {
-            yield _u.on('beforeJudgeEffect', game, context);
-        }
-
-        yield u.on('judge', game, context);  // 目前仅用于小乔的【红颜】
-        let result = this.judge(context.judgeCard);
-        game.discardCards(context.judgeCard);
-        game.message([u, '判定【', this.name, '】为', context.judgeCard, '判定', result.success ? '生效' : '未生效']);
+        game.message([u, '发动了【', this.name, '】']);
+        let result = yield game.doJudge(u, this.judge);
+        game.message([u, '判定【', this.name, '】为', result.get(), '判定', result.success ? '生效' : '未生效']);
 
         return result;
     }

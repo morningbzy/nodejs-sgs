@@ -15,24 +15,9 @@ class RoundJudgePhase extends Phase {
         while (judge) {
             let {card} = judge;
 
-            // ---------------------------------
-            // TODO: Before judge, ask WuXieKeJi
-            // for(let _u of game.userRound()) {
-            //     judgeCard = _u.on('beforeJudge');
-            // }
-            let judgeCard = game.getJudgeCard();
-            let context = {judgeCard};
-            game.message([u, '判定', card, '为', context.judgeCard]);
-
-            // TODO: Before judge effective, ask SiMaYi & ZhangJiao
-            for (let _u of game.userRound()) {
-                yield _u.on('beforeJudgeEffect', game, context);
-            }
-
-            yield u.on('judge', game, context);  // 目前仅用于小乔的【红颜】
-            let result = card.judge(context.judgeCard);
-            game.discardCards(context.judgeCard);
-            game.message([u, '判定', card, '为', context.judgeCard, '判定', result.success ? '生效' : '未生效']);
+            game.message([u, '判定', card]);
+            let result = yield game.doJudge(u, card.judge);
+            game.message([u, '判定', card, '为', result.get(), '判定', result.success ? '生效' : '未生效']);
 
             if (result.success) {
                 card.judgeEffect(u);

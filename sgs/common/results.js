@@ -103,8 +103,9 @@ class CardTargetResult extends ResultBase {
 }
 
 class JudgeResult extends ResultBase {
-    constructor(result) {
+    constructor(card, result) {
         super(result ? RESULT_STATE.SUCCESS : RESULT_STATE.FAIL);
+        this._resultObj = card;
     }
 }
 
@@ -165,6 +166,6 @@ module.exports = {
     success: new SuccessResult(),
     fail: new FailResult(),
     abort: new AbortResult(),
-    judge: (result) => new JudgeResult(result),
+    judge: (card, result) => new JudgeResult(card, result),
     distance: (x) => new DistanceResult(x),
 };

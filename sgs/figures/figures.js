@@ -407,6 +407,26 @@ class MaChao extends FigureBase {
     distanceFrom(game, ctx) {
         return -1;
     }
+
+    * s2(game, ctx) {
+    }
+
+    * shaTarget(game, ctx) {
+        const u = this.owner;
+
+        for (let t of ctx.targets) {
+            let command = yield game.waitConfirm(u, `指定${t.figure.name}为【杀】的目标，是否发动技能【铁骑】？`);
+            if (command.cmd === C.CONFIRM.Y) {
+                game.message([u, '指定', t, '为【杀】的目标，发动技能【铁骑】。']);
+                let result = yield game.doJudge(u,
+                    (card) => [C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND].includes(card.suit)
+                );
+                game.message([u, '判定【铁骑】为', result.get(), '，判定', result.success ? '生效' : '未生效']);
+                ctx.shanAble.set(t, !result.success);
+            }
+        }
+        return yield Promise.resolve(R.success);
+    }
 }
 
 
@@ -453,6 +473,7 @@ class SiMaYi extends FigureBase {
         if (result.success) {
             game.discardCards(ctx.judgeCard);
             ctx.judgeCard = result.get();
+            game.removeUserCards(this.owner, ctx.judgeCard);
             game.message([this.owner, '使用', ctx.judgeCard, '替换了判定牌']);
         }
         return yield Promise.resolve(result);
@@ -548,6 +569,10 @@ class DaQiao extends FigureBase {
 
             ctx.targets.delete(u);
             ctx.targets.add(target);
+            if(ctx.shanAble.has(u)) {
+                ctx.shanAble.set(target, ctx.shanAble.get(u));
+                ctx.shanAble.delete(u);
+            }
             game.message([u, '弃置了', card, '将【杀】的目标转移给', target]);
             return yield Promise.resolve(R.success);
         } else {

@@ -416,7 +416,7 @@ class Game {
     equipUserCard(user, card) {
         let old = this.unequipUserCard(user, card.equipType);
         if (old) {
-            this.discardCards(old.card);
+            this.discardCards(old);
         }
 
         this.removeUserCards(user, [card]);
@@ -450,6 +450,26 @@ class Game {
 
     getJudgeCard() {
         return cardManager.shiftCards()[0];
+    }
+
+    * doJudge(u, judgeFunction) {
+        // ---------------------------------
+        // TODO: Before judge, ask WuXieKeJi
+        // for(let _u of game.userRound()) {
+        //     judgeCard = _u.on('beforeJudge');
+        // }
+        let judgeCard = this.getJudgeCard();
+        let context = {judgeCard};
+        game.message([u, '判定牌为', context.judgeCard]);
+
+        // TODO: Before judge effective, ask SiMaYi & ZhangJiao
+        for (let _u of game.userRound()) {
+            yield _u.on('beforeJudgeEffect', game, context);
+        }
+
+        yield u.on('judge', game, context);  // 目前仅用于小乔的【红颜】
+        game.discardCards(context.judgeCard);
+        return R.judge(context.judgeCard, judgeFunction(context.judgeCard));
     }
 
     // -----
