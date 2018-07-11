@@ -23,7 +23,6 @@ class RoundJudgePhase extends Phase {
             let judgeCard = game.getJudgeCard();
             let context = {judgeCard};
             game.message([u, '判定', card, '为', context.judgeCard]);
-            game.discardCards([judgeCard]);
 
             // TODO: Before judge effective, ask SiMaYi & ZhangJiao
             for (let _u of game.userRound()) {
@@ -32,6 +31,7 @@ class RoundJudgePhase extends Phase {
 
             yield u.on('judge', game, context);  // 目前仅用于小乔的【红颜】
             let result = card.judge(context.judgeCard);
+            game.discardCards(context.judgeCard);
             game.message([u, '判定', card, '为', context.judgeCard, '判定', result.success ? '生效' : '未生效']);
 
             if (result.success) {

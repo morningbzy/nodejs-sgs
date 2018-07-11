@@ -376,7 +376,6 @@ class BaGuaZhen extends ArmorCard {
         let judgeCard = game.getJudgeCard();
         let context = {judgeCard};
         game.message([u, '发动了【', this.name, '】，判定为', context.judgeCard]);
-        game.discardCards([judgeCard]);
 
         // TODO: Before judge effective, ask SiMaYi & ZhangJiao
         for (let _u of game.userRound()) {
@@ -385,6 +384,7 @@ class BaGuaZhen extends ArmorCard {
 
         yield u.on('judge', game, context);  // 目前仅用于小乔的【红颜】
         let result = this.judge(context.judgeCard);
+        game.discardCards(context.judgeCard);
         game.message([u, '判定【', this.name, '】为', context.judgeCard, '判定', result.success ? '生效' : '未生效']);
 
         return result;

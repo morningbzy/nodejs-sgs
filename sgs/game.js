@@ -255,7 +255,7 @@ class Game {
 
     startIfReady() {
         if (this.usersNotInState(C.USER_STATE.READY).length === 0 &&
-            this.usersInState(C.USER_STATE.READY).length >= 3) {
+            this.usersInState(C.USER_STATE.READY).length >= 5) {
             this.start();
         }
     }
@@ -344,7 +344,6 @@ class Game {
 
     // ----- Utils
     distanceOf(from, to, ctx = {}) {
-        console.log('|>> <<');
         let t, i = 0;
         for (let u of this.userRound(from)) {
             if (u.id === to.id) {
@@ -354,21 +353,16 @@ class Game {
         }
         let exFrom = from.distanceFrom(this, ctx);
         let exTo = to.distanceTo(this, ctx);
-
-        console.log(t);
-        console.log(i);
-        console.log(exFrom);
-        console.log(exTo);
-        console.log(Math.min(t, i - t) + exFrom + exTo);
-        console.log('|>>+<<');
-
+        // console.log(t);
+        // console.log(i);
+        // console.log(exFrom);
+        // console.log(exTo);
+        console.log(`|>>${Math.min(t, i - t) + exFrom + exTo}<<`);
         return Math.min(t, i - t) + exFrom + exTo;
     }
 
     userAttackRange(u, ctx) {
-        console.log('|<< >>');
-        console.log(u.attackRange(this, ctx));
-        console.log('|>>+<<');
+        console.log(`|<<${u.attackRange(this, ctx)}>>`);
         return u.attackRange(this, ctx);
     }
 

@@ -445,11 +445,13 @@ class SiMaYi extends FigureBase {
         game.message([this.owner, '从', ctx.sourceUser, '处获得', cards.length, '张牌']);
         game.removeUserCards(ctx.sourceUser, cards);
         game.addUserCards(this.owner, cards);
+        return yield Promise.resolve(R.success);
     }
 
     * s2(game, ctx) {
         let result = yield this.owner.requireCard(game, sgsCards.CardBase, ctx);
         if (result.success) {
+            game.discardCards(ctx.judgeCard);
             ctx.judgeCard = result.get();
             game.message([this.owner, '使用', ctx.judgeCard, '替换了判定牌']);
         }
