@@ -141,7 +141,16 @@ class Fsm2Result extends ResultBase {
     }
 }
 
+class DistanceResult extends SuccessResult {
+    constructor(distance) {
+        super();
+        this._resultObj = distance;
+    }
+}
+
+
 module.exports = {
+    ResultBase,
     SuccessResult,
     FailResult,
     AbortResult,
@@ -151,9 +160,11 @@ module.exports = {
     JudgeResult,
     FsmResult,
     Fsm2Result,
+    DistanceResult,
 
     success: new SuccessResult(),
     fail: new FailResult(),
     abort: new AbortResult(),
     judge: (result) => new JudgeResult(result),
+    distance: (x) => new DistanceResult(x),
 };

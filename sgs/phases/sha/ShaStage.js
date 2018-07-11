@@ -25,7 +25,13 @@ class ShaSelectTargetStage {
         ctx.targets = new Set();
 
         game.lockUserCards(u, ctx.sourceCards);
-        let result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {cancelOnUncard: true}), ctx);
+        let result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {
+            cancelOnUncard: true,
+            targetValidator: (command, ctx) => {
+                let target = game.userByPk(command.params);
+                return game.inAttackRange(u, target);
+            }
+        }), ctx);
         game.unlockUserCards(u, ctx.sourceCards);
 
         if (result.success) {

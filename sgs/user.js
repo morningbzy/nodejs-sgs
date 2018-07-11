@@ -198,6 +198,24 @@ class User extends EventListener {
         return yield Promise.resolve(result);
     }
 
+    distanceFrom(game, ctx) {
+        let exDistance = this.figure.distanceFrom(game, ctx);
+        exDistance += this.equipments.attackHorse === null ? 0 : -1;
+        return exDistance;
+    }
+
+    distanceTo(game, ctx) {
+        let exDistance = this.figure.distanceTo(game, ctx);
+        exDistance += this.equipments.defenseHorse === null ? 0 : 1;
+        return exDistance;
+    }
+
+    attackRange(game, ctx) {
+        let exRange = this.figure.attackRange(game, ctx);
+        exRange += this.equipments.weapon === null ? 1 : this.equipments.weapon.card.range;
+        return exRange;
+    }
+
     * useSha(game, ctx) {
         if (this.shaCount < 1) {
             console.log(`|<!> Use too many Sha`);

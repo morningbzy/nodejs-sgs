@@ -342,6 +342,40 @@ class Game {
         }
     }
 
+    // ----- Utils
+    distanceOf(from, to, ctx = {}) {
+        console.log('|>> <<');
+        let t, i = 0;
+        for (let u of this.userRound(from)) {
+            if (u.id === to.id) {
+                t = i;
+            }
+            i++;
+        }
+        let exFrom = from.distanceFrom(this, ctx);
+        let exTo = to.distanceTo(this, ctx);
+
+        console.log(t);
+        console.log(i);
+        console.log(exFrom);
+        console.log(exTo);
+        console.log(Math.min(t, i - t) + exFrom + exTo);
+        console.log('|>>+<<');
+
+        return Math.min(t, i - t) + exFrom + exTo;
+    }
+
+    userAttackRange(u, ctx) {
+        console.log('|<< >>');
+        console.log(u.attackRange(this, ctx));
+        console.log('|>>+<<');
+        return u.attackRange(this, ctx);
+    }
+
+    inAttackRange(from, to, ctx = {}) {
+        return this.userAttackRange(from) >= this.distanceOf(from, to, ctx);
+    }
+
     // ----- Card related
 
     dispatchCards(user, count = 1) {

@@ -51,6 +51,18 @@ class FigureBase extends EventListener {
         console.log(`|[F] ON ${this.name} ${event}`);
         return yield super.on(event, game, ctx);
     }
+
+    distanceFrom(game, ctx) {
+        return 0;
+    }
+
+    distanceTo(game, ctx) {
+        return 0;
+    }
+
+    attackRange(game, ctx) {
+        return 0;
+    }
 }
 
 
@@ -362,6 +374,42 @@ class GuanYu extends FigureBase {
 }
 
 
+class MaChao extends FigureBase {
+// 【马超】 蜀，男，4血
+// 【马术】
+// 【铁骑】
+    constructor() {
+        super();
+        this.name = '马超';
+        this.pk = MaChao.pk;
+        this.country = C.COUNTRY.SHU;
+        this.gender = C.GENDER.MALE;
+        this.hp = 4;
+        this.skills = {
+            SHU006s01: {
+                pk: 'SHU006s01',
+                style: C.SKILL_STYLE.SUODING,
+                name: '马术',
+                desc: '锁定技，你计算与其他角色的距离-1。',
+                handler: 's1',
+            },
+            SHU006s02: {
+                pk: 'SHU006s02',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '铁骑',
+                desc: '当你使用【杀】指定一个目标后，你可以判定，若结果为' +
+                '红色，该角色不能使用【闪】相应此【杀】。',
+                handler: 's2',
+            },
+        };
+    }
+
+    distanceFrom(game, ctx) {
+        return -1;
+    }
+}
+
+
 class SiMaYi extends FigureBase {
 // 【司马懿】 蜀，男，3血
 // 【反馈】
@@ -662,6 +710,7 @@ SiMaYi.pk = 'WEI002';
 
 LiuBei.pk = 'SHU001';
 GuanYu.pk = 'SHU002';
+MaChao.pk = 'SHU006';
 
 DaQiao.pk = 'WU006';
 SunShangXiang.pk = 'WU008';
@@ -673,6 +722,7 @@ figures = {
 
     LiuBei,
     GuanYu,
+    MaChao,
 
     DaQiao,
     XiaoQiao,

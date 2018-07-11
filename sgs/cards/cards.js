@@ -144,6 +144,7 @@ class WeaponCard extends EquipmentCard {
     constructor(suit, number) {
         super(suit, number);
         this.equipType = C.EQUIP_TYPE.WEAPON;
+        this.range = 0;
     }
 }
 
@@ -152,6 +153,22 @@ class ArmorCard extends EquipmentCard {
     constructor(suit, number) {
         super(suit, number);
         this.equipType = C.EQUIP_TYPE.ARMOR;
+    }
+}
+
+
+class AttackHorseCard extends EquipmentCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.equipType = C.EQUIP_TYPE.ATTACK_HORSE;
+    }
+}
+
+
+class DefenseHorseCard extends EquipmentCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.equipType = C.EQUIP_TYPE.DEFENSE_HORSE;
     }
 }
 
@@ -307,6 +324,7 @@ class QingLongYanYueDao extends WeaponCard {
         super(suit, number);
         this.name = '青龙偃月刀';
         this.shortName = '龙';
+        this.range = 3;
     }
 
     * s1(game, ctx) {
@@ -383,6 +401,21 @@ class BaGuaZhen extends ArmorCard {
 }
 
 
+class DiLu extends AttackHorseCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '的卢';
+    }
+}
+
+class ChiTu extends DefenseHorseCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '赤兔';
+    }
+}
+
+
 const cardSet = new Map();
 
 [
@@ -425,6 +458,10 @@ const cardSet = new Map();
     new BaGuaZhen(C.CARD_SUIT.SPADE, 2),
     new BaGuaZhen(C.CARD_SUIT.CLUB, 2),
 
+    new DiLu(C.CARD_SUIT.CLUB, 5),
+
+    new ChiTu(C.CARD_SUIT.HEART, 5),
+
 ].map((c) => cardSet.set(c.pk, c));
 
 module.exports = {
@@ -447,4 +484,6 @@ module.exports = {
     LeBuSiShu,
 
     QingLongYanYueDao,
+
+    ChiTu
 };
