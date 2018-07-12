@@ -29,7 +29,7 @@ module.exports = class extends Phase {
         let figurePk = command.params[0];
         zhugong.setFigure(new Figures.figureSet[figurePk]());
         zhugong.showFigure = true;
-        zhugong.reply(`CLEAR_FIGURE_CANDIDATE`);
+        zhugong.reply(`CLEAR_CANDIDATE`);
         zhugong.popRestoreCmd();
         game.message(['主公选择了武将', zhugong]);
         game.broadcastUserInfo(zhugong);
@@ -48,15 +48,12 @@ module.exports = class extends Phase {
                 validCmds: ['FIGURE'],
                 validator: (command) => {
                     const pk = command.params[0];
-                    if (figures.map((f) => f.pk).indexOf(pk) === -1) {
-                        return false;
-                    }
-                    return true;
+                    return figures.map((f) => f.pk).includes(pk);
                 },
             });
             figurePk = command.params[0];
             u.setFigure(new Figures.figureSet[figurePk]());
-            u.reply(`CLEAR_FIGURE_CANDIDATE`);
+            u.reply(`CLEAR_CANDIDATE`);
             u.popRestoreCmd();
             u.reply(`USER_INFO ${u.seatNum} ${u.toJsonString(u)}`, true);
         }

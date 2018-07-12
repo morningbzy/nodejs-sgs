@@ -72,6 +72,7 @@ class SilkBagCard extends CardBase {
     constructor(suit, number) {
         super(suit, number);
         this.category = C.CARD_CATEGORY.SILK_BAG;
+        this.distance = Infinity;
     }
 }
 
@@ -80,17 +81,18 @@ class DelayedSilkBagCard extends CardBase {
     constructor(suit, number) {
         super(suit, number);
         this.category = C.CARD_CATEGORY.DELAYED_SILK_BAG;
+        this.distance = Infinity;
     }
 
     * run(game, ctx) {
         let u = ctx.sourceUser;
+        let distance = this.distance;
         game.lockUserCards(u, ctx.sourceCards);
         let result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {
             cancelOnUncard: true,
             targetValidator: (command) => {
-                // TODO: validate distance & target-able
-                // let targets = game.usersByPk(command.params);
-                return true;
+                let target = game.userByPk(command.params);
+                return target.id !== u.id && game.distanceOf(u, target) <= distance;
             }
         }), ctx);
         game.unlockUserCards(u, ctx.sourceCards);
@@ -217,6 +219,10 @@ class JueDou extends SilkBagCard {
         game.lockUserCards(u, ctx.sourceCards);
         let result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {
             cancelOnUncard: true,
+            targetValidator: (command) => {
+                let target = game.userByPk(command.params);
+                return target.id !== u.id;
+            }
         }), ctx);
         game.unlockUserCards(u, ctx.sourceCards);
         if (!result.success) {
@@ -251,6 +257,53 @@ class JueDou extends SilkBagCard {
         result = yield loser.on('damage', game, ctx);
         game.discardCards(ctx.sourceCards);
         return yield Promise.resolve(result);
+    }
+}
+
+
+class GuoHeChaiQiao extends SilkBagCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '过河拆桥';
+    }
+
+    * run(game, ctx) {
+        let u = ctx.sourceUser;
+
+        game.lockUserCards(u, ctx.sourceCards);
+        let result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {
+            cancelOnUncard: true,
+        }), ctx);
+        game.unlockUserCards(u, ctx.sourceCards);
+        if (!result.success) {
+            return yield Promise.resolve(result);
+        }
+
+        game.removeUserCards(u, ctx.sourceCards);
+        let target = result.get();
+        ctx.targets = target;
+        game.message([ctx.sourceUser, '对', target, '使用了', ctx.sourceCards]);
+
+        // TODO: WuXieKeJi
+
+        // Show all card candidates
+        let cardCandidates = target.cardCandidates();
+        u.reply(`CARD_CANDIDATE ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+        let command = yield game.wait(u, {
+            validCmds: ['CARD_CANDIDATE'],
+            validator: (command) => {
+                const pks = command.params;
+                return pks.length === 1;
+            },
+        });
+
+        let card = game.cardByPk(command.params);
+        game.removeUserCardsEx(target, card);
+        game.message([u, '拆掉了', target, '的一张牌']);
+        u.reply(`CLEAR_CANDIDATE`);
+        u.popRestoreCmd();
+
+        return yield Promise.resolve(R.success);
     }
 }
 
@@ -315,6 +368,24 @@ class LeBuSiShu extends DelayedSilkBagCard {
 
     judgeEffect(u) {
         u.phases.RoundPlayPhase = 0;
+    }
+}
+
+
+class BingLiangCunDuan extends DelayedSilkBagCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '兵粮寸断';
+        this.shortName = '断';
+        this.distance = 1;
+    }
+
+    judge(card) {
+        return C.CARD_SUIT.CLUB !== card.suit;
+    }
+
+    judgeEffect(u) {
+        u.phases.RoundDrawCardPhase = 0;
     }
 }
 
@@ -427,6 +498,19 @@ const cardSet = new Map();
     new JueDou(C.CARD_SUIT.CLUB, 1),
     new JueDou(C.CARD_SUIT.DIAMOND, 1),
 
+    new GuoHeChaiQiao(C.CARD_SUIT.SPADE, 3),
+    new GuoHeChaiQiao(C.CARD_SUIT.SPADE, 4),
+    new GuoHeChaiQiao(C.CARD_SUIT.SPADE, 12),
+    new GuoHeChaiQiao(C.CARD_SUIT.CLUB, 3),
+    new GuoHeChaiQiao(C.CARD_SUIT.CLUB, 4),
+    new GuoHeChaiQiao(C.CARD_SUIT.HEART, 12),
+    new GuoHeChaiQiao(C.CARD_SUIT.SPADE, 3),
+    new GuoHeChaiQiao(C.CARD_SUIT.SPADE, 4),
+    new GuoHeChaiQiao(C.CARD_SUIT.SPADE, 12),
+    new GuoHeChaiQiao(C.CARD_SUIT.CLUB, 3),
+    new GuoHeChaiQiao(C.CARD_SUIT.CLUB, 4),
+    new GuoHeChaiQiao(C.CARD_SUIT.HEART, 12),
+
     new WuZhongShengYou(C.CARD_SUIT.HEART, 7),
     new WuZhongShengYou(C.CARD_SUIT.HEART, 8),
     new WuZhongShengYou(C.CARD_SUIT.HEART, 9),
@@ -438,6 +522,9 @@ const cardSet = new Map();
     new LeBuSiShu(C.CARD_SUIT.SPADE, 6),
     new LeBuSiShu(C.CARD_SUIT.HEART, 6),
     new LeBuSiShu(C.CARD_SUIT.CLUB, 6),
+
+    new BingLiangCunDuan(C.CARD_SUIT.SPADE, 10),
+    new BingLiangCunDuan(C.CARD_SUIT.CLUB, 4),
 
     new QingLongYanYueDao(C.CARD_SUIT.SPADE, 5),
 
@@ -468,6 +555,7 @@ module.exports = {
     WuZhongShengYou,
 
     LeBuSiShu,
+    BingLiangCunDuan,
 
     QingLongYanYueDao,
 

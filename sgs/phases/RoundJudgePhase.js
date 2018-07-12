@@ -11,9 +11,9 @@ class RoundJudgePhase extends Phase {
         console.log('ROUND-JUDGE-PHASE');
         const u = game.roundOwner;
 
-        let judge = u.popJudge();
+        let judge = u.nextJudge();
         while (judge) {
-            let {card} = judge;
+            let card = judge;
 
             game.message([u, '判定', card]);
             game.broadcast(`JUDGING ${card.pk}`, u);
@@ -28,10 +28,11 @@ class RoundJudgePhase extends Phase {
             //     judgeCard = _u.on('afterJudgeEffect');
             // }
             // ---------------------------------
-            game.discardCards([card]);
+            game.removeUserJudge(u, card);
+            game.discardCards(card);
 
             // next
-            judge = u.popJudge();
+            judge = u.nextJudge();
         }
     }
 }

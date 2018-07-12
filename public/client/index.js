@@ -112,6 +112,18 @@ class Game {
         table.on('click', '.sgs-action-pass', (e) => {
             Cmd.send({cmd: 'PASS', params: [],});
         });
+        table.on('click', '#sgs-candidate-panel .sgs-card', (e) => {
+            let el = $(e.currentTarget);
+            el.toggleClass(selectedCardClass);
+        });
+        table.on('click', '#sgs-table-modal .sgs-table-modal-ok', (e) => {
+            let pks = [];
+            $('#sgs-candidate-panel .selected').each((i, el) => pks.push($(el).attr('pk')));
+            Cmd.send({
+                cmd: 'CARD_CANDIDATE',
+                params: pks,
+            });
+        })
     }
 
     on() {

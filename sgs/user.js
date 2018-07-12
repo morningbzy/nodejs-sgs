@@ -133,7 +133,25 @@ class User extends EventListener {
     }
 
     hasCard(card) {
-        return this.cards.has(card.pk);
+        return card && this.cards.has(card.pk);
+    }
+
+    hasEquipedCard(card) {
+        for (let k of Object.keys(this.equipments)) {
+            if (this.equipments[k] !== null && card.pk === this.equipments[k].card.pk) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    hasJudgeCard(card) {
+        for (let j of this.judgeStack) {
+            if (card.pk === j.pk) {
+                return true;
+            }
+        }
+        return false;
     }
 
     hasCardPk(cardPk) {
@@ -141,13 +159,15 @@ class User extends EventListener {
     }
 
     pushJudge(card) {
-        this.judgeStack.unshift({
-            card: card,
-        });
+        this.judgeStack.unshift(card);
     }
 
-    popJudge() {
-        return this.judgeStack.shift();
+    nextJudge() {
+        return this.judgeStack.length > 0 ? this.judgeStack[0] : null;
+    }
+
+    removeJudge(card) {
+        return this.judgeStack = this.judgeStack.filter(c => c.pk !== card.pk);
     }
 
     equipCard(card) {
@@ -167,6 +187,27 @@ class User extends EventListener {
             return old.card;
         }
         return null;
+    }
+
+    cardCandidates() {
+        let candidates = [];
+        for (let k of Object.keys(this.equipments)) {
+            if (this.equipments[k] !== null) {
+                candidates.push({
+                    card: this.equipments[k].card,
+                    show: true
+                });
+            }
+        }
+        candidates.push(...this.judgeStack.map(c => ({
+            card: c,
+            show: true,
+        })));
+        candidates.push(...Array.from(this.cards.values()).map(c => ({
+            card: c,
+            show: false,
+        })));
+        return candidates;
     }
 
     // ------

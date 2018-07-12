@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="stylesheets/icons.css"/>
 
     <script src="static/jquery-3.3.1.js"></script>
+    <script src="static/popper.min.js"></script>
     <script src="static/bootstrap/js/bootstrap.js"></script>
     <script src="static/mustache.js"></script>
 </head>
@@ -34,8 +35,12 @@
         </div>
         <div id="sgs-table-modal" class="card border-warning shadow" style="display: none;">
             <div class="sgs-table-modal-title card-header"></div>
-            <div class="card-body">
-                <div id="feature-candidate-panel" class="sgs-cl-children w-100 h-100 d-inline-flex justify-content-around align-items-center"></div>
+            <div class="card-body d-flex align-items-stretch">
+                <div id="sgs-candidate-panel"
+                     class="sgs-cl-children position-relative w-100 d-inline-flex justify-content-around align-items-center"></div>
+            </div>
+            <div class="sgs-table-modal-footer card-footer d-none">
+                <button class="sgs-table-modal-ok btn btn-primary float-right">OK</button>
             </div>
         </div>
     </section>

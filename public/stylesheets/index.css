@@ -109,12 +109,13 @@ body {
     height: 60%;
     width: 90%;
     background-color: rgba(255, 255, 255, .8);
+    z-index: 100;
 }
 
 .figure-candidate {
-    height: 160px;
-    width: 120px;
-}
+     height: 160px;
+     width: 120px;
+ }
 
 .figure-candidate > .card {
     cursor: pointer;
@@ -133,6 +134,7 @@ body {
     cursor: pointer;
 }
 
+#sgs-table-modal .sgs-card:hover,
 .sgs-player:not(.sgs-dead) #sgs-card-panel .sgs-card:hover {
     margin-top: -20px;
     box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);

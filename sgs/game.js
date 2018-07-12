@@ -2,6 +2,7 @@ let co = require('co');
 
 const C = require('./constants');
 const R = require('./common/results');
+const U = require('./utils');
 const User = require('./user');
 const cmdHandler = require('./cmd');
 const cardManager = require('./cards');
@@ -261,7 +262,7 @@ class Game {
     }
 
     cardByPk(pk) {
-        return cardManager.getCard(pk);
+        return cardManager.getCard(Array.isArray(pk) ? pk[0] : pk);
     }
 
     cardsByPk(pks) {
@@ -379,7 +380,7 @@ class Game {
     }
 
     addUserCards(user, cards) {
-        cards = Array.isArray(cards) ? cards : Array.from([cards]);
+        cards = U.toArray(cards);
         user.addCards(cardManager.unfakeCards(cards));
         this.broadcastUserInfo(user);
     }
@@ -389,8 +390,8 @@ class Game {
     }
 
     lockUserCards(user, cards) {
-        cards = Array.isArray(cards) ? cards : Array.from([cards]);
-        this.lockUserCardPks(user, cardManager.unfakeCards(cards).map(x => x.pk));
+        // cards = Array.isArray(cards) ? cards : Array.from([cards]);
+        // this.lockUserCardPks(user, cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
     unlockUserCardPks(user, cardPks) {
@@ -399,8 +400,8 @@ class Game {
     }
 
     unlockUserCards(user, cards) {
-        cards = Array.isArray(cards) ? cards : Array.from([cards]);
-        this.unlockUserCardPks(user, cardManager.unfakeCards(cards).map(x => x.pk));
+        // cards = Array.isArray(cards) ? cards : Array.from([cards]);
+        // this.unlockUserCardPks(user, cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
     removeUserCardPks(user, cardPks) {
@@ -409,8 +410,21 @@ class Game {
     }
 
     removeUserCards(user, cards) {
-        cards = Array.isArray(cards) ? cards : [cards];
+        cards = U.toArray(cards);
         this.removeUserCardPks(user, cardManager.unfakeCards(cards).map(x => x.pk));
+    }
+
+    removeUserCardsEx(user, cards) {
+        cards = U.toArray(cards);
+        for (let card of cards) {
+            if (user.hasCard(card)) {
+                this.removeUserCards(user, card);
+            } else if (user.hasJudgeCard(card)) {
+                this.removeUserJudge(user, card);
+            } else if (user.hasEquipedCard(card)) {
+                this.unequipUserCard(user, card.equipType);
+            }
+        }
     }
 
     equipUserCard(user, card) {
@@ -439,13 +453,19 @@ class Game {
     }
 
     discardCards(cards) {
-        cards = Array.isArray(cards) ? cards : [cards];
+        cards = U.toArray(cards);
         this.discardCardPks(cardManager.unfakeCards(cards).map(x => x.pk));
+        cardManager.destroyFakeCards(cards);
     }
 
     // ----- Judgement related
     pushUserJudge(user, judgeCard) {
         user.pushJudge(judgeCard);
+        this.broadcastUserInfo(user);
+    }
+
+    removeUserJudge(user, judgeCard) {
+        user.removeJudge(judgeCard);
         this.broadcastUserInfo(user);
     }
 

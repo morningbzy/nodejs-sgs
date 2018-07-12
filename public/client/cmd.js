@@ -45,6 +45,8 @@ const Cmd = {
         });
         $('#sgs-player-panel').prepend(rendered);
         $('#sgs-player-panel').removeClass(waitingClass).removeClass(readyClass);
+
+        Cmd.unmodal();
     },
 
     table: function (params, marker) {
@@ -186,7 +188,11 @@ const Cmd = {
     modal: function (params, marker) {
         const el = $('#sgs-table-modal');
         let title = params[0];
+        let withFooter = params[1]
         $('.sgs-table-modal-title', el).text(title);
+        if(withFooter) {
+            $('.sgs-table-modal-footer', el).removeClass('d-none');
+        }
         el.fadeIn();
     },
 
@@ -219,10 +225,10 @@ const Cmd = {
     },
 
     figure_candidate: function (params, marker) {
-        Cmd.modal(['请选择武将']);
+        Cmd.modal(['请选择武将', false]);
         let candidates = JSON.parse(params.join(' '));
         const rendered = Mustache.render(figureTpl, {figures: candidates});
-        const el = $('#feature-candidate-panel');
+        const el = $('#sgs-candidate-panel');
         el.html(rendered);
 
         el.off('click');
@@ -236,8 +242,41 @@ const Cmd = {
         });
     },
 
-    clear_figure_candidate: function (params, marker) {
-        $('#feature-candidate-panel').html('');
+    card_candidate: function (params, marker) {
+        Cmd.modal(['请选择卡牌', true]);
+        const el = $('#sgs-candidate-panel');
+
+        let candidates = JSON.parse(params.join(' '));
+
+        candidates.map((c) => {
+            if(c.show) {
+                let rendered = Mustache.render(cardTpl, {cards: [c.card]});
+                $(rendered).appendTo(el);
+            } else {
+                c.card.name = '[手牌]';
+                c.card.category = ' ';
+                c.card.suit = 'unknown';
+                c.card.number = ' ';
+                let rendered = Mustache.render(cardTpl, {cards: [c.card]});
+                $(rendered).appendTo(el);
+            }
+        });
+        let rendered = Mustache.render(cardTpl, {cards: candidates.map((x) => x.card)});
+        el.html(rendered);
+
+        let cardEl = $('#sgs-candidate-panel .sgs-card');
+        let span = Math.min(60, (630 - 90) / cardEl.length);
+        cardEl.each((i, el) => $(el).css('left', i * span).css('top', 0));
+        $('.sgs-faked-card', el).popover({
+            html: true,
+            placement: 'top',
+            trigger: 'hover'
+        });
+    },
+
+    clear_candidate: function (params, marker) {
+        $('#sgs-candidate-panel').html('');
+        Cmd.unmodal();
     },
 
     waiting: function (params, marker) {
