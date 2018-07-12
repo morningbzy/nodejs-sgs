@@ -15,10 +15,9 @@ function changeSeatStateClass(seatNum, marker, stateClass, remove = false) {
 const Cmd = {
     waitingTag: 0,  // 0:NOTHING, 1:SOMETHING, 2:CARD, 3:TARGET
 
-    send: function (cmd) {
+    send: function (cmd, cb) {
         const params = (cmd.params || []).join(' ');
-        $.post('/g/cmd', {data: `${cmd.cmd} ${params}`}, (resp) => {
-        });
+        $.post('/g/cmd', {data: `${cmd.cmd} ${params}`}, cb);
     },
 
     hb: function (params, marker) {
@@ -130,6 +129,7 @@ const Cmd = {
         let el = getSeat(seatNum);
         const rendered = Mustache.render(userTpl, userInfo, {
             equipments: equipmentTpl,
+            judgeStack: judgeCardsTpl,
         });
         el.replaceWith(rendered);
 
@@ -183,6 +183,20 @@ const Cmd = {
     toast: function (params, marker) {
     },
 
+    modal: function (params, marker) {
+        const el = $('#sgs-table-modal');
+        let title = params[0];
+        $('.sgs-table-modal-title', el).text(title);
+        el.fadeIn();
+    },
+
+    unmodal: function (params, marker) {
+        const el = $('#sgs-table-modal');
+        el.fadeOut(() => {
+            $('.sgs-table-modal-title', el).text('');
+        });
+    },
+
     role: function (params, marker) {
         let seatNum = params[0];
         let el = getSeat(seatNum);
@@ -205,6 +219,7 @@ const Cmd = {
     },
 
     figure_candidate: function (params, marker) {
+        Cmd.modal(['请选择武将']);
         let candidates = JSON.parse(params.join(' '));
         const rendered = Mustache.render(figureTpl, {figures: candidates});
         const el = $('#feature-candidate-panel');
@@ -215,6 +230,8 @@ const Cmd = {
             Cmd.send({
                 cmd: 'FIGURE',
                 params: [$(e.currentTarget).attr('pk')],
+            }, (resp) => {
+                Cmd.unmodal();
             });
         });
     },
@@ -268,6 +285,12 @@ const Cmd = {
     remove_card: function (params, marker) {
         let pk = params[0];
         $(`.sgs-card[pk=${pk}]`).remove();
+    },
+
+    judging: function (params, marker) {
+        let pk = params[0];
+        $(`.sgs-judge-card[pk=${pk}]`).removeClass('badge-dark')
+        .addClass('badge-warning');
     },
 
     select: function (params, marker) {

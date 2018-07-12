@@ -20,6 +20,9 @@
                 {{#equipments}}
                 {{>equipments}}
                 {{/equipments}}
+                {{#judgeStack}}
+                {{>judgeStack}}
+                {{/judgeStack}}
             </div>
         </div>
         {{#isYou}}

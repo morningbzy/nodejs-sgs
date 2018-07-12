@@ -67,6 +67,7 @@ class User extends EventListener {
             hp: this.showFigure ? this.hp : 0,
             maxHp: this.showFigure ? this.maxHp : 0,
             faceUp: this.faceUp,
+            judgeStack: this.judgeStack,
 
             cardCount: this.cards.size,
             cards,

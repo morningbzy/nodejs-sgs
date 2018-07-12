@@ -255,7 +255,7 @@ class Game {
 
     startIfReady() {
         if (this.usersNotInState(C.USER_STATE.READY).length === 0 &&
-            this.usersInState(C.USER_STATE.READY).length >= 5) {
+            this.usersInState(C.USER_STATE.READY).length >= 3) {
             this.start();
         }
     }
@@ -446,6 +446,7 @@ class Game {
     // ----- Judgement related
     pushUserJudge(user, judgeCard) {
         user.pushJudge(judgeCard);
+        this.broadcastUserInfo(user);
     }
 
     getJudgeCard() {
@@ -460,7 +461,7 @@ class Game {
         // }
         let judgeCard = this.getJudgeCard();
         let context = {judgeCard};
-        game.message([u, '判定牌为', context.judgeCard]);
+        game.message(['判定牌为', context.judgeCard]);
 
         // TODO: Before judge effective, ask SiMaYi & ZhangJiao
         for (let _u of game.userRound()) {
@@ -505,6 +506,6 @@ const game = new Game();
 // Heartbeat every 10s to keep connection alive
 setInterval(() => {
     game.broadcast(`HB`);
-}, 10000);
+}, 30000);
 
 module.exports = game;

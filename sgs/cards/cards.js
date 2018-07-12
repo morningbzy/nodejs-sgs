@@ -310,7 +310,7 @@ class LeBuSiShu extends DelayedSilkBagCard {
     }
 
     judge(card) {
-        return R.judge(C.CARD_SUIT.HEART !== card.suit);
+        return C.CARD_SUIT.HEART !== card.suit;
     }
 
     judgeEffect(u) {
@@ -392,6 +392,7 @@ class DiLu extends AttackHorseCard {
         this.name = '的卢';
     }
 }
+
 
 class ChiTu extends DefenseHorseCard {
     constructor(suit, number) {

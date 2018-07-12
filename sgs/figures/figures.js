@@ -540,7 +540,7 @@ class DaQiao extends FigureBase {
 
         if (result.success) {
             let card = result.get();
-            let fakeCard = cardManager.fakeCards([cards], {asClass: sgsCards.LeBuSiShu});
+            let fakeCard = cardManager.fakeCards([card], {asClass: sgsCards.LeBuSiShu});
 
             result = new R.CardResult();
             result.set(fakeCard);

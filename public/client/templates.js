@@ -1,5 +1,4 @@
-
-let figureTpl, cardTpl, userTpl, equipmentTpl ;
+let figureTpl, cardTpl, userTpl, equipmentTpl, judgeCardsTpl;
 
 
 $(document).ready(() => {
@@ -15,6 +14,9 @@ $(document).ready(() => {
     });
     $.get('/client/tpl/equipment.tpl', (tpl) => {
         equipmentTpl = tpl;
+    });
+    $.get('/client/tpl/judgecards.tpl', (tpl) => {
+        judgeCardsTpl = tpl;
     });
 });
 
