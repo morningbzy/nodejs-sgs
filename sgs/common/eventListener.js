@@ -3,7 +3,7 @@ const R = require('./results');
 
 class EventListener {
     * on(event, game, ctx) {
-        console.log(`|[E] ON ${this.name || this.constructor.name} ${event}`);
+        console.log(`|<E> ON ${this.name || this.constructor.name} ${event}`);
         if (typeof(this[event]) === 'function') {
             return yield this[event](game, ctx);
         } else {

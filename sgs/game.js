@@ -178,56 +178,6 @@ class Game {
         return fsm.result;
     }
 
-    * waitFSM__old(u, fsm, ctx) {  // Finite state machine
-        console.log(`|=F= FSM Start`);
-        let game = this;
-        let cs = fsm._init;  // Current state
-        let fsmResult = new R.FsmResult();
-        while (cs !== '_') {
-            console.log(`|= * ${cs}`);
-            let state = fsm[cs];
-            let validCmds = Object.keys(state);
-            let nextCmd = null;
-
-            if (state._SUB) {
-                console.log(`|= _SUB`);
-                let result = yield state._SUB(game, ctx, fsmResult);
-                nextCmd = result.nextCmd;
-                console.log(`|= _SUB < ${nextCmd}`);
-
-                if (result.result.success) {
-                    fsmResult.set(result.result.get());
-                    console.log(`|= _SUB < ${result.result.constructor.name}`);
-                }
-            } else {
-                console.log(`|= command`);
-                let command = yield this.wait(u, {
-                    validCmds: validCmds,
-                    validator: (command) => {
-                        return state[command.cmd].validator ? state[command.cmd].validator(command) : true;
-                    },
-                });
-                nextCmd = command.cmd;
-                console.log(`|= command < ${nextCmd}`);
-
-                if (state[nextCmd].action) {
-                    fsmResult = state[nextCmd].action(game, command, fsmResult);
-                } else {
-                    fsmResult.set(command);
-                }
-
-                if (fsmResult.success) {
-                    console.log(`|= command < ${fsmResult.get().toString()}`);
-                }
-            }
-            cs = state[nextCmd].next;
-        }
-
-        u.reply('UNSELECT ALL');
-        console.log(`|=F= FSM Done: ${fsmResult.success}`);
-        return yield Promise.resolve(fsmResult);
-    }
-
     broadcast(msg, self, addToResoreCmd = false) {
         for (let k in this.users) {
             let u = this.users[k];
@@ -262,11 +212,11 @@ class Game {
     }
 
     cardByPk(pk) {
-        return cardManager.getCard(Array.isArray(pk) ? pk[0] : pk);
+        return this.cardManager.getCard(Array.isArray(pk) ? pk[0] : pk);
     }
 
     cardsByPk(pks) {
-        return new Set(cardManager.getCards(pks));
+        return new Set(this.cardManager.getCards(pks));
     }
 
     userByPk(pk) {
@@ -278,14 +228,14 @@ class Game {
     }
 
     usersNotInState(states) {
-        states = Array.isArray(states) ? states : [states];
+        states = U.toArray(states);
         return Object.keys(this.users).filter(
             (k) => !states.includes(this.users[k].state)
         );
     }
 
     usersInState(states) {
-        states = Array.isArray(states) ? states : [states];
+        states = U.toArray(states);
         return Object.keys(this.users).filter(
             (k) => states.includes(this.users[k].state)
         );
@@ -374,14 +324,14 @@ class Game {
     // ----- Card related
 
     dispatchCards(user, count = 1) {
-        let cards = cardManager.shiftCards(count);
+        let cards = this.cardManager.shiftCards(count);
         user.addCards(cards);
         this.broadcastUserInfo(user);
     }
 
     addUserCards(user, cards) {
         cards = U.toArray(cards);
-        user.addCards(cardManager.unfakeCards(cards));
+        user.addCards(this.cardManager.unfakeCards(cards));
         this.broadcastUserInfo(user);
     }
 
@@ -391,7 +341,7 @@ class Game {
 
     lockUserCards(user, cards) {
         // cards = Array.isArray(cards) ? cards : Array.from([cards]);
-        // this.lockUserCardPks(user, cardManager.unfakeCards(cards).map(x => x.pk));
+        // this.lockUserCardPks(user, this.cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
     unlockUserCardPks(user, cardPks) {
@@ -401,20 +351,23 @@ class Game {
 
     unlockUserCards(user, cards) {
         // cards = Array.isArray(cards) ? cards : Array.from([cards]);
-        // this.unlockUserCardPks(user, cardManager.unfakeCards(cards).map(x => x.pk));
+        // this.unlockUserCardPks(user, this.cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
-    removeUserCardPks(user, cardPks) {
+    removeUserCardPks(user, cardPks, discard=false) {
         user.removeCardPks(cardPks);
+        if(discard) {
+            this.discardCardPks(cardPks);
+        }
         this.broadcastUserInfo(user);
     }
 
-    removeUserCards(user, cards) {
+    removeUserCards(user, cards, discard=false) {
         cards = U.toArray(cards);
-        this.removeUserCardPks(user, cardManager.unfakeCards(cards).map(x => x.pk));
+        this.removeUserCardPks(user, this.cardManager.unfakeCards(cards).map(x => x.pk), discard);
     }
 
-    removeUserCardsEx(user, cards) {
+    removeUserCardsEx(user, cards, discard=false) {
         cards = U.toArray(cards);
         for (let card of cards) {
             if (user.hasCard(card)) {
@@ -424,6 +377,9 @@ class Game {
             } else if (user.hasEquipedCard(card)) {
                 this.unequipUserCard(user, card.equipType);
             }
+        }
+        if(discard) {
+            game.discardCards(cards);
         }
     }
 
@@ -449,13 +405,13 @@ class Game {
     }
 
     discardCardPks(cardPks) {
-        cardManager.useCards(cardPks);
+        this.cardManager.useCards(cardPks);
     }
 
     discardCards(cards) {
         cards = U.toArray(cards);
-        this.discardCardPks(cardManager.unfakeCards(cards).map(x => x.pk));
-        cardManager.destroyFakeCards(cards);
+        this.discardCardPks(this.cardManager.unfakeCards(cards).map(x => x.pk));
+        this.cardManager.destroyFakeCards(cards);
     }
 
     // ----- Judgement related
@@ -470,7 +426,7 @@ class Game {
     }
 
     getJudgeCard() {
-        return cardManager.shiftCards()[0];
+        return this.cardManager.shiftCards()[0];
     }
 
     * doJudge(u, judgeFunction) {

@@ -136,7 +136,7 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
     }
 
     * on(event, game, ctx) {
-        console.log(`|<E> ON ${this.name} ${event}`);
+        console.log(`|<C> ON ${this.name} ${event}`);
         return yield super.on(event, game, ctx);
     }
 }
@@ -283,6 +283,7 @@ class GuoHeChaiQiao extends SilkBagCard {
         let target = result.get();
         ctx.targets = target;
         game.message([ctx.sourceUser, '对', target, '使用了', ctx.sourceCards]);
+        game.discardCards(ctx.sourceCards);
 
         // TODO: WuXieKeJi
 
@@ -300,6 +301,7 @@ class GuoHeChaiQiao extends SilkBagCard {
         let card = game.cardByPk(command.params);
         game.removeUserCardsEx(target, card);
         game.message([u, '拆掉了', target, '的一张牌']);
+        game.discardCards(card);
         u.reply(`CLEAR_CANDIDATE`);
         u.popRestoreCmd();
 

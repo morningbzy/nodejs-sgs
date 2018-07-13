@@ -48,7 +48,7 @@ class FigureBase extends EventListener {
     }
 
     * on(event, game, ctx) {
-        console.log(`|[F] ON ${this.name} ${event}`);
+        console.log(`|<F> ON ${this.name} ${event}`);
         return yield super.on(event, game, ctx);
     }
 

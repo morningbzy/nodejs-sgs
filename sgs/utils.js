@@ -1,3 +1,8 @@
+function iterable(x) {
+    return typeof x === 'object' && x[Symbol.iterator] instanceof Function;
+}
+
+
 module.exports = {
     // Shuffle an Array
     shuffle(arr) {
@@ -7,7 +12,7 @@ module.exports = {
     },
 
     toSet(x) {
-        if (x[Symbol.iterator] instanceof Function) {
+        if (iterable(x)) {
             return new Set(x);
         } else {
             return new Set([x]);
@@ -17,10 +22,19 @@ module.exports = {
     toArray(x) {
         if (Array.isArray(x)) {
             return x;
-        } else if (typeof x === 'object' && x[Symbol.iterator] instanceof Function) {
+        } else if (iterable(x)) {
             return Array.from(x);
         }
         return [x];
+    },
+
+    toSingle(x) {
+        if (Array.isArray(x)) {
+            return x[0];
+        } else if (iterable(x)) {
+            return x.next().value;
+        }
+        return x;
     },
 
     jsonReplacer(k, v) {
