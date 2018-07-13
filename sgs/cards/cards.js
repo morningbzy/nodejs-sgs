@@ -82,19 +82,30 @@ class DelayedSilkBagCard extends CardBase {
         super(suit, number);
         this.category = C.CARD_CATEGORY.DELAYED_SILK_BAG;
         this.distance = Infinity;
+        this.needTarget = true;
     }
 
     * run(game, ctx) {
         let u = ctx.sourceUser;
         let distance = this.distance;
+        let card = this;
         game.lockUserCards(u, ctx.sourceCards);
-        let result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {
-            cancelOnUncard: true,
-            targetValidator: (command) => {
-                let target = game.userByPk(command.params);
-                return target.id !== u.id && game.distanceOf(u, target) <= distance;
-            }
-        }), ctx);
+        let result;
+        if (this.needTarget) {
+            result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {
+                cancelOnUncard: true,
+                targetValidator: (command) => {
+                    let target = game.userByPk(command.params);
+                    return (target.id !== u.id
+                        && game.distanceOf(u, target) <= distance
+                        && !target.hasJudgeType(card));
+                }
+            }), ctx);
+        } else if (!u.hasJudgeType(card) && (yield game.waitOk(u))) {
+            result = new R.TargetResult().set(u);
+        } else {
+            result = R.abort;
+        }
         game.unlockUserCards(u, ctx.sourceCards);
 
         if (result.success) {
@@ -109,6 +120,14 @@ class DelayedSilkBagCard extends CardBase {
         } else {
             return yield Promise.resolve(R.abort);
         }
+    }
+
+    * judgeEffect(u, game) {
+        game.discardCards(this);
+    }
+
+    * judgeFailed(u, game) {
+        game.discardCards(this);
     }
 }
 
@@ -368,8 +387,9 @@ class LeBuSiShu extends DelayedSilkBagCard {
         return C.CARD_SUIT.HEART !== card.suit;
     }
 
-    judgeEffect(u) {
+    * judgeEffect(u, game) {
         u.phases.RoundPlayPhase = 0;
+        yield super.judgeEffect(u, game);
     }
 }
 
@@ -386,8 +406,40 @@ class BingLiangCunDuan extends DelayedSilkBagCard {
         return C.CARD_SUIT.CLUB !== card.suit;
     }
 
-    judgeEffect(u) {
+    * judgeEffect(u, game) {
         u.phases.RoundDrawCardPhase = 0;
+        yield super.judgeEffect(u, game);
+    }
+}
+
+
+class ShanDian extends DelayedSilkBagCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '闪电';
+        this.shortName = '电';
+        this.needTarget = false;
+    }
+
+    judge(card) {
+        return (C.CARD_SUIT.SPADE === card.suit && 2 <= card.number && card.number <= 9);
+    }
+
+    * judgeEffect(u, game) {
+        let ctx = {damage: 3, sourceCards: this};
+        yield u.on('damage', game, ctx);
+        yield super.judgeEffect(u, game);
+    }
+
+    * judgeFailed(u, game) {
+        game.removeUserJudge(u, this);
+        for (let next of game.userRound(u, true)) {
+            if (!next.hasJudgeType(this)) {
+                game.pushUserJudge(next, this);
+                return;
+            }
+        }
+        game.pushUserJudge(u, this);
     }
 }
 
@@ -407,7 +459,7 @@ class QingLongYanYueDao extends WeaponCard {
             let context = {
                 sourceUser: u,
                 sourceCards: result.get(),
-                targets: new Set([ctx.shanPlayer]),
+                targets: new Set([ctx.shaTarget]),
                 skipShaInitStage: true,
                 damage: 1,
             };
@@ -423,6 +475,72 @@ class QingLongYanYueDao extends WeaponCard {
             return yield this.s1(game, ctx);
         }
         return yield Promise.resolve(R.success);
+    }
+}
+
+
+class GuDingDao extends WeaponCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '古锭刀';
+        this.shortName = '古';
+        this.range = 2;
+    }
+
+    * shaHitTarget(game, ctx) {
+        const target = ctx.shaTarget;
+        if (target.cards.size <= 0) {
+            ctx.exDamage += 1;
+        }
+        return yield Promise.resolve(R.success);
+    }
+}
+
+
+class CiXiongShuangGuJian extends WeaponCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '雌雄双股剑';
+        this.shortName = '双';
+        this.range = 2;
+    }
+
+    * afterShaTarget(game, ctx) {
+        const u = ctx.sourceUser;
+        for (let t of ctx.targets) {
+            if (u.figure.gender !== t.figure.gender) {
+                let command = yield game.waitConfirm(u, `是否对${t.figure.name}使用武器【${this.name}】？`);
+                if (command.cmd === C.CONFIRM.Y) {
+                    game.message([u, '对', t, '发动武器', this]);
+                    let choice = '1';
+                    let choices = [
+                        `弃一张手牌`,
+                        `让${u.figure.name}摸一张牌`,
+                    ];
+
+                    // 有手牌，才可以选择，否则直接选2
+                    if (t.cards.size > 0) {
+                        command = yield game.waitChoice(t, `请选择`, choices);
+                        t.reply(`CLEAR_CANDIDATE`);
+                        choice = command.params[0];
+                    }
+
+                    game.message([t, '选择: ', choices[parseInt(choice)]]);
+
+                    if (choice === '0') {
+                        let result = R.fail;
+                        while (!result.success) {
+                            result = yield t.requireCard(game, CardBase, ctx);
+                        }
+                        game.message([t, '弃掉一张手牌']);
+                        game.removeUserCards(t, result.get(), true);
+                    } else {
+                        game.message([u, '获得一张牌']);
+                        game.dispatchCards(u);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -462,7 +580,7 @@ class BaGuaZhen extends ArmorCard {
 class DiLu extends AttackHorseCard {
     constructor(suit, number) {
         super(suit, number);
-        this.name = '的卢';
+        this.name = '的卢-1';
     }
 }
 
@@ -470,7 +588,7 @@ class DiLu extends AttackHorseCard {
 class ChiTu extends DefenseHorseCard {
     constructor(suit, number) {
         super(suit, number);
-        this.name = '赤兔';
+        this.name = '赤兔+1';
     }
 }
 
@@ -506,12 +624,6 @@ const cardSet = new Map();
     new GuoHeChaiQiao(C.CARD_SUIT.CLUB, 3),
     new GuoHeChaiQiao(C.CARD_SUIT.CLUB, 4),
     new GuoHeChaiQiao(C.CARD_SUIT.HEART, 12),
-    new GuoHeChaiQiao(C.CARD_SUIT.SPADE, 3),
-    new GuoHeChaiQiao(C.CARD_SUIT.SPADE, 4),
-    new GuoHeChaiQiao(C.CARD_SUIT.SPADE, 12),
-    new GuoHeChaiQiao(C.CARD_SUIT.CLUB, 3),
-    new GuoHeChaiQiao(C.CARD_SUIT.CLUB, 4),
-    new GuoHeChaiQiao(C.CARD_SUIT.HEART, 12),
 
     new WuZhongShengYou(C.CARD_SUIT.HEART, 7),
     new WuZhongShengYou(C.CARD_SUIT.HEART, 8),
@@ -528,7 +640,25 @@ const cardSet = new Map();
     new BingLiangCunDuan(C.CARD_SUIT.SPADE, 10),
     new BingLiangCunDuan(C.CARD_SUIT.CLUB, 4),
 
+    new ShanDian(C.CARD_SUIT.SPADE, 1),
+    new ShanDian(C.CARD_SUIT.HEART, 12),
+
     new QingLongYanYueDao(C.CARD_SUIT.SPADE, 5),
+
+    new GuDingDao(C.CARD_SUIT.SPADE, 1),
+
+    new CiXiongShuangGuJian(C.CARD_SUIT.SPADE, 2),
+
+    // new FangTianHuaJi(C.CARD_SUIT.DIAMOND, 12),
+    // new GuanShiFu(C.CARD_SUIT.DIAMOND, 5),
+    // new HanBingJian(C.CARD_SUIT.SPADE, 2),
+    // new QiLinGong(C.CARD_SUIT.HEART, 5),
+    // new QingGangJian(C.CARD_SUIT.SPADE, 6),
+    // new YinYueQiang(C.CARD_SUIT.DIAMOND, 12),
+    // new ZhangBaSheMao(C.CARD_SUIT.SPADE, 12),
+    // new ZhuQueYuShan(C.CARD_SUIT.DIAMOND, 1),
+    // new ZhuGeLianNu(C.CARD_SUIT.DIAMOND, 1),
+    // new ZhuGeLianNu(C.CARD_SUIT.CLUB, 1),
 
     new BaGuaZhen(C.CARD_SUIT.SPADE, 2),
     new BaGuaZhen(C.CARD_SUIT.CLUB, 2),

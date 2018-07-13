@@ -120,6 +120,24 @@ class User extends EventListener {
         this.maxHp = figure.hp;
     }
 
+    distanceFrom(game, ctx) {
+        let exDistance = this.figure.distanceFrom(game, ctx);
+        exDistance += this.equipments.attackHorse === null ? 0 : -1;
+        return exDistance;
+    }
+
+    distanceTo(game, ctx) {
+        let exDistance = this.figure.distanceTo(game, ctx);
+        exDistance += this.equipments.defenseHorse === null ? 0 : 1;
+        return exDistance;
+    }
+
+    attackRange(game, ctx) {
+        let exRange = this.figure.attackRange(game, ctx);
+        exRange += this.equipments.weapon === null ? 1 : this.equipments.weapon.card.range;
+        return exRange;
+    }
+
     addCards(cards) {
         for (let card of cards) {
             this.cards.set(card.pk, card);
@@ -158,12 +176,21 @@ class User extends EventListener {
         return this.cards.has(cardPk);
     }
 
+    hasJudgeType(card) {
+        for (let judge of this.judgeStack) {
+            if (card.constructor === judge.constructor) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     pushJudge(card) {
         this.judgeStack.unshift(card);
     }
 
-    nextJudge() {
-        return this.judgeStack.length > 0 ? this.judgeStack[0] : null;
+    getJudgeStack() {
+        return [...this.judgeStack];
     }
 
     removeJudge(card) {
@@ -240,28 +267,18 @@ class User extends EventListener {
         return yield Promise.resolve(result);
     }
 
-    distanceFrom(game, ctx) {
-        let exDistance = this.figure.distanceFrom(game, ctx);
-        exDistance += this.equipments.attackHorse === null ? 0 : -1;
-        return exDistance;
-    }
-
-    distanceTo(game, ctx) {
-        let exDistance = this.figure.distanceTo(game, ctx);
-        exDistance += this.equipments.defenseHorse === null ? 0 : 1;
-        return exDistance;
-    }
-
-    attackRange(game, ctx) {
-        let exRange = this.figure.attackRange(game, ctx);
-        exRange += this.equipments.weapon === null ? 1 : this.equipments.weapon.card.range;
-        return exRange;
-    }
-
     * useSha(game, ctx) {
         if (this.shaCount < 1) {
             console.log(`|<!> Use too many Sha`);
             return yield Promise.resolve(R.abort);
+        }
+        return yield Promise.resolve(R.success);
+    }
+
+    * shaHitTarget(game, ctx) {
+        yield this.figure.on('shaHitTarget', game, ctx);
+        if(this.equipments.weapon) {
+            yield this.equipments.weapon.card.on('shaHitTarget', game, ctx);
         }
         return yield Promise.resolve(R.success);
     }
@@ -286,12 +303,13 @@ class User extends EventListener {
             return yield Promise.resolve(result);
         }
 
-        console.log(`|<U> HP - ${ctx.damage}`);
-        this.hp -= ctx.damage;
-        game.message([this, '受到', ctx.damage, '点伤害']);
+        let totalDamage = ctx.damage + ctx.exDamage;
+        console.log(`|<U> HP - ${totalDamage}`);
+        this.hp -= totalDamage;
+        game.message([this, '受到', totalDamage, '点伤害']);
         game.broadcastUserInfo(this);
 
-        if (this.hp === 0) {
+        if (this.hp <= 0) {
             // TODO game.userDying();
             yield this.on('dying', game, ctx);
         }
@@ -302,7 +320,7 @@ class User extends EventListener {
     }
 
     * heal(game, ctx) {
-        console.log(`<U> HP + ${ctx.heal}`);
+        console.log(`|<U> HP + ${ctx.heal}`);
         let willHeal = Math.min(this.maxHp - this.hp, ctx.heal);
         this.hp += willHeal;
         game.message([this, '恢复', willHeal, '点体力']);
@@ -484,6 +502,21 @@ class User extends EventListener {
         return yield Promise.resolve(result);
     }
 
+    * afterShaTarget(game, ctx) {
+        yield this.figure.on('afterShaTarget', game, ctx);
+        if (this.equipments.weapon) {
+            yield this.equipments.weapon.card.on('afterShaTarget', game, ctx);
+        }
+        return yield Promise.resolve(R.success);
+    }
+
+    * afterBeShaTarget(game, ctx) {
+        let result = yield this.figure.on('afterBeShaTarget', game, ctx);
+        if (!result.abort && result.fail && this.equipments.armor) {
+            result = yield this.equipments.armor.card.on('afterBeShaTarget', game, ctx);
+        }
+        return yield Promise.resolve(result);
+    }
     * shaBeenShan(game, ctx) {
         let result = yield this.figure.on('shaBeenShan', game, ctx);
         if (!result.abort && result.fail && this.equipments.weapon) {

@@ -97,9 +97,11 @@ class CaoCao extends FigureBase {
     }
 
     * s1(game, ctx) {
-        game.message([this.owner, '获得了', ctx.sourceCards]);
-        game.addUserCards(this.owner, ctx.sourceCards);
-        ctx.sourceCards = [];
+        if(ctx.sourceCards) {
+            game.message([this.owner, '获得了', ctx.sourceCards]);
+            game.addUserCards(this.owner, ctx.sourceCards);
+            ctx.sourceCards = [];
+        }
         return yield Promise.resolve(R.success);
     }
 
@@ -224,6 +226,8 @@ class LiuBei extends FigureBase {
                 }
             ));
 
+            m.addTransition(new FSM.Transition('CTO', 'CANCEL', '_'));
+
             m.setFinalHandler((r) => {
                 return r.get().pop();
             });
@@ -240,11 +244,7 @@ class LiuBei extends FigureBase {
             game.removeUserCards(u, cards);
             game.addUserCards(target, cards);
 
-            console.log(this.s1_param);
-            console.log(this.s1_param + cards.length);
-            console.log(this.s1_param < 2 && (this.s1_param + cards.length) >= 2);
             if (this.s1_param < 2 && (this.s1_param + cards.length) >= 2) {
-                console.log('here');
                 ctx.heal = 1;
                 yield u.on('heal', game, ctx);
             }
@@ -411,7 +411,7 @@ class MaChao extends FigureBase {
     * s2(game, ctx) {
     }
 
-    * shaTarget(game, ctx) {
+    * afterShaTarget(game, ctx) {
         const u = this.owner;
 
         for (let t of ctx.targets) {
@@ -461,10 +461,12 @@ class SiMaYi extends FigureBase {
 
     * s1(game, ctx) {
         // TODO equipment card can also be selected
-        let cards = U.shuffle(ctx.sourceUser.cards.values()).slice(0, 1);
-        game.message([this.owner, '从', ctx.sourceUser, '处获得', cards.length, '张牌']);
-        game.removeUserCards(ctx.sourceUser, cards);
-        game.addUserCards(this.owner, cards);
+        if(ctx.sourceUser) {
+            let cards = U.shuffle(ctx.sourceUser.cards.values()).slice(0, 1);
+            game.message([this.owner, '从', ctx.sourceUser, '处获得', cards.length, '张牌']);
+            game.removeUserCards(ctx.sourceUser, cards);
+            game.addUserCards(this.owner, cards);
+        }
         return yield Promise.resolve(R.success);
     }
 

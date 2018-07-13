@@ -54,10 +54,20 @@ class ShaValidateStage {
         }
         ctx.shanAble = new Map();
 
+        // 指定目标时
         yield u.on('shaTarget', game, ctx);
 
+        // 成为目标时
         for (let t of ctx.targets) {
             yield t.on('beShaTarget', game, ctx);
+        }
+
+        // 指定目标后
+        yield u.on('afterShaTarget', game, ctx);
+
+        // 成为目标后
+        for (let t of ctx.targets) {
+            yield t.on('afterBeShaTarget', game, ctx);
         }
 
         ctx.damage = 1;
@@ -71,6 +81,11 @@ class ShaExecuteStage {
         const targets = ctx.targets;
         // TODO: SHAN-able?
         for (let target of targets) {
+            let willDamage = true;
+
+            ctx.shaTarget = target;
+            ctx.exDamage = 0;
+
             if (!ctx.shanAble.has(target) || ctx.shanAble.get(target)) {
                 let result = yield target.on('requireShan', game, ctx);
                 if (result.success) {
@@ -81,13 +96,14 @@ class ShaExecuteStage {
                         game.discardCards(cards);
                     }
 
-                    ctx.shanPlayer = target;
                     yield u.on('usedShan', game, ctx);
                     yield u.on('shaBeenShan', game, ctx);
-                } else {
-                    yield target.on('damage', game, ctx);
+                    willDamage = false;
                 }
-            } else {
+            }
+
+            if(willDamage) {
+                yield u.on('shaHitTarget', game, ctx);
                 yield target.on('damage', game, ctx);
             }
         }

@@ -188,10 +188,12 @@ const Cmd = {
     modal: function (params, marker) {
         const el = $('#sgs-table-modal');
         let title = params[0];
-        let withFooter = params[1]
+        let withFooter = params[1];
         $('.sgs-table-modal-title', el).text(title);
         if(withFooter) {
             $('.sgs-table-modal-footer', el).removeClass('d-none');
+        } else {
+            $('.sgs-table-modal-footer', el).addClass('d-none');
         }
         el.fadeIn();
     },
@@ -222,6 +224,29 @@ const Cmd = {
             default:
                 $('.role', el).text(params[1]);
         }
+    },
+
+    choice_candidate: function(params, marker) {
+        Cmd.modal([params.shift(), false]);
+
+        let html = '<div class="d-block w-100 h-100 list-group">';
+        params.forEach((v, i) => {
+            html += `<a href="#" class="sgs-choice list-group-item list-group-item-action" pk="${i}"><b>${i}.</b> ${v}</a>`
+        });
+        html += '</div>';
+
+        const el = $('#sgs-candidate-panel');
+        el.html(html);
+
+        el.off('click');
+        el.on('click', '.sgs-choice', (e) => {
+            Cmd.send({
+                cmd: 'CHOICE',
+                params: [$(e.currentTarget).attr('pk')],
+            }, (resp) => {
+                Cmd.unmodal();
+            });
+        });
     },
 
     figure_candidate: function (params, marker) {

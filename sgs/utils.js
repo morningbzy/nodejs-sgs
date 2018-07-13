@@ -32,7 +32,7 @@ module.exports = {
         if (Array.isArray(x)) {
             return x[0];
         } else if (iterable(x)) {
-            return x.next().value;
+            return x[Symbol.iterator]().next().value;
         }
         return x;
     },

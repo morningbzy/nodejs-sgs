@@ -14,6 +14,7 @@ const WAITING_FOR = {
     CANCEL: 0x0040,
     UNCARD: 0x0080,
     UNTARGET: 0x0100,
+    CHOICE: 0x0200,
 };
 
 const SKILL_STATE = {

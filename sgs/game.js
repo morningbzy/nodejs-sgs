@@ -135,6 +135,18 @@ class Game {
         });
     }
 
+    waitChoice(u, text, choices) {
+        u.reply(`CHOICE_CANDIDATE ${text} ${choices.join(' ')}`, true, true);
+        return this.wait(u, {
+            validCmds: ['CHOICE',],
+            waitingTag: C.WAITING_FOR.CHOICE,
+            value: (command) => {
+                u.popRestoreCmd();
+                return command;
+            }
+        });
+    }
+
     waitOk(u) {
         return this.wait(u, {
             validCmds: ['OK', 'CANCEL'],
@@ -354,20 +366,20 @@ class Game {
         // this.unlockUserCardPks(user, this.cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
-    removeUserCardPks(user, cardPks, discard=false) {
+    removeUserCardPks(user, cardPks, discard = false) {
         user.removeCardPks(cardPks);
-        if(discard) {
+        if (discard) {
             this.discardCardPks(cardPks);
         }
         this.broadcastUserInfo(user);
     }
 
-    removeUserCards(user, cards, discard=false) {
+    removeUserCards(user, cards, discard = false) {
         cards = U.toArray(cards);
         this.removeUserCardPks(user, this.cardManager.unfakeCards(cards).map(x => x.pk), discard);
     }
 
-    removeUserCardsEx(user, cards, discard=false) {
+    removeUserCardsEx(user, cards, discard = false) {
         cards = U.toArray(cards);
         for (let card of cards) {
             if (user.hasCard(card)) {
@@ -378,7 +390,7 @@ class Game {
                 this.unequipUserCard(user, card.equipType);
             }
         }
-        if(discard) {
+        if (discard) {
             game.discardCards(cards);
         }
     }

@@ -11,8 +11,7 @@ class RoundJudgePhase extends Phase {
         console.log('ROUND-JUDGE-PHASE');
         const u = game.roundOwner;
 
-        let judge = u.nextJudge();
-        while (judge) {
+        for (let judge of u.getJudgeStack()) {
             let card = judge;
 
             game.message([u, '判定', card]);
@@ -20,19 +19,18 @@ class RoundJudgePhase extends Phase {
             let result = yield game.doJudge(u, card.judge);
             game.message([u, '判定', card, '为', result.get(), '判定', result.success ? '生效' : '未生效']);
 
-            if (result.success) {
-                card.judgeEffect(u);
-            }
-            // TODO: After judge effective
-            // for(let _u of game.userRound()) {
-            //     judgeCard = _u.on('afterJudgeEffect');
-            // }
-            // ---------------------------------
             game.removeUserJudge(u, card);
-            game.discardCards(card);
 
-            // next
-            judge = u.nextJudge();
+            if (result.success) {
+                yield card.judgeEffect(u, game);
+                // TODO: After judge effective
+                // for(let _u of game.userRound()) {
+                //     judgeCard = _u.on('afterJudgeEffect');
+                // }
+                // ---------------------------------
+            } else {
+                yield card.judgeFailed(u, game);
+            }
         }
     }
 }
