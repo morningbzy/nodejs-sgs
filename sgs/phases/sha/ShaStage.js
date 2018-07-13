@@ -81,8 +81,7 @@ class ShaExecuteStage {
         const targets = ctx.targets;
         // TODO: SHAN-able?
         for (let target of targets) {
-            let willDamage = true;
-
+            ctx.willDamage = true;
             ctx.shaTarget = target;
             ctx.exDamage = 0;
 
@@ -97,12 +96,13 @@ class ShaExecuteStage {
                     }
 
                     yield u.on('usedShan', game, ctx);
+                    ctx.willDamage = false;
+
                     yield u.on('shaBeenShan', game, ctx);
-                    willDamage = false;
                 }
             }
 
-            if(willDamage) {
+            if(ctx.willDamage) {
                 yield u.on('shaHitTarget', game, ctx);
                 yield target.on('damage', game, ctx);
             }

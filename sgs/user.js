@@ -216,24 +216,39 @@ class User extends EventListener {
         return null;
     }
 
-    cardCandidates() {
+    cardCandidates(opt = {}) {
+        let {
+            includeEquipments = true,
+            includeJudgeCards = true,
+            includeHandCards = true,
+            showEquipments = true,
+            showJudgeCards = true,
+            showHandCards = false,
+        } = opt;
         let candidates = [];
-        for (let k of Object.keys(this.equipments)) {
-            if (this.equipments[k] !== null) {
-                candidates.push({
-                    card: this.equipments[k].card,
-                    show: true
-                });
+
+        if (includeEquipments) {
+            for (let k of Object.keys(this.equipments)) {
+                if (this.equipments[k] !== null) {
+                    candidates.push({
+                        card: this.equipments[k].card,
+                        show: showEquipments,
+                    });
+                }
             }
         }
-        candidates.push(...this.judgeStack.map(c => ({
-            card: c,
-            show: true,
-        })));
-        candidates.push(...Array.from(this.cards.values()).map(c => ({
-            card: c,
-            show: false,
-        })));
+        if(includeJudgeCards) {
+            candidates.push(...this.judgeStack.map(c => ({
+                card: c,
+                show: showJudgeCards,
+            })));
+        }
+        if(includeHandCards) {
+            candidates.push(...Array.from(this.cards.values()).map(c => ({
+                card: c,
+                show: showHandCards,
+            })));
+        }
         return candidates;
     }
 
@@ -277,7 +292,7 @@ class User extends EventListener {
 
     * shaHitTarget(game, ctx) {
         yield this.figure.on('shaHitTarget', game, ctx);
-        if(this.equipments.weapon) {
+        if (this.equipments.weapon) {
             yield this.equipments.weapon.card.on('shaHitTarget', game, ctx);
         }
         return yield Promise.resolve(R.success);
@@ -517,6 +532,7 @@ class User extends EventListener {
         }
         return yield Promise.resolve(result);
     }
+
     * shaBeenShan(game, ctx) {
         let result = yield this.figure.on('shaBeenShan', game, ctx);
         if (!result.abort && result.fail && this.equipments.weapon) {

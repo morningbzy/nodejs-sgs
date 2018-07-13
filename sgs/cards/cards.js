@@ -316,13 +316,13 @@ class GuoHeChaiQiao extends SilkBagCard {
                 return pks.length === 1;
             },
         });
+        u.reply(`CLEAR_CANDIDATE`);
+        u.popRestoreCmd();
 
         let card = game.cardByPk(command.params);
         game.removeUserCardsEx(target, card);
         game.message([u, '拆掉了', target, '的一张牌']);
         game.discardCards(card);
-        u.reply(`CLEAR_CANDIDATE`);
-        u.popRestoreCmd();
 
         return yield Promise.resolve(R.success);
     }
@@ -545,6 +545,48 @@ class CiXiongShuangGuJian extends WeaponCard {
 }
 
 
+class GuanShiFu extends WeaponCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '贯石斧';
+        this.shortName = '贯';
+        this.range = 3;
+    }
+
+    * shaBeenShan(game, ctx) {
+        let u = this.equiper(game);
+        let cardCandidates = u.cardCandidates({
+            includeJudgeCards: false,
+            showHandCards: true,
+        }).filter(c => c.card.pk !== this.pk);  // 排除当前装备的贯石斧
+
+        if(cardCandidates.length >= 2) {
+            let command = yield game.waitConfirm(u, `是否使用武器【${this.name}】？`);
+            if (command.cmd === C.CONFIRM.Y) {
+                u.reply(`CARD_CANDIDATE ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+                let command = yield game.wait(u, {
+                    validCmds: ['CARD_CANDIDATE'],
+                    validator: (command) => {
+                        const pks = command.params;
+                        return pks.length === 2;
+                    },
+                });
+                u.reply(`CLEAR_CANDIDATE`);
+                u.popRestoreCmd();
+
+                let cards = game.cardsByPk(command.params);
+                game.removeUserCardsEx(u, cards);
+
+                ctx.willDamage = true;
+                game.message([u, '弃掉', cards, '，发动武器', this, '使【杀】强制命中']);
+                game.discardCards(cards);
+            }
+        }
+        return yield Promise.resolve(R.success);
+    }
+}
+
+
 class BaGuaZhen extends ArmorCard {
     constructor(suit, number) {
         super(suit, number);
@@ -650,7 +692,7 @@ const cardSet = new Map();
     new CiXiongShuangGuJian(C.CARD_SUIT.SPADE, 2),
 
     // new FangTianHuaJi(C.CARD_SUIT.DIAMOND, 12),
-    // new GuanShiFu(C.CARD_SUIT.DIAMOND, 5),
+    new GuanShiFu(C.CARD_SUIT.DIAMOND, 5),
     // new HanBingJian(C.CARD_SUIT.SPADE, 2),
     // new QiLinGong(C.CARD_SUIT.HEART, 5),
     // new QingGangJian(C.CARD_SUIT.SPADE, 6),
@@ -684,12 +726,19 @@ module.exports = {
     Tao,
 
     JueDou,
+    GuoHeChaiQiao,
     WuZhongShengYou,
+    NanManRuQin,
 
     LeBuSiShu,
     BingLiangCunDuan,
+    ShanDian,
 
     QingLongYanYueDao,
+    GuDingDao,
+    CiXiongShuangGuJian,
+    GuanShiFu,
 
-    ChiTu
+    DiLu,
+    ChiTu,
 };
