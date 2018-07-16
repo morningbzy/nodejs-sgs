@@ -183,6 +183,9 @@ const Cmd = {
     },
 
     toast: function (params, marker) {
+        let priority = params[0];
+        let message = params.slice(1).join(' ');
+        $.toaster(message, '', priority);
     },
 
     modal: function (params, marker) {

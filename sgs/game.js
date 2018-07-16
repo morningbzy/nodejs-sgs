@@ -55,7 +55,7 @@ class Game {
         const result = this.validateCmd(command);
 
         if (!result.valid) {
-            u.reply(`TOAST 操作无效`, true);
+            u.reply(`TOAST danger 操作无效`, true);
             console.log(`|<!> invalid command!`);
             console.log(`+--------------------`);
             console.log(``);
