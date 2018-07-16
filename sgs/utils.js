@@ -24,6 +24,8 @@ module.exports = {
             return x;
         } else if (iterable(x)) {
             return Array.from(x);
+        } else if (x === undefined || x === null) {
+            return [];
         }
         return [x];
     },

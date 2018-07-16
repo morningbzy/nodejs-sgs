@@ -37,11 +37,14 @@ module.exports = class extends Phase {
 
         for (let u of game.userRound(zhugong, true)) {
             figures = [
+                new (Figures.CaoCao)(),
+                new (Figures.LiuBei)(),
                 new (Figures.SiMaYi)(),
                 new (Figures.GuanYu)(),
                 new (Figures.MaChao)(),
                 new (Figures.DaQiao)(),
-                new (Figures.XiaoQiao)()
+                new (Figures.XiaoQiao)(),
+                new (Figures.SunShangXiang)(),
             ];
             u.reply(`FIGURE_CANDIDATE ${JSON.stringify(figures.map((f) => f.toJson()))}`, true, true);
             command = yield game.wait(u, {

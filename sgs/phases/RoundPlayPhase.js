@@ -1,6 +1,8 @@
 const C = require('../constants');
 const R = require('../common/results');
+const U = require('../utils');
 const Phase = require('./phase');
+const Context = require('../context');
 
 
 class RoundPlayPhase extends Phase {
@@ -8,10 +10,11 @@ class RoundPlayPhase extends Phase {
         super(game);
     }
 
-    static* useCard(game, context) {
+    static* useCard(game, ctx) {
         let result;
-        let card = context.sourceCards[0];
-        let u = context.sourceUser;
+        let card = U.toSingle(ctx.sourceCards);
+
+        ctx.handlingCards.add(card);
 
         if (card.faked) {
             console.log(`|[i] Use card [${Array.from(card.originCards, c => c.name).join(', ')}] as [${card.name}]`);
@@ -19,23 +22,27 @@ class RoundPlayPhase extends Phase {
             console.log(`|[i] Use card [${card.name}]`);
         }
 
-        result = yield card.start(game, context);
+        result = yield card.start(game, ctx);
         return yield Promise.resolve(result);
     }
 
     static* start(game) {
-        let context = {};
+        const u = game.roundOwner;
+        const phaseContext = new Context();
         let pass = false;
         let result;
 
-        const u = game.roundOwner;
-        u.shaCount = 1;
-
-        yield u.on('roundPlayPhaseStart', game, context);
+        yield u.on('roundPlayPhaseStart', game, phaseContext);
 
         while (!pass && u.state !== C.USER_STATE.DEAD && game.state !== C.GAME_STATE.ENDING) {
             u.reply('UNSELECT ALL');
-            yield u.on('play', game, context);
+
+            // 结算开始
+            const playContext = new Context({
+                phaseContext,
+                sourceUser: u,
+            });
+            yield u.on('play', game, playContext);
 
             let command = yield game.wait(u, {
                 waitingTag: C.WAITING_FOR.PLAY,
@@ -59,32 +66,32 @@ class RoundPlayPhase extends Phase {
                 },
             });
 
-            context = {
-                sourceUser: u,
-            };
             switch (command.cmd) {
                 case 'PASS':
                     pass = true;
                     continue;
                 case 'CARD':
                     let card = game.cardByPk(command.params);
-                    context.sourceCards = [card];
-                    result = yield this.useCard(game, context);
+                    playContext.sourceCards = U.toArray(card);
+                    result = yield this.useCard(game, playContext);
                     break;
                 case 'SKILL':
                     let skill = u.figure.skills[command.params[0]];
-                    context.skill = skill;
-                    result = yield u.figure.useSkill(skill, game, context);
+                    playContext.skill = skill;
+                    result = yield u.figure.useSkill(skill, game, playContext);
                     if (result instanceof R.CardResult) {
-                        context.sourceCards = [result.get()];
-                        result = yield this.useCard(game, context);
+                        playContext.sourceCards = U.toArray(result.get());
+                        result = yield this.useCard(game, playContext);
                     } else {
                     }
                     break;
             }
+
+            // 结算完毕
+            game.discardCards(playContext.handlingCards);
         }
 
-        yield u.on('roundPlayPhaseEnd', game, context);
+        yield u.on('roundPlayPhaseEnd', game, phaseContext);
     }
 }
 

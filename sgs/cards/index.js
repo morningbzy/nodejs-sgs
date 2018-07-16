@@ -10,7 +10,11 @@ class CardManager {
     }
 
     _status() {
-        console.log(`|[i] Unused: ${this.unused.length}, Used: ${this.used.length}, Faked: ${this.faked.size}`);
+        console.log(`|[i] `
+            + `Unused: ${this.unused.length}, `
+            + `Used: ${this.used.length}, `
+            + `Faked: ${this.faked.size}, `
+        );
     }
 
     shuffle() {
@@ -39,8 +43,8 @@ class CardManager {
     }
 
     getCard(pk) {
-        pk = Array.isArray(pk) ? pk[0] : pk;
-        return cards.cardSet.has(pk) ? cards.cardSet.get(pk) : this.faked.get(pk);
+        pk = U.toSingle(pk);
+        return cardSet.has(pk) ? cardSet.get(pk) : this.faked.get(pk);
     }
 
     getCards(pks) {

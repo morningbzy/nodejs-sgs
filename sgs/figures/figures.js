@@ -97,10 +97,13 @@ class CaoCao extends FigureBase {
     }
 
     * s1(game, ctx) {
-        if(ctx.sourceCards) {
-            game.message([this.owner, '获得了', ctx.sourceCards]);
-            game.addUserCards(this.owner, ctx.sourceCards);
-            ctx.sourceCards = [];
+        let cards = U.toArray(ctx.sourceCards);
+        for(let card of cards) {
+            if(ctx.handlingCards.has(card)) {
+                game.message([this.owner, '获得了', card]);
+                game.addUserCards(this.owner, card);
+                ctx.handlingCards.delete(card);
+            }
         }
         return yield Promise.resolve(R.success);
     }
@@ -119,8 +122,7 @@ class CaoCao extends FigureBase {
                     if (result instanceof R.CardResult) {
                         let card = result.get();
                         game.message([u, '替曹操打出了', card]);
-                        game.removeUserCards(u, card);
-                        game.discardCards(card);
+                        yield game.removeUserCards(u, card, true);
                     } else {
                         game.message([u, '替曹操打出了【闪】']);
                     }
@@ -133,7 +135,11 @@ class CaoCao extends FigureBase {
     }
 
     * damage(game, ctx) {
-        return yield this.useSkill(this.skills.WEI001s01, game, ctx);
+        let command = yield game.waitConfirm(this.owner, `是否使用技能【奸雄】？`);
+        if (command.cmd === C.CONFIRM.Y) {
+            return yield this.useSkill(this.skills.WEI001s01, game, ctx);
+        }
+        return yield Promise.resolve(R.success);
     }
 
     * requireShan(game, ctx) {
@@ -241,7 +247,7 @@ class LiuBei extends FigureBase {
 
             game.message([u, '使用技能【仁德】，将', cards, '交给', target]);
 
-            game.removeUserCards(u, cards);
+            yield game.removeUserCards(u, cards);
             game.addUserCards(target, cards);
 
             if (this.s1_param < 2 && (this.s1_param + cards.length) >= 2) {
@@ -274,7 +280,7 @@ class LiuBei extends FigureBase {
             if (result.success) {
                 let cards = result.get();
                 game.message([target, '替', u, '打出了', cards]);
-                game.removeUserCards(target, cards);
+                yield game.removeUserCards(target, cards);
                 return yield Promise.resolve(result);
             }
         }
@@ -289,7 +295,7 @@ class LiuBei extends FigureBase {
     }
 
     * play(game, ctx) {
-        if (this.owner.shaCount > 0) {
+        if (ctx.phaseContext.shaCount > 0) {
             this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.ENABLED);
         } else {
             this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.DISABLED);
@@ -356,7 +362,7 @@ class GuanYu extends FigureBase {
     }
 
     * play(game, ctx) {
-        if (this.owner.shaCount > 0) {
+        if (ctx.phaseContext.shaCount > 0) {
             this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.ENABLED);
         } else {
             this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.DISABLED);
@@ -460,12 +466,26 @@ class SiMaYi extends FigureBase {
     }
 
     * s1(game, ctx) {
-        // TODO equipment card can also be selected
-        if(ctx.sourceUser) {
-            let cards = U.shuffle(ctx.sourceUser.cards.values()).slice(0, 1);
-            game.message([this.owner, '从', ctx.sourceUser, '处获得', cards.length, '张牌']);
-            game.removeUserCards(ctx.sourceUser, cards);
-            game.addUserCards(this.owner, cards);
+        const u = this.owner;
+        if (ctx.sourceUser) {
+            let cardCandidates = ctx.sourceUser.cardCandidates({
+                includeJudgeCards: false,
+            });
+            u.reply(`CARD_CANDIDATE ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+            let command = yield game.wait(u, {
+                validCmds: ['CARD_CANDIDATE'],
+                validator: (command) => {
+                    const pks = command.params;
+                    return pks.length === 1;
+                },
+            });
+            u.reply(`CLEAR_CANDIDATE`);
+            u.popRestoreCmd();
+
+            let card = game.cardByPk(command.params);
+            yield game.removeUserCards(ctx.sourceUser, card);
+            game.addUserCards(u, card);
+            game.message([u, '从', ctx.sourceUser, '处获得1张牌']);
         }
         return yield Promise.resolve(R.success);
     }
@@ -473,9 +493,11 @@ class SiMaYi extends FigureBase {
     * s2(game, ctx) {
         let result = yield this.owner.requireCard(game, sgsCards.CardBase, ctx);
         if (result.success) {
+            yield game.removeUserCards(this.owner, ctx.judgeCard);
             game.discardCards(ctx.judgeCard);
+            ctx.handlingCards.delete(ctx.judgeCard);
             ctx.judgeCard = result.get();
-            game.removeUserCards(this.owner, ctx.judgeCard);
+            ctx.handlingCards.add(ctx.judgeCard);
             game.message([this.owner, '使用', ctx.judgeCard, '替换了判定牌']);
         }
         return yield Promise.resolve(result);
@@ -558,7 +580,7 @@ class DaQiao extends FigureBase {
         let result = yield game.waitFSM(u, FSM.get('requireSingleCardAndTarget', game, {
             targetValidator: (command) => {
                 let target = game.userByPk(command.params);
-                return target !== ctx.sourceUser;
+                return target !== ctx.sourceUser && game.inAttackRange(u, target);
             }
         }), ctx);
 
@@ -566,12 +588,11 @@ class DaQiao extends FigureBase {
             let card = result.get().card;
             let target = result.get().target;
 
-            game.removeUserCards(u, card);
-            game.discardCards(card);
+            yield game.removeUserCards(u, card, true);
 
             ctx.targets.delete(u);
             ctx.targets.add(target);
-            if(ctx.shanAble.has(u)) {
+            if (ctx.shanAble.has(u)) {
                 ctx.shanAble.set(target, ctx.shanAble.get(u));
                 ctx.shanAble.delete(u);
             }
@@ -643,18 +664,14 @@ class XiaoQiao extends FigureBase {
 
         if (result.success) {
             let card = result.get().card;
-            let target = result.get().target;
-            ctx.targets = new Set();
-            ctx.targets.add(target);
+            let t = result.get().target;
 
-            game.removeUserCards(u, card);
-            game.discardCards(card);
-            game.message([u, '弃置了', card, '将伤害转移给', target]);
+            yield game.removeUserCards(u, card, true);
+            game.message([u, '弃置了', card, '将伤害转移给', t]);
 
-            for (let t of ctx.targets) {
-                yield t.on('damage', game, ctx);
-                game.dispatchCards(t, t.maxHp - t.hp);
-            }
+            yield t.on('damage', game, ctx);
+            game.dispatchCards(t, t.maxHp - t.hp);
+            game.message([t, '受到', ctx.damage, '点伤害，并获得了', t.maxHp - t.hp, '张牌']);
 
             return yield Promise.resolve(R.success);
         } else {
@@ -712,13 +729,100 @@ class SunShangXiang extends FigureBase {
     }
 
     * s1(game, ctx) {
-        return yield Promise.resolve(R.fail);
+        const u = this.owner;
+        const skillWU008s01FSM = () => {
+            let m = new FSM.Machine(game);
+
+            m.addState(new FSM.State('C'), true);
+            m.addState(new FSM.State('T'));
+            m.addState(new FSM.State('O'));
+
+            m.addTransition(new FSM.Transition('C', 'CARD_CANDIDATE', 'T',
+                (command) => {
+                    let cards = game.cardsByPk(command.params);
+                    return 2 === U.toArray(cards).filter(
+                        c => (u.hasCard(c) || u.hasEquipedCard(c))
+                    ).length;
+                },
+                (game, ctx) => {
+                    ctx.cards = U.toSet(game.cardsByPk(ctx.command.params));
+                    u.reply(`CLEAR_CANDIDATE`);
+                }
+            ));
+            m.addTransition(new FSM.Transition('C', 'CANCEL', '_'));
+            m.addTransition(new FSM.Transition('T', 'TARGET', 'O',
+                (command) => {
+                    const t = game.userByPk(command.params);
+                    return (t.gender === C.GENDER.MALE && t.hp < t.maxHp);
+                },
+                (game, ctx) => {
+                    if (ctx.target) {
+                        u.reply(`UNSELECT TARGET ${ctx.target.id}`);
+                    }
+                    ctx.target = game.userByPk(ctx.command.params);
+                }
+            ));
+            m.addTransition(new FSM.Transition('T', 'UNCARD', 'C2', null,
+                (game, ctx) => {
+                    ctx.cards.delete(game.cardByPk(ctx.command.params));
+                }
+            ));
+            m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
+
+            m.addTransition(new FSM.Transition('O', 'OK', '_', null,
+                (game, ctx) => {
+                    return new R.CardTargetResult().set(ctx.cards, ctx.target);
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T', null,
+                (game, ctx) => {
+                    ctx.target = null;
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'UNCARD', 'C2', null,
+                (game, ctx) => {
+                    u.reply(`UNSELECT TARGET ${ctx.target.id}`);
+                    ctx.target = null;
+                    ctx.cards.delete(game.cardByPk(ctx.command.params));
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
+
+            m.setFinalHandler((r) => {
+                return r.get().pop();
+            });
+
+            return m;
+        };
+
+        let cardCandidates = u.cardCandidates({
+            includeJudgeCards: false,
+            showHandCards: true,
+        });
+        u.reply(`CARD_CANDIDATE ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+        let result = yield game.waitFSM(u, skillWU008s01FSM(), ctx);
+        u.reply(`CLEAR_CANDIDATE`);
+        u.popRestoreCmd();
+
+        if (result.success) {
+            let cards = result.get().card;
+            let target = result.get().target;
+            ctx.heal = 1;
+
+            yield game.removeUserCardsEx(u, cards, true);
+            game.message([u, '使用技能【结姻】，弃置手牌', cards, '与', target, '各回复1点体力']);
+            yield u.on('heal', game, ctx);
+            yield target.on('heal', game, ctx);
+
+            ctx.phaseContext.usedWU008s01 = true;
+        }
+        return yield Promise.resolve(result);
     }
 
     * play(game, ctx) {
         this.changeSkillState(this.skills.WU008s01, C.SKILL_STATE.DISABLED);
 
-        if (!ctx.usedWU008s01) {
+        if (!ctx.phaseContext.usedWU008s01) {
             for (let u of game.userRound()) {
                 if (u.gender === C.GENDER.MALE && u.hp < u.maxHp) {
                     this.changeSkillState(this.skills.WU008s01, C.SKILL_STATE.ENABLED);
@@ -728,8 +832,21 @@ class SunShangXiang extends FigureBase {
         }
     }
 
+    * roundPlayPhaseStart(game, ctx) {
+        ctx.usedWU008s01 = false;
+    }
+
     * roundPlayPhaseEnd(game, ctx) {
         this.changeSkillState(this.skills.WU008s01, C.SKILL_STATE.DISABLED);
+    }
+
+    * unequip(game, ctx) {
+        const u = this.owner;
+        let command = yield game.waitConfirm(u, `是否发动技能【枭姬】？`);
+        if (command.cmd === C.CONFIRM.Y) {
+            game.dispatchCards(u, 2);
+            game.message([u, '发动技能【枭姬】获得2张牌']);
+        }
     }
 }
 
@@ -755,6 +872,7 @@ figures = {
 
     DaQiao,
     XiaoQiao,
+    SunShangXiang,
 };
 
 const figureSet = {};

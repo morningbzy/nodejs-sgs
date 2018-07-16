@@ -44,6 +44,7 @@ Constants = {
     GENDER: {
         MALE: 0,
         FEMALE: 1,
+        UNKNOWN: 2,
     },
     SKILL_STYLE: {
         NORMAL: 0,

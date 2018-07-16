@@ -3,6 +3,7 @@ const uuid = require('uuid/v4');
 const C = require('../constants');
 const R = require('../common/results');
 const U = require('../utils');
+const Context = require('../context');
 const FSM = require('../common/stateMachines');
 const EventListener = require('../common/eventListener');
 const ShaStage = require('../phases/sha/ShaStage');
@@ -109,7 +110,7 @@ class DelayedSilkBagCard extends CardBase {
         game.unlockUserCards(u, ctx.sourceCards);
 
         if (result.success) {
-            game.removeUserCards(u, ctx.sourceCards);
+            yield game.removeUserCards(u, ctx.sourceCards);
 
             let target = result.get();
             ctx.targets = U.toSet(target);
@@ -150,7 +151,7 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
     }
 
     * run(game, ctx) {
-        game.equipUserCard(game.roundOwner, this);
+        yield game.equipUserCard(game.roundOwner, this);
         return yield Promise.resolve(R.success);
     }
 
@@ -201,7 +202,7 @@ class Sha extends NormalCard {
     }
 
     * run(game, ctx) {
-        return yield ShaStage.start(game, game.roundOwner, ctx);
+        return yield ShaStage.start(game, ctx);
     }
 }
 
@@ -248,11 +249,11 @@ class JueDou extends SilkBagCard {
             return yield Promise.resolve(result);
         }
 
-        game.removeUserCards(u, ctx.sourceCards);
-        ctx.targets = [result.get()];
+        yield game.removeUserCards(u, ctx.sourceCards);
+        ctx.targets = U.toArray(result.get());
         game.message([ctx.sourceUser, '对', ctx.targets, '使用了', ctx.sourceCards]);
 
-        let users = Array.from(ctx.targets).concat(u);
+        let users = ctx.targets.concat(u);
         let done = false;
         let loser;
         while (!done) {
@@ -260,10 +261,13 @@ class JueDou extends SilkBagCard {
                 let result = yield _u.on('requireSha', game, ctx);
                 if (result.success) {
                     game.discardCards(ctx.sourceCards);
+                    ctx.handlingCards.delete(ctx.sourceCards);
+
                     ctx.sourceUser = _u;
                     ctx.sourceCards = result.get();
+                    yield game.removeUserCards(_u, ctx.sourceCards);
+                    ctx.handlingCards.add(ctx.sourceCards);
                     game.message([_u, '打出了', ctx.sourceCards]);
-                    game.removeUserCards(_u, ctx.sourceCards);
                 } else {
                     done = true;
                     loser = _u;
@@ -274,7 +278,6 @@ class JueDou extends SilkBagCard {
 
         ctx.damage = 1;
         result = yield loser.on('damage', game, ctx);
-        game.discardCards(ctx.sourceCards);
         return yield Promise.resolve(result);
     }
 }
@@ -298,11 +301,10 @@ class GuoHeChaiQiao extends SilkBagCard {
             return yield Promise.resolve(result);
         }
 
-        game.removeUserCards(u, ctx.sourceCards);
+        yield game.removeUserCards(u, ctx.sourceCards, true);
         let target = result.get();
         ctx.targets = target;
         game.message([ctx.sourceUser, '对', target, '使用了', ctx.sourceCards]);
-        game.discardCards(ctx.sourceCards);
 
         // TODO: WuXieKeJi
 
@@ -320,9 +322,8 @@ class GuoHeChaiQiao extends SilkBagCard {
         u.popRestoreCmd();
 
         let card = game.cardByPk(command.params);
-        game.removeUserCardsEx(target, card);
         game.message([u, '拆掉了', target, '的一张牌']);
-        game.discardCards(card);
+        yield game.removeUserCardsEx(target, card, true);
 
         return yield Promise.resolve(R.success);
     }
@@ -339,22 +340,19 @@ class NanManRuQin extends SilkBagCard {
     * run(game, ctx) {
         const u = ctx.sourceUser;
         game.message([u, '使用了', this]);
-        ctx.damage = 1;
+        yield game.removeUserCards(u, ctx.sourceCards);
 
+        ctx.damage = 1;
         for (let _u of game.userRound(game.roundOwner, true)) {
             let result = yield _u.on('requireSha', game, ctx);
             if (result.success) {
                 let card = result.get();
                 game.message([_u, '打出了', card]);
-                game.removeUserCards(_u, card);
-                game.discardCards(card);
+                yield game.removeUserCards(_u, card, true);
             } else {
                 yield _u.on('damage', game, ctx);
             }
         }
-
-        game.removeUserCards(u, ctx.sourceCards);
-        game.discardCards(ctx.sourceCards);
     }
 }
 
@@ -369,9 +367,10 @@ class WuZhongShengYou extends SilkBagCard {
 
     * run(game, ctx) {
         const u = ctx.sourceUser;
-        game.removeUserCards(u, ctx.sourceCards);
+        yield game.removeUserCards(u, ctx.sourceCards, true);
+        game.message([u, '使用', this, '获得两张牌']);
         game.dispatchCards(u, 2);
-        game.discardCards(ctx.sourceCards);
+        return yield Promise.resolve(R.success);
     }
 }
 
@@ -426,13 +425,13 @@ class ShanDian extends DelayedSilkBagCard {
     }
 
     * judgeEffect(u, game) {
-        let ctx = {damage: 3, sourceCards: this};
+        let ctx = new Context({damage: 3, sourceCards: this});
         yield u.on('damage', game, ctx);
         yield super.judgeEffect(u, game);
     }
 
     * judgeFailed(u, game) {
-        game.removeUserJudge(u, this);
+        yield game.removeUserJudge(u, this);
         for (let next of game.userRound(u, true)) {
             if (!next.hasJudgeType(this)) {
                 game.pushUserJudge(next, this);
@@ -456,15 +455,21 @@ class QingLongYanYueDao extends WeaponCard {
         let u = this.equiper(game);
         let result = yield u.on('requireSha', game, ctx);
         if (result.success) {
-            let context = {
+            let card = result.get();
+            let context = new Context({
                 sourceUser: u,
-                sourceCards: result.get(),
-                targets: new Set([ctx.shaTarget]),
+                sourceCards: card,
+                targets: U.toSet(ctx.shaTarget),
                 skipShaInitStage: true,
                 damage: 1,
-            };
+                phaseContext: ctx.phaseContext,
+            });
+            context.handlingCards.add(card);
             game.message([u, '发动了', this, '使用了', context.sourceCards, '追杀', context.targets]);
-            return yield ShaStage.start(game, u, context);
+            context.phaseContext.shaCount ++;  // 青龙偃月刀算额外的杀
+            result = yield ShaStage.start(game, context);
+            yield game.discardCards(context.handlingCards);
+            return yield Promise.resolve(result);
         }
     }
 
@@ -490,6 +495,7 @@ class GuDingDao extends WeaponCard {
     * shaHitTarget(game, ctx) {
         const target = ctx.shaTarget;
         if (target.cards.size <= 0) {
+            game.message([u, '的装备', this, '生效，此【杀】伤害+1']);
             ctx.exDamage += 1;
         }
         return yield Promise.resolve(R.success);
@@ -508,7 +514,7 @@ class CiXiongShuangGuJian extends WeaponCard {
     * afterShaTarget(game, ctx) {
         const u = ctx.sourceUser;
         for (let t of ctx.targets) {
-            if (u.figure.gender !== t.figure.gender) {
+            if (u.gender !== t.gender) {
                 let command = yield game.waitConfirm(u, `是否对${t.figure.name}使用武器【${this.name}】？`);
                 if (command.cmd === C.CONFIRM.Y) {
                     game.message([u, '对', t, '发动武器', this]);
@@ -533,7 +539,7 @@ class CiXiongShuangGuJian extends WeaponCard {
                             result = yield t.requireCard(game, CardBase, ctx);
                         }
                         game.message([t, '弃掉一张手牌']);
-                        game.removeUserCards(t, result.get(), true);
+                        yield game.removeUserCards(t, result.get(), true);
                     } else {
                         game.message([u, '获得一张牌']);
                         game.dispatchCards(u);
@@ -575,11 +581,9 @@ class GuanShiFu extends WeaponCard {
                 u.popRestoreCmd();
 
                 let cards = game.cardsByPk(command.params);
-                game.removeUserCardsEx(u, cards);
-
-                ctx.willDamage = true;
                 game.message([u, '弃掉', cards, '，发动武器', this, '使【杀】强制命中']);
-                game.discardCards(cards);
+                yield game.removeUserCardsEx(u, cards, true);
+                ctx.hit = true;
             }
         }
         return yield Promise.resolve(R.success);
@@ -672,6 +676,14 @@ const cardSet = new Map();
     new WuZhongShengYou(C.CARD_SUIT.HEART, 9),
     new WuZhongShengYou(C.CARD_SUIT.HEART, 11),
 
+    new NanManRuQin(C.CARD_SUIT.SPADE, 7),
+    new NanManRuQin(C.CARD_SUIT.CLUB, 7),
+    new NanManRuQin(C.CARD_SUIT.SPADE, 7),
+    new NanManRuQin(C.CARD_SUIT.CLUB, 7),
+    new NanManRuQin(C.CARD_SUIT.SPADE, 7),
+    new NanManRuQin(C.CARD_SUIT.CLUB, 7),
+    new NanManRuQin(C.CARD_SUIT.SPADE, 7),
+    new NanManRuQin(C.CARD_SUIT.CLUB, 7),
     new NanManRuQin(C.CARD_SUIT.SPADE, 7),
     new NanManRuQin(C.CARD_SUIT.CLUB, 7),
 

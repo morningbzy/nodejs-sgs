@@ -1,7 +1,7 @@
 const C = require('./constants');
 const R = require('./common/results');
+const Context = require('./context');
 const FSM = require('./common/stateMachines');
-const cardManager = require('./cards');
 const sgsCards = require('./cards/cards');
 const EventListener = require('./common/eventListener');
 
@@ -19,6 +19,7 @@ class User extends EventListener {
         this.figure = null;
         this.hp = 0;
         this.maxHp = 0;
+        this.gender = C.GENDER.UNKNOWN;
         this.waiting = C.WAITING_FOR.NOTHING;
         this.faceUp = true;
 
@@ -43,7 +44,6 @@ class User extends EventListener {
             RoundDiscardPhase: 1,
             RoundEndPhase: 1,
         };
-        this.shaCount = 1;
         this.setResp(messageResp);
     }
 
@@ -118,6 +118,7 @@ class User extends EventListener {
         figure.owner = this;
         this.hp = figure.hp;
         this.maxHp = figure.hp;
+        this.gender = figure.gender;
     }
 
     distanceFrom(game, ctx) {
@@ -208,6 +209,8 @@ class User extends EventListener {
 
     unequipCard(equipType) {
         let old = this.equipments[equipType];
+        console.log('user.unequipCard');
+        console.log(old);
         if (old) {
             old.card.setEquiper(null);
             this.equipments[equipType] = null;
@@ -237,13 +240,13 @@ class User extends EventListener {
                 }
             }
         }
-        if(includeJudgeCards) {
+        if (includeJudgeCards) {
             candidates.push(...this.judgeStack.map(c => ({
                 card: c,
                 show: showJudgeCards,
             })));
         }
-        if(includeHandCards) {
+        if (includeHandCards) {
             candidates.push(...Array.from(this.cards.values()).map(c => ({
                 card: c,
                 show: showHandCards,
@@ -254,15 +257,18 @@ class User extends EventListener {
 
     // ------
 
-    * on(event, game, ctx = {}) {
+    * on(event, game, ctx) {
+        if(!ctx) {
+            ctx = new Context();
+        }
         console.log(`|<U> ON ${this.name}(${this.figure.name}) ${event}`);
         return yield super.on(event, game, ctx);
     }
 
-    // ------
+    // --- 阶段事件 ---
 
     * roundPlayPhaseStart(game, ctx) {
-        this.shaCount = 1;
+        ctx.shaCount = 1;
         return yield this.figure.on('roundPlayPhaseStart', game, ctx);
     }
 
@@ -283,10 +289,7 @@ class User extends EventListener {
     }
 
     * useSha(game, ctx) {
-        if (this.shaCount < 1) {
-            console.log(`|<!> Use too many Sha`);
-            return yield Promise.resolve(R.abort);
-        }
+        yield this.figure.on('useSha', game, ctx);
         return yield Promise.resolve(R.success);
     }
 
@@ -299,7 +302,7 @@ class User extends EventListener {
     }
 
     * usedSha(game, ctx) {
-        this.shaCount--;
+        ctx.phaseContext.shaCount--;
     }
 
     * useTao(game, ctx) {
@@ -307,8 +310,7 @@ class User extends EventListener {
             game.message([ctx.sourceUser, '使用了', ctx.sourceCards]);
             ctx.heal = 1;
             yield this.on('heal', game, ctx);
-            game.removeUserCards(ctx.sourceUser, ctx.sourceCards);
-            game.discardCards(ctx.sourceCards);
+            yield game.removeUserCards(ctx.sourceUser, ctx.sourceCards, true);
         }
     }
 
@@ -318,10 +320,10 @@ class User extends EventListener {
             return yield Promise.resolve(result);
         }
 
-        let totalDamage = ctx.damage + ctx.exDamage;
-        console.log(`|<U> HP - ${totalDamage}`);
-        this.hp -= totalDamage;
-        game.message([this, '受到', totalDamage, '点伤害']);
+        let willDamage = ctx.damage + (ctx.exDamage || 0);
+        console.log(`|<U> HP - ${willDamage}`);
+        this.hp -= willDamage;
+        game.message([this, '受到', willDamage, '点伤害']);
         game.broadcastUserInfo(this);
 
         if (this.hp <= 0) {
@@ -335,8 +337,8 @@ class User extends EventListener {
     }
 
     * heal(game, ctx) {
-        console.log(`|<U> HP + ${ctx.heal}`);
         let willHeal = Math.min(this.maxHp - this.hp, ctx.heal);
+        console.log(`|<U> HP${this.hp} + ${willHeal} = ${this.hp + willHeal}`);
         this.hp += willHeal;
         game.message([this, '恢复', willHeal, '点体力']);
         game.broadcastUserInfo(this);
@@ -361,8 +363,7 @@ class User extends EventListener {
                     let result = yield u.on('requireTao', game, ctx);
                     if (result.success) {
                         let cards = result.get();
-                        game.removeUserCards(u, cards);
-                        game.discardCards(cards);
+                        yield game.removeUserCards(u, cards, true);
                         ctx.heal = 1;
                         yield this.on('heal', game, ctx);
                     }
@@ -383,7 +384,7 @@ class User extends EventListener {
 
     * die(game, ctx) {
         this.state = C.USER_STATE.DEAD;
-        game.userDead(this);
+        yield game.userDead(this);
     }
 
     // NOTE: This is NOT an event handler
@@ -540,6 +541,12 @@ class User extends EventListener {
         }
         return yield Promise.resolve(result);
     }
+
+    * unequip(game, ctx) {
+        let result = yield this.figure.on('unequip', game, ctx);
+        return yield Promise.resolve(result);
+    }
+
 }
 
 module.exports = User;

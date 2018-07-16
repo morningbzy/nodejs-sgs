@@ -1,3 +1,5 @@
+const U = require('../utils');
+
 RESULT_STATE = {
     ABORT: 1,
     FAIL: 2,
@@ -75,7 +77,7 @@ class CardResult extends ResultBase {
         if (Array.isArray(card)) {
             console.log(`|<!> CardResult can only set Card, but receive ${card}`);
         }
-        this._resultObj = card;
+        this._resultObj = U.toSingle(card);
         return this;
     }
 }

@@ -13,11 +13,11 @@ class RoundDiscardPhase extends Phase {
         const u = game.roundOwner;
 
         let discardCount = Math.max(u.cards.size - u.hp, 0);
-        while(discardCount > 0) {
+        while (discardCount > 0) {
             let command = yield game.wait(u, {
                 validCmds: ['CARD', 'CANCEL'],
                 validator: (command) => {
-                    if(command.cmd === 'CANCEL') {
+                    if (command.cmd === 'CANCEL') {
                         return true;
                     }
                     return command.params.length <= discardCount;
@@ -25,12 +25,12 @@ class RoundDiscardPhase extends Phase {
             });
 
             let discardCardPks = command.params.filter((cardPk) => u.hasCardPk(cardPk));
-            if(command.cmd === 'CANCEL') {
+            if (command.cmd === 'CANCEL') {
                 // Random discard cards
                 discardCardPks = utils.shuffle(u.cards.keys()).slice(0, discardCount);
             }
-            game.removeUserCardPks(u, discardCardPks);
-            game.discardCardPks(discardCardPks);
+            let cards = game.cardsByPk(discardCardPks);
+            yield game.removeUserCards(u, cards, true);
             discardCount = Math.max(u.cards.size - u.hp, 0);
         }
     }

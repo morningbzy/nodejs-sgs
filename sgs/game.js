@@ -3,6 +3,7 @@ let co = require('co');
 const C = require('./constants');
 const R = require('./common/results');
 const U = require('./utils');
+const Context = require('./context');
 const User = require('./user');
 const cmdHandler = require('./cmd');
 const cardManager = require('./cards');
@@ -27,7 +28,7 @@ class Game {
         this.sortedUsers = [];  // List of User, sorted by seatNum
         this.waitingStack = [];
 
-        this.zhugong;  // User
+        this.zhugong = null;  // User
         this.roundOwner = null;  //  Whose round it is, now.
 
         this.cardManager = cardManager;
@@ -284,20 +285,19 @@ class Game {
         this.broadcastUserInfo(user);
     }
 
-    userDead(user) {
-        let cardPks = user.cards.keys();
-        this.removeUserCardPks(user, cardPks);
-        this.discardCardPks(cardPks);
+    * userDead(user) {
+        let cards = user.cards.values();
+        yield this.removeUserCards(user, cards, true);
 
         for (let k in C.EQUIP_TYPE) {
-            let old = this.unequipUserCard(user, C.EQUIP_TYPE[k]);
+            let old = yield this.unequipUserCard(user, C.EQUIP_TYPE[k]);
             if (old) {
                 this.discardCards(old);
             }
         }
 
-        for (let j of user.judgeStack) {
-            this.discardCards(j.card);
+        for (let card of user.judgeStack) {
+            yield this.removeUserJudge(user, card, true);
         }
 
         if (this.usersNotInState(C.USER_STATE.DEAD).length <= 1) {
@@ -374,50 +374,49 @@ class Game {
         this.broadcastUserInfo(user);
     }
 
-    removeUserCards(user, cards, discard = false) {
+    * removeUserCards(user, cards, discard = false) {
         cards = U.toArray(cards);
         this.removeUserCardPks(user, this.cardManager.unfakeCards(cards).map(x => x.pk), discard);
     }
 
-    removeUserCardsEx(user, cards, discard = false) {
+    * removeUserCardsEx(user, cards, discard = false) {
         cards = U.toArray(cards);
         for (let card of cards) {
             if (user.hasCard(card)) {
-                this.removeUserCards(user, card);
+                yield this.removeUserCards(user, card, discard);
             } else if (user.hasJudgeCard(card)) {
-                this.removeUserJudge(user, card);
+                yield this.removeUserJudge(user, card, discard);
             } else if (user.hasEquipedCard(card)) {
-                this.unequipUserCard(user, card.equipType);
+                yield this.unequipUserCard(user, card.equipType, discard);
             }
-        }
-        if (discard) {
-            game.discardCards(cards);
         }
     }
 
-    equipUserCard(user, card) {
-        let old = this.unequipUserCard(user, card.equipType);
-        if (old) {
-            this.discardCards(old);
-        }
-
-        this.removeUserCards(user, [card]);
+    * equipUserCard(user, card) {
+        yield this.unequipUserCard(user, card.equipType, true);
+        yield this.removeUserCards(user, [card]);
         user.equipCard(card);
         this.message([user, '装备了', card]);
         this.broadcastUserInfo(user);
     }
 
-    unequipUserCard(user, equipType) {
+    * unequipUserCard(user, equipType, discard = false) {
         let old = user.unequipCard(equipType);
+        console.log('game.unequipUserCard');
+        console.log(old);
         if (old) {
             this.message([user, '失去了装备', old]);
+            yield user.on('unequip', game, {});
             this.broadcastUserInfo(user);
-            return old;
+            if (discard) {
+                this.discardCards(old);
+            }
+            return yield Promise.resolve(old);
         }
     }
 
     discardCardPks(cardPks) {
-        this.cardManager.useCards(cardPks);
+        this.cardManager.useCards(U.toArray(cardPks));
     }
 
     discardCards(cards) {
@@ -432,8 +431,11 @@ class Game {
         this.broadcastUserInfo(user);
     }
 
-    removeUserJudge(user, judgeCard) {
+    * removeUserJudge(user, judgeCard, discard = false) {
         user.removeJudge(judgeCard);
+        if (discard) {
+            this.discardCards(judgeCard);
+        }
         this.broadcastUserInfo(user);
     }
 
@@ -448,16 +450,19 @@ class Game {
         //     judgeCard = _u.on('beforeJudge');
         // }
         let judgeCard = this.getJudgeCard();
-        let context = {judgeCard};
+
+        let context = new Context({judgeCard});
+        context.handlingCards.add(judgeCard);
+
         game.message(['判定牌为', context.judgeCard]);
 
-        // TODO: Before judge effective, ask SiMaYi & ZhangJiao
         for (let _u of game.userRound()) {
             yield _u.on('beforeJudgeEffect', game, context);
         }
 
         yield u.on('judge', game, context);  // 目前仅用于小乔的【红颜】
-        game.discardCards(context.judgeCard);
+        game.discardCards(context.handlingCards);
+
         return R.judge(context.judgeCard, judgeFunction(context.judgeCard));
     }
 
