@@ -98,8 +98,8 @@ class CaoCao extends FigureBase {
 
     * s1(game, ctx) {
         let cards = U.toArray(ctx.sourceCards);
-        for(let card of cards) {
-            if(ctx.handlingCards.has(card)) {
+        for (let card of cards) {
+            if (ctx.handlingCards.has(card)) {
                 game.message([this.owner, '获得了', card]);
                 game.addUserCards(this.owner, card);
                 ctx.handlingCards.delete(card);
@@ -483,7 +483,7 @@ class SiMaYi extends FigureBase {
             u.popRestoreCmd();
 
             let card = game.cardByPk(command.params);
-            yield game.removeUserCards(ctx.sourceUser, card);
+            yield game.removeUserCardsEx(ctx.sourceUser, card);
             game.addUserCards(u, card);
             game.message([u, '从', ctx.sourceUser, '处获得1张牌']);
         }
@@ -842,10 +842,12 @@ class SunShangXiang extends FigureBase {
 
     * unequip(game, ctx) {
         const u = this.owner;
-        let command = yield game.waitConfirm(u, `是否发动技能【枭姬】？`);
-        if (command.cmd === C.CONFIRM.Y) {
-            game.dispatchCards(u, 2);
-            game.message([u, '发动技能【枭姬】获得2张牌']);
+        if (u.status === C.USER_STATE.ALIVE) {
+            let command = yield game.waitConfirm(u, `是否发动技能【枭姬】？`);
+            if (command.cmd === C.CONFIRM.Y) {
+                game.dispatchCards(u, 2);
+                game.message([u, '发动技能【枭姬】获得2张牌']);
+            }
         }
     }
 }
