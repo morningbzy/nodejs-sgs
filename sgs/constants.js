@@ -81,6 +81,9 @@ Constants = {
         ARMOR: 'armor',
         ATTACK_HORSE: 'attackHorse',
         DEFENSE_HORSE: 'defenseHorse',
+    },
+    POPUP_MSG_TYPE: {
+        JUDGE: 'JUDGE',
     }
 };
 Constants.ROLES_MAPPING = {

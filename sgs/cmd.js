@@ -15,6 +15,10 @@ module.exports = {
         game.broadcastUserInfo(sender);
         game.resendUserInfo(sender);
         sender.restore();
+        if(game.lastPopupMsg) {
+            let {msg, self} = game.lastPopupMsg;
+            sender.reply(`POPUP ${msg}`, (self && (self.id === sender.id)));
+        }
     },
 
     ready: (game, sender, params) => {

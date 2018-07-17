@@ -493,11 +493,13 @@ class SiMaYi extends FigureBase {
     * s2(game, ctx) {
         let result = yield this.owner.requireCard(game, sgsCards.CardBase, ctx);
         if (result.success) {
-            yield game.removeUserCards(this.owner, ctx.judgeCard);
             game.discardCards(ctx.judgeCard);
             ctx.handlingCards.delete(ctx.judgeCard);
+
             ctx.judgeCard = result.get();
+            yield game.removeUserCards(this.owner, ctx.judgeCard);
             ctx.handlingCards.add(ctx.judgeCard);
+            game.broadcastPopup(`JUDGE ${ctx.judgeCard.toJsonString()}`);
             game.message([this.owner, '使用', ctx.judgeCard, '替换了判定牌']);
         }
         return yield Promise.resolve(result);
@@ -842,12 +844,10 @@ class SunShangXiang extends FigureBase {
 
     * unequip(game, ctx) {
         const u = this.owner;
-        if (u.status === C.USER_STATE.ALIVE) {
-            let command = yield game.waitConfirm(u, `是否发动技能【枭姬】？`);
-            if (command.cmd === C.CONFIRM.Y) {
-                game.dispatchCards(u, 2);
-                game.message([u, '发动技能【枭姬】获得2张牌']);
-            }
+        let command = yield game.waitConfirm(u, `是否发动技能【枭姬】？`);
+        if (command.cmd === C.CONFIRM.Y) {
+            game.dispatchCards(u, 2);
+            game.message([u, '发动技能【枭姬】获得2张牌']);
         }
     }
 }
@@ -877,12 +877,7 @@ figures = {
     SunShangXiang,
 };
 
-const figureSet = {};
-
 Object.keys(figures).map((k) => {
-    figureSet[figures[k].pk] = figures[k];
+    exports[k] = figures[k];
+    exports[figures[k].pk] = figures[k];
 });
-
-figures['figureSet'] = figureSet;
-
-module.exports = figures;

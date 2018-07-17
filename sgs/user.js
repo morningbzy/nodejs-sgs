@@ -104,7 +104,10 @@ class User extends EventListener {
     }
 
     popRestoreCmd(cmd) {
-        this.restoreCmds.pop();
+        let command = this.restoreCmds.pop();
+        if(!command.data.startsWith(cmd)) {
+            console.warn(`|<!> Command "${command.data}" dosen\'t match "${cmd}"`);
+        }
     }
 
     restore() {
@@ -208,13 +211,11 @@ class User extends EventListener {
     }
 
     unequipCard(equipType) {
-        let old = this.equipments[equipType];
-        console.log('user.unequipCard');
-        console.log(old);
-        if (old) {
-            old.card.setEquiper(null);
+        let oldEquipment = this.equipments[equipType];
+        if (oldEquipment) {
+            oldEquipment.card.setEquiper(null);
             this.equipments[equipType] = null;
-            return old.card;
+            return oldEquipment.card;
         }
         return null;
     }
@@ -255,6 +256,24 @@ class User extends EventListener {
         return candidates;
     }
 
+    // NOTE: This is NOT an event handler
+    * requireCard(game, cardClass, ctx) {
+        const u = this;
+        let result = yield game.waitFSM(u, FSM.get('requireSingleCard', game, {
+            cardValidator: (command) => {
+                let card = game.cardByPk(command.params);
+                return (this.hasCard(card) && card instanceof cardClass);
+            }
+        }), ctx);
+
+        if (result.success) {
+            let card = result.get();
+            return yield Promise.resolve(new R.CardResult().set(card));
+        } else {
+            return yield Promise.resolve(R.fail);
+        }
+    }
+
     // ------
 
     * on(event, game, ctx) {
@@ -266,6 +285,7 @@ class User extends EventListener {
     }
 
     // --- 阶段事件 ---
+    // 阶段事件的ctx都是phaseContext
 
     * roundPlayPhaseStart(game, ctx) {
         ctx.shaCount = 1;
@@ -276,7 +296,7 @@ class User extends EventListener {
         return yield this.figure.on('roundPlayPhaseEnd', game, ctx);
     }
 
-    // ------
+    // ---  ---
 
     * play(game, ctx) {
         let result = yield this.figure.on('play', game, ctx);
@@ -387,24 +407,6 @@ class User extends EventListener {
         yield game.userDead(this);
     }
 
-    // NOTE: This is NOT an event handler
-    * requireCard(game, cardClass, ctx) {
-        const u = this;
-        let result = yield game.waitFSM(u, FSM.get('requireSingleCard', game, {
-            cardValidator: (command) => {
-                let card = game.cardByPk(command.params);
-                return (this.hasCard(card) && card instanceof cardClass);
-            }
-        }), ctx);
-
-        if (result.success) {
-            let card = result.get();
-            return yield Promise.resolve(new R.CardResult().set(card));
-        } else {
-            return yield Promise.resolve(R.fail);
-        }
-    }
-
     * requireSha(game, ctx) {
         const u = this;
         let result;
@@ -492,13 +494,13 @@ class User extends EventListener {
         return yield Promise.resolve(result);
     }
 
-    * judge(game, ctx) {
-        let result = yield this.figure.on('judge', game, ctx);
+    * beforeJudgeEffect(game, ctx) {
+        let result = yield this.figure.on('beforeJudgeEffect', game, ctx);
         return yield Promise.resolve(result);
     }
 
-    * beforeJudgeEffect(game, ctx) {
-        let result = yield this.figure.on('beforeJudgeEffect', game, ctx);
+    * judge(game, ctx) {
+        let result = yield this.figure.on('judge', game, ctx);
         return yield Promise.resolve(result);
     }
 

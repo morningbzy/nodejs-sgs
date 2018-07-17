@@ -1,5 +1,5 @@
 {{#cards}}
-<div class="sgs-card{{#faked}} sgs-faked-card{{/faked}} card position-absolute" pk="{{ pk }}"
+<div class="sgs-card{{#faked}} sgs-faked-card{{/faked}} card" pk="{{ pk }}"
      {{#originCards}}data-content="{{name}}<span class='sgs-card-text sgs-card-suit-{{suit}} text-dark'>{{number}}</span>"{{/originCards}}>
     <h6 class="card-header p-1 {{#faked}}bg-danger text-white{{/faked}}">
         <span class="name">{{ name }}</span>

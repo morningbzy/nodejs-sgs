@@ -14,8 +14,8 @@ class RoundJudgePhase extends Phase {
         for (let judge of u.getJudgeStack()) {
             let card = judge;
 
-            game.message([u, '判定', card]);
             game.broadcast(`JUDGING ${card.pk}`, u);
+            game.message([u, '判定', card]);
             let result = yield game.doJudge(u, card.judge);
             game.message([u, '判定', card, '为', result.get(), '判定', result.success ? '生效' : '未生效']);
             yield game.removeUserJudge(u, card);

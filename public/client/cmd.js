@@ -167,6 +167,31 @@ const Cmd = {
         $('#game-message').scrollTop($('#sgs-message-list').outerHeight());
     },
 
+    popup: function (params, marker) {
+        let msgType = params.shift(0);
+        let msgEl = $('#sgs-popup-msg');
+
+        switch (msgType) {
+            case POPUP_MSG_TYPE.JUDGE:
+                msgEl.fadeOut(() => {
+                    let body = $('.sgs-popup-msg-body', msgEl);
+                    let cards = [JSON.parse(params.join(' '))];
+                    let rendered = Mustache.render(cardTpl, {cards});
+                    body.html(rendered);
+                    $('.sgs-popup-msg-header', msgEl).removeClass('d-none').text('判定牌');
+                }).fadeIn(200).delay(1000);
+                // msgEl.fadeIn(100, () => $('#sgs-popup-msg').fadeTo(1000, 1, () => $('#sgs-popup-msg').fadeOut(500)));
+        }
+    },
+
+    clear_popup: function (params, marker) {
+        let msgEl = $('#sgs-popup-msg');
+        msgEl.fadeOut(() => {
+            $('.sgs-popup-msg-header, .sgs-popup-msg-footer', msgEl).addClass('d-none');
+            $('.sgs-popup-msg-body', msgEl).html('');
+        });
+    },
+
     confirm: function (params, marker) {
         let alertHtml = params.join(' ');
         alertHtml += `<span class="sgs-confirm-action"><a href="#" class="sgs-confirm-action-y alert-link ml-3" cmd="Y">是</a><a href="#" class="sgs-confirm-action-n alert-link ml-3" cmd="N">否</a></span>`;
@@ -176,10 +201,10 @@ const Cmd = {
     alert: function (params, marker) {
         let alertClass = (marker === '*') ? 'warning' : 'info';
         let alertHtml = params.join(' ');
-        let rendered = `<div class="sgs-cl-self alert alert-${alertClass} fade mb-0" role="alert">${alertHtml}</div>`;
+        let rendered = `<div class="sgs-cl-self alert alert-${alertClass} fade mb-0 position-absolute w-100" role="alert">${alertHtml}</div>`;
         $('#sgs-table .alert').alert('close');
         $(rendered).appendTo('#sgs-table');
-        $('#sgs-table .alert:last').addClass('show');
+        $('#sgs-table .alert:last').fadeIn(() => $('#sgs-table .alert:last').addClass('show'));
     },
 
     toast: function (params, marker) {
@@ -193,7 +218,7 @@ const Cmd = {
         let title = params[0];
         let withFooter = params[1];
         $('.sgs-table-modal-title', el).text(title);
-        if(withFooter) {
+        if (withFooter) {
             $('.sgs-table-modal-footer', el).removeClass('d-none');
         } else {
             $('.sgs-table-modal-footer', el).addClass('d-none');
@@ -229,12 +254,12 @@ const Cmd = {
         }
     },
 
-    choice_candidate: function(params, marker) {
+    choice_candidate: function (params, marker) {
         Cmd.modal([params.shift(), false]);
 
         let html = '<div class="d-block w-100 h-100 list-group">';
         params.forEach((v, i) => {
-            html += `<a href="#" class="sgs-choice list-group-item list-group-item-action" pk="${i}"><b>${i}.</b> ${v}</a>`
+            html += `<a href="#" class="sgs-choice list-group-item list-group-item-action" pk="${i}"><b>${i}.</b> ${v}</a>`;
         });
         html += '</div>';
 
@@ -277,16 +302,11 @@ const Cmd = {
         let candidates = JSON.parse(params.join(' '));
 
         candidates.map((c) => {
-            if(c.show) {
-                let rendered = Mustache.render(cardTpl, {cards: [c.card]});
-                $(rendered).appendTo(el);
-            } else {
+            if (!c.show) {
                 c.card.name = '[手牌]';
                 c.card.category = ' ';
                 c.card.suit = 'unknown';
                 c.card.number = ' ';
-                let rendered = Mustache.render(cardTpl, {cards: [c.card]});
-                $(rendered).appendTo(el);
             }
         });
         let rendered = Mustache.render(cardTpl, {cards: candidates.map((x) => x.card)});
@@ -294,7 +314,11 @@ const Cmd = {
 
         let cardEl = $('#sgs-candidate-panel .sgs-card');
         let span = Math.min(60, (630 - 90) / cardEl.length);
-        cardEl.each((i, el) => $(el).css('left', i * span).css('top', 0));
+        cardEl.css({
+            position: 'absolute',
+            top: 0,
+        });
+        cardEl.each((i, el) => $(el).css({left: i * span,}));
         $('.sgs-faked-card', el).popover({
             html: true,
             placement: 'top',
@@ -332,9 +356,13 @@ const Cmd = {
     card: function (params, marker) {
         let cards = [JSON.parse(params.join(' '))];
         let rendered = Mustache.render(cardTpl, {cards});
-        let span = Math.min(60, (572 - 90) / $('#sgs-card-panel .sgs-card').length);
         $(rendered).appendTo('#sgs-card-panel');
-        $('#sgs-card-panel .sgs-card').each((i, el) => $(el).css('left', i * span));
+
+        let cardEl = $('#sgs-card-panel .sgs-card');
+        let span = Math.min(60, (572 - 90) / cardEl.length);
+        cardEl.css({
+            position: 'absolute',
+        }).each((i, el) => $(el).css({left: i * span,}));
     },
 
     lock_card: function (params, marker) {
@@ -366,7 +394,7 @@ const Cmd = {
 
         switch (category.toLowerCase()) {
             case 'card':
-                $(`.sgs-card[pk=${pk}]`).addClass(selectedCardClass);
+                $(`#sgs-card-panel .sgs-card[pk=${pk}]`).addClass(selectedCardClass);
                 break;
             case 'target':
                 $(`.sgs-player[pk=${pk}] .sgs-player-card`).addClass(selectedPlayerClass);
@@ -405,10 +433,15 @@ class CommandQueue {
             yield new Promise((res, rej) => {
                 let {cmd, params, marker} = o;
                 let method = Cmd[cmd.toLowerCase()];
+                let result;
                 if (method) {
-                    method(params, marker);
+                    result = method(params, marker);
                 }
-                res();
+                if (result instanceof Promise) {
+                    result.then(() => res());
+                } else {
+                    res();
+                }
             });
         }
     }

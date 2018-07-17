@@ -27,6 +27,7 @@ class Game {
         this.users = {};  // User.id: User
         this.sortedUsers = [];  // List of User, sorted by seatNum
         this.waitingStack = [];
+        this.lastPopupMsg = null;
 
         this.zhugong = null;  // User
         this.roundOwner = null;  //  Whose round it is, now.
@@ -196,6 +197,16 @@ class Game {
             let u = this.users[k];
             u.reply(msg, (self && (self.id === u.id)), addToResoreCmd);
         }
+    }
+
+    broadcastPopup(msg, self) {
+        this.lastPopupMsg = {msg, self};
+        this.broadcast(`POPUP ${msg}`, self);
+    }
+
+    broadcastClearPopup(self) {
+        this.lastPopupMsg = null;
+        this.broadcast('CLEAR_POPUP', self);
     }
 
     broadcastUserInfo(user) {
@@ -401,17 +412,17 @@ class Game {
     }
 
     * unequipUserCard(user, equipType, discard = false) {
-        let old = user.unequipCard(equipType);
-        console.log('game.unequipUserCard');
-        console.log(old);
-        if (old) {
-            this.message([user, '失去了装备', old]);
-            yield user.on('unequip', game, {});
+        let oldCard = user.unequipCard(equipType);
+        if (oldCard) {
+            if (user.state === C.USER_STATE.ALIVE) {
+                this.message([user, '失去了装备', oldCard]);
+                yield user.on('unequip', game, {});
+            }
             this.broadcastUserInfo(user);
             if (discard) {
-                this.discardCards(old);
+                this.discardCards(oldCard);
             }
-            return yield Promise.resolve(old);
+            return yield Promise.resolve(oldCard);
         }
     }
 
@@ -454,6 +465,7 @@ class Game {
         let context = new Context({judgeCard});
         context.handlingCards.add(judgeCard);
 
+        game.broadcastPopup(`JUDGE ${judgeCard.toJsonString()}`, u);
         game.message(['判定牌为', context.judgeCard]);
 
         for (let _u of game.userRound()) {
@@ -462,6 +474,7 @@ class Game {
 
         yield u.on('judge', game, context);  // 目前仅用于小乔的【红颜】
         game.discardCards(context.handlingCards);
+        game.broadcastClearPopup(u);
 
         return R.judge(context.judgeCard, judgeFunction(context.judgeCard));
     }

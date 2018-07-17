@@ -31,6 +31,10 @@ const EQUIP_TYPE = {
     DEFENSE_HORSE: 'defenseHorse',
 };
 
+const POPUP_MSG_TYPE = {
+    JUDGE: 'JUDGE',
+};
+
 function sleep(ms) {
     return new Promise((res, rej) => {
         setTimeout(res, ms);

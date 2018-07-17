@@ -15,7 +15,6 @@ module.exports = class extends Phase {
         zhugong.reply(`FIGURE_CANDIDATE ${JSON.stringify(figures.map((f) => f.toJson()))}`, true, true);
         game.broadcast('MSG 等待主公选择武将');
 
-
         let command = yield game.wait(zhugong, {
             validCmds: ['FIGURE'],
             validator: (command) => {
@@ -27,13 +26,13 @@ module.exports = class extends Phase {
             },
         });
         let figurePk = command.params[0];
-        zhugong.setFigure(new Figures.figureSet[figurePk]());
+        zhugong.setFigure(new Figures[figurePk]());
         zhugong.showFigure = true;
         zhugong.reply(`CLEAR_CANDIDATE`);
         zhugong.popRestoreCmd();
+        zhugong.state = C.USER_STATE.ALIVE;
         game.message(['主公选择了武将', zhugong]);
         game.broadcastUserInfo(zhugong);
-        zhugong.state = C.USER_STATE.ALIVE;
 
         for (let u of game.userRound(zhugong, true)) {
             figures = [
@@ -55,9 +54,9 @@ module.exports = class extends Phase {
                 },
             });
             figurePk = command.params[0];
-            u.setFigure(new Figures.figureSet[figurePk]());
+            u.setFigure(new Figures[figurePk]());
             u.reply(`CLEAR_CANDIDATE`);
-            u.popRestoreCmd();
+            u.popRestoreCmd(`FIGURE_CANDIDATE`);
             u.reply(`USER_INFO ${u.seatNum} ${u.toJsonString(u)}`, true);
         }
 
