@@ -40,6 +40,7 @@ module.exports = class extends Phase {
                 new (Figures.LiuBei)(),
                 new (Figures.SiMaYi)(),
                 new (Figures.GuanYu)(),
+                new (Figures.ZhaoYun)(),
                 new (Figures.MaChao)(),
                 new (Figures.DaQiao)(),
                 new (Figures.XiaoQiao)(),

@@ -468,7 +468,7 @@ class QingLongYanYueDao extends WeaponCard {
             game.message([u, '发动了', this, '使用了', context.sourceCards, '追杀', context.targets]);
             context.phaseContext.shaCount ++;  // 青龙偃月刀算额外的杀
             result = yield ShaStage.start(game, context);
-            yield game.discardCards(context.handlingCards);
+            game.discardCards(context.handlingCards);
             return yield Promise.resolve(result);
         }
     }
@@ -618,7 +618,7 @@ class BaGuaZhen extends ArmorCard {
         if (command.cmd === C.CONFIRM.Y) {
             return yield this.s1(game, ctx);
         }
-        return yield Promise.resolve(R.success);
+        return yield Promise.resolve(R.fail);
     }
 }
 
@@ -642,6 +642,7 @@ class ChiTu extends DefenseHorseCard {
 const cardSet = new Map();
 
 [
+    // 基本牌
     new Sha(C.CARD_SUIT.SPADE, 10),
     new Sha(C.CARD_SUIT.SPADE, 10),
     new Sha(C.CARD_SUIT.HEART, 10),
@@ -660,6 +661,7 @@ const cardSet = new Map();
     new Tao(C.CARD_SUIT.HEART, 7),
     new Tao(C.CARD_SUIT.DIAMOND, 2),
 
+    // 非延时锦囊
     new JueDou(C.CARD_SUIT.SPADE, 1),
     new JueDou(C.CARD_SUIT.CLUB, 1),
     new JueDou(C.CARD_SUIT.DIAMOND, 1),
@@ -679,6 +681,7 @@ const cardSet = new Map();
     new NanManRuQin(C.CARD_SUIT.SPADE, 7),
     new NanManRuQin(C.CARD_SUIT.CLUB, 7),
 
+    // 延时锦囊
     new LeBuSiShu(C.CARD_SUIT.SPADE, 6),
     new LeBuSiShu(C.CARD_SUIT.HEART, 6),
     new LeBuSiShu(C.CARD_SUIT.CLUB, 6),
@@ -689,6 +692,7 @@ const cardSet = new Map();
     new ShanDian(C.CARD_SUIT.SPADE, 1),
     new ShanDian(C.CARD_SUIT.HEART, 12),
 
+    // 武器
     new QingLongYanYueDao(C.CARD_SUIT.SPADE, 5),
 
     new GuDingDao(C.CARD_SUIT.SPADE, 1),
@@ -706,11 +710,14 @@ const cardSet = new Map();
     // new ZhuGeLianNu(C.CARD_SUIT.DIAMOND, 1),
     // new ZhuGeLianNu(C.CARD_SUIT.CLUB, 1),
 
+    // 防具
     new BaGuaZhen(C.CARD_SUIT.SPADE, 2),
     new BaGuaZhen(C.CARD_SUIT.CLUB, 2),
 
+    // -1马
     new DiLu(C.CARD_SUIT.CLUB, 5),
 
+    // +1马
     new ChiTu(C.CARD_SUIT.HEART, 5),
 
 ].map((c) => cardSet.set(c.pk, c));

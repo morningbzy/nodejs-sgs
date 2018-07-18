@@ -309,7 +309,6 @@ class LiuBei extends FigureBase {
 
     * requireSha(game, ctx) {
         this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.ENABLED);
-        return yield Promise.resolve(R.success);
     }
 }
 
@@ -375,7 +374,75 @@ class GuanYu extends FigureBase {
 
     * requireSha(game, ctx) {
         this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.ENABLED);
-        return yield Promise.resolve(R.success);
+    }
+}
+
+
+class ZhaoYun extends FigureBase {
+// 【赵云】 蜀，男，4血
+// 【龙胆】
+    constructor() {
+        super();
+        this.name = '赵云';
+        this.pk = ZhaoYun.pk;
+        this.country = C.COUNTRY.SHU;
+        this.gender = C.GENDER.MALE;
+        this.hp = 4;
+        this.skills = {
+            SHU005s01: {
+                pk: 'SHU005s01',
+                style: C.SKILL_STYLE.SUODING,
+                name: '龙胆',
+                desc: '你可以将一张【杀】当【闪】，一张【闪】当【杀】使用或打出。',
+                handler: 's1',
+            },
+        };
+    }
+
+    * s1(game, ctx) {
+        const u = this.owner;
+        const {originClass, fakeClass} = ctx.SHU005s01;
+        let result = yield game.waitFSM(u, FSM.get('requireSingleCard', game, {
+            cardValidator: (command) => {
+                let card = game.cardByPk(command.params);
+                return (u.hasCard(card) && card instanceof originClass);
+            }
+        }), ctx);
+
+        if (result.success) {
+            let card = result.get();
+            let fakeCard = cardManager.fakeCards([card], {asClass: fakeClass});
+            result = new R.CardResult().set(fakeCard);
+            game.message([u, '把', card, '当作', fakeCard, '使用']);
+        } else {
+            result = R.fail;
+        }
+        ctx.SHU005s01 = null;
+        return yield Promise.resolve(result);
+    }
+
+    * roundPlayPhaseEnd(game, ctx) {
+        ctx.SHU005s01 = null;
+        this.changeSkillState(this.skills.SHU005s01, C.SKILL_STATE.DISABLED);
+    }
+
+    * play(game, ctx) {
+        if (ctx.phaseContext.shaCount > 0) {
+            ctx.SHU005s01 = {originClass: sgsCards.Shan, fakeClass: sgsCards.Sha};
+            this.changeSkillState(this.skills.SHU005s01, C.SKILL_STATE.ENABLED);
+        } else {
+            this.changeSkillState(this.skills.SHU005s01, C.SKILL_STATE.DISABLED);
+        }
+    }
+
+    * requireSha(game, ctx) {
+        ctx.SHU005s01 = {originClass: sgsCards.Shan, fakeClass: sgsCards.Sha};
+        this.changeSkillState(this.skills.SHU005s01, C.SKILL_STATE.ENABLED);
+    }
+
+    * requireShan(game, ctx) {
+        ctx.SHU005s01 = {originClass: sgsCards.Sha, fakeClass: sgsCards.Shan};
+        this.changeSkillState(this.skills.SHU005s01, C.SKILL_STATE.ENABLED);
     }
 }
 
@@ -858,6 +925,7 @@ SiMaYi.pk = 'WEI002';
 
 LiuBei.pk = 'SHU001';
 GuanYu.pk = 'SHU002';
+ZhaoYun.pk = 'SHU005';
 MaChao.pk = 'SHU006';
 
 DaQiao.pk = 'WU006';
@@ -870,6 +938,7 @@ figures = {
 
     LiuBei,
     GuanYu,
+    ZhaoYun,
     MaChao,
 
     DaQiao,

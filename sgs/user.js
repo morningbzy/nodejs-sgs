@@ -105,7 +105,7 @@ class User extends EventListener {
 
     popRestoreCmd(cmd) {
         let command = this.restoreCmds.pop();
-        if(!command.data.startsWith(cmd)) {
+        if (!command.data.startsWith(cmd)) {
             console.warn(`|<!> Command "${command.data}" dosen\'t match "${cmd}"`);
         }
     }
@@ -277,7 +277,7 @@ class User extends EventListener {
     // ------
 
     * on(event, game, ctx) {
-        if(!ctx) {
+        if (!ctx) {
             ctx = new Context();
         }
         console.log(`|<U> ON ${this.name}(${this.figure.name}) ${event}`);
@@ -408,80 +408,31 @@ class User extends EventListener {
     }
 
     * requireSha(game, ctx) {
-        const u = this;
-        let result;
-        let cardClass = sgsCards.Sha;
-        yield this.figure.on('requireSha', game, ctx);
-        if (this.equipments.weapon) {
-            yield this.equipments.weapon.card.on('requireSha', game, ctx);
+        let result = yield this.figure.on('requireSha', game, ctx);
+        if (result.fail && this.equipments.weapon) {
+            result = yield this.equipments.weapon.card.on('requireSha', game, ctx);
         }
-
-        const requireShaFSM = () => {
-            let m = new FSM.Machine(game);
-            m.addState(new FSM.State('CSE'), true);
-            m.addState(new FSM.State('O'));
-            m.addState(new FSM.State('S', function* (game, ctx, fsmContext) {
-                let command = fsmContext.command;
-                let skill = u.figure.skills[command.params[0]];
-                let result = yield u.figure.useSkill(skill, game, ctx);
-                let nextCmd = result.success ? 'OK' : 'CANCEL';
-                fsmContext.result = result;
-                return yield Promise.resolve({
-                    command: nextCmd,
-                });
-            }));
-
-            m.addTransition(new FSM.Transition('CSE', 'CARD', 'O',
-                (command) => {
-                    let card = game.cardByPk(command.params);
-                    return (this.hasCard(card) && card instanceof cardClass);
-                },
-                (game, ctx) => {
-                    ctx.card = game.cardByPk(ctx.command.params);
-                }
-            ));
-            m.addTransition(new FSM.Transition('CSE', 'SKILL', 'S',
-                (command) => {
-                    let skill = u.figure.skills[command.params[0]];
-                    return (skill.state === C.SKILL_STATE.ENABLED);
-                }
-            ));
-            m.addTransition(new FSM.Transition('CSE', 'CANCEL', '_'));
-            m.addTransition(new FSM.Transition('O', 'UNCARD', 'CSE', null,
-                (game, ctx) => {
-                    ctx.card = null;
-                }
-            ));
-            m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                (game, ctx) => {
-                    return new R.CardResult().set(ctx.card);
-                }
-            ));
-            m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-            m.addTransition(new FSM.Transition('S', 'OK', '_', null,
-                (game, ctx) => {
-                    return ctx.result;
-                }
-            ));
-            m.addTransition(new FSM.Transition('S', 'CANCEL', 'CSE'));
-
-            m.setFinalHandler((r) => {
-                return r.get().pop();
-            });
-
-            return m;
-        };
-        result = yield game.waitFSM(this, requireShaFSM(), ctx);
+        if (result.fail) {
+            let opt = {
+                u: this,
+                cardClass: sgsCards.Sha,
+            };
+            result = yield game.waitFSM(this, FSM.get('requireSpecCard', game, opt), ctx);
+        }
         return yield Promise.resolve(result);
     }
 
     * requireShan(game, ctx) {
         let result = yield this.figure.on('requireShan', game, ctx);
-        if (!result.abort && result.fail && this.equipments.armor) {
+        if (result.fail && this.equipments.armor) {
             result = yield this.equipments.armor.card.on('requireShan', game, ctx);
         }
-        if (!result.abort && result.fail) {
-            result = yield this.requireCard(game, sgsCards.Shan, ctx);
+        if(result.fail) {
+            let opt = {
+                u: this,
+                cardClass: sgsCards.Shan,
+            };
+            result = yield game.waitFSM(this, FSM.get('requireSpecCard', game, opt), ctx);
         }
         return yield Promise.resolve(result);
     }

@@ -53,6 +53,12 @@ class Machine {
         return this.current.validate(command, this.context);
     }
 
+    * intoSub(state, ctx) {
+        let command = yield state.subMachine(this.game, ctx, this.context);
+        this.result.set(this.context.result);
+        return yield Promise.resolve(command);
+    }
+
     next(command) {
         this.context.command = command;
         let trans = this.current.transitions.get(command.cmd);

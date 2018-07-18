@@ -172,7 +172,7 @@ class Game {
 
             if (state.subMachine) {
                 console.log(`|= _SUB`);
-                let result = yield state.subMachine(game, ctx, fsm.context);
+                let result = yield fsm.intoSub(state, ctx);
                 console.log(result.nextCmd);
                 command = new Command(u.pk, result.command, []);
             } else {

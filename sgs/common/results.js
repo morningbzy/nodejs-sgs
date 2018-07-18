@@ -165,6 +165,7 @@ module.exports = {
     Fsm2Result,
     DistanceResult,
 
+    // Shortcuts
     success: new SuccessResult(),
     fail: new FailResult(),
     abort: new AbortResult(),
