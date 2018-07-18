@@ -84,6 +84,7 @@ Constants = {
     },
     POPUP_MSG_TYPE: {
         JUDGE: 'JUDGE',
+        INSTEAD: 'INSTEAD',
     }
 };
 Constants.ROLES_MAPPING = {

@@ -480,7 +480,7 @@ class SiMaYi extends FigureBase {
                 },
             });
             u.reply(`CLEAR_CANDIDATE`);
-            u.popRestoreCmd();
+            u.popRestoreCmd('CARD_CANDIDATE');
 
             let card = game.cardByPk(command.params);
             yield game.removeUserCardsEx(ctx.sourceUser, card);
@@ -499,7 +499,7 @@ class SiMaYi extends FigureBase {
             ctx.judgeCard = result.get();
             yield game.removeUserCards(this.owner, ctx.judgeCard);
             ctx.handlingCards.add(ctx.judgeCard);
-            game.broadcastPopup(`JUDGE ${ctx.judgeCard.toJsonString()}`);
+            game.broadcastPopup(`INSTEAD ${this.name} ${ctx.judgeCard.toJsonString()}`);
             game.message([this.owner, '使用', ctx.judgeCard, '替换了判定牌']);
         }
         return yield Promise.resolve(result);
@@ -804,7 +804,7 @@ class SunShangXiang extends FigureBase {
         u.reply(`CARD_CANDIDATE ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
         let result = yield game.waitFSM(u, skillWU008s01FSM(), ctx);
         u.reply(`CLEAR_CANDIDATE`);
-        u.popRestoreCmd();
+        u.popRestoreCmd('CARD_CANDIDATE');
 
         if (result.success) {
             let cards = result.get().card;

@@ -319,7 +319,7 @@ class GuoHeChaiQiao extends SilkBagCard {
             },
         });
         u.reply(`CLEAR_CANDIDATE`);
-        u.popRestoreCmd();
+        u.popRestoreCmd('CARD_CANDIDATE');
 
         let card = game.cardByPk(command.params);
         game.message([u, '拆掉了', target, '的一张牌']);
@@ -578,7 +578,7 @@ class GuanShiFu extends WeaponCard {
                     },
                 });
                 u.reply(`CLEAR_CANDIDATE`);
-                u.popRestoreCmd();
+                u.popRestoreCmd('CARD_CANDIDATE');
 
                 let cards = game.cardsByPk(command.params);
                 game.message([u, '弃掉', cards, '，发动武器', this, '使【杀】强制命中']);
@@ -676,14 +676,6 @@ const cardSet = new Map();
     new WuZhongShengYou(C.CARD_SUIT.HEART, 9),
     new WuZhongShengYou(C.CARD_SUIT.HEART, 11),
 
-    new NanManRuQin(C.CARD_SUIT.SPADE, 7),
-    new NanManRuQin(C.CARD_SUIT.CLUB, 7),
-    new NanManRuQin(C.CARD_SUIT.SPADE, 7),
-    new NanManRuQin(C.CARD_SUIT.CLUB, 7),
-    new NanManRuQin(C.CARD_SUIT.SPADE, 7),
-    new NanManRuQin(C.CARD_SUIT.CLUB, 7),
-    new NanManRuQin(C.CARD_SUIT.SPADE, 7),
-    new NanManRuQin(C.CARD_SUIT.CLUB, 7),
     new NanManRuQin(C.CARD_SUIT.SPADE, 7),
     new NanManRuQin(C.CARD_SUIT.CLUB, 7),
 

@@ -12,6 +12,7 @@ function changeSeatStateClass(seatNum, marker, stateClass, remove = false) {
     }
 }
 
+
 const Cmd = {
     waitingTag: 0,  // 0:NOTHING, 1:SOMETHING, 2:CARD, 3:TARGET
 
@@ -47,6 +48,8 @@ const Cmd = {
         $('#sgs-player-panel').removeClass(waitingClass).removeClass(readyClass);
 
         Cmd.unmodal();
+        Cmd.clear_popup();
+        Cmd.clear_alert();
     },
 
     table: function (params, marker) {
@@ -173,28 +176,44 @@ const Cmd = {
 
         switch (msgType) {
             case POPUP_MSG_TYPE.JUDGE:
-                msgEl.fadeOut(() => {
-                    let body = $('.sgs-popup-msg-body', msgEl);
+                Cmd.clear_popup(params, marker);
+                msgEl.queue(function () {
                     let cards = [JSON.parse(params.join(' '))];
                     let rendered = Mustache.render(cardTpl, {cards});
-                    body.html(rendered);
-                    $('.sgs-popup-msg-header', msgEl).removeClass('d-none').text('判定牌');
-                }).fadeIn(200).delay(1000);
-                // msgEl.fadeIn(100, () => $('#sgs-popup-msg').fadeTo(1000, 1, () => $('#sgs-popup-msg').fadeOut(500)));
+                    $('.sgs-popup-msg-footer', msgEl).removeClass('invisible').text('判定牌');
+                    $('.sgs-popup-msg-body', msgEl).html(rendered);
+                    $(this).dequeue();
+                }).fadeIn(200).delay(1500);
+                break;
+            case POPUP_MSG_TYPE.INSTEAD:
+                let title = params.shift();
+                let cards = [JSON.parse(params.join(' '))];
+                let rendered = Mustache.render(cardTpl, {cards});
+                let arrow = '<div class="p-3 text-black-50" style="font-size: 3rem;">'
+                    + '<i class="fas fa-angle-double-left"></i>'
+                    + '</div>';
+                $('.sgs-popup-msg-header', msgEl).removeClass('invisible').text(title);
+                $(arrow).appendTo($('.sgs-popup-msg-body', msgEl));
+                $(rendered).appendTo($('.sgs-popup-msg-body', msgEl));
+                msgEl.delay(1500);
+                break;
         }
     },
 
     clear_popup: function (params, marker) {
         let msgEl = $('#sgs-popup-msg');
         msgEl.fadeOut(() => {
-            $('.sgs-popup-msg-header, .sgs-popup-msg-footer', msgEl).addClass('d-none');
+            $('.sgs-popup-msg-header, .sgs-popup-msg-footer', msgEl).addClass('invisible').text('信息');
             $('.sgs-popup-msg-body', msgEl).html('');
         });
     },
 
     confirm: function (params, marker) {
         let alertHtml = params.join(' ');
-        alertHtml += `<span class="sgs-confirm-action"><a href="#" class="sgs-confirm-action-y alert-link ml-3" cmd="Y">是</a><a href="#" class="sgs-confirm-action-n alert-link ml-3" cmd="N">否</a></span>`;
+        alertHtml += '<span class="sgs-confirm-action">'
+            + '<a href="#" class="sgs-confirm-action-y alert-link ml-3" cmd="Y">是</a>'
+            + '<a href="#" class="sgs-confirm-action-n alert-link ml-3" cmd="N">否</a>'
+            + '</span>';
         Cmd.alert([alertHtml], marker);
     },
 
@@ -205,6 +224,10 @@ const Cmd = {
         $('#sgs-table .alert').alert('close');
         $(rendered).appendTo('#sgs-table');
         $('#sgs-table .alert:last').fadeIn(() => $('#sgs-table .alert:last').addClass('show'));
+    },
+
+    clear_alert: function( params, marker) {
+        $('#sgs-table .alert').alert('close');
     },
 
     toast: function (params, marker) {

@@ -131,7 +131,7 @@ class Game {
             validCmds: ['Y', 'N'],
             waitingTag: C.WAITING_FOR.CONFIRM,
             value: (command) => {
-                u.popRestoreCmd();
+                u.popRestoreCmd('CONFIRM');
                 return command;
             }
         });
@@ -143,7 +143,7 @@ class Game {
             validCmds: ['CHOICE',],
             waitingTag: C.WAITING_FOR.CHOICE,
             value: (command) => {
-                u.popRestoreCmd();
+                u.popRestoreCmd('CHOICE_CANDIDATE');
                 return command;
             }
         });
