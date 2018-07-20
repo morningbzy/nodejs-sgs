@@ -36,6 +36,7 @@ module.exports = {
     },
 
     card: (game, sender, params) => {
+        console.log(`|[i] CARD: ${game.cardByPk(params).name}`);
         sender.reply(`SELECT CARD ${params}`);
     },
 
@@ -50,6 +51,7 @@ module.exports = {
     },
 
     target: (game, sender, params) => {
+        console.log(`|[i] TARGET: ${game.userByPk(params).figure.name}`);
         sender.reply(`SELECT TARGET ${params}`);
     },
 

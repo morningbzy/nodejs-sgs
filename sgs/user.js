@@ -326,12 +326,8 @@ class User extends EventListener {
     }
 
     * useTao(game, ctx) {
-        if (this.hp < this.maxHp) {
-            game.message([ctx.sourceUser, '使用了', ctx.sourceCards]);
-            ctx.heal = 1;
-            yield this.on('heal', game, ctx);
-            yield game.removeUserCards(ctx.sourceUser, ctx.sourceCards, true);
-        }
+        yield this.on('heal', game, ctx);
+        yield game.removeUserCards(ctx.sourceUser, ctx.sourceCards, true);
     }
 
     * damage(game, ctx) {

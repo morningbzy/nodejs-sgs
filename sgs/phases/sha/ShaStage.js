@@ -108,9 +108,9 @@ class ShaExecuteStage {
 }
 
 const subStages = [
-    ShaInitStage,
-    ShaValidateStage,
-    ShaExecuteStage,
+    // ShaInitStage,
+    // ShaValidateStage,
+    // ShaExecuteStage,
 ];
 
 class ShaStage {

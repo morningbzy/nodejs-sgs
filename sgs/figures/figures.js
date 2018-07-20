@@ -659,8 +659,9 @@ class DaQiao extends FigureBase {
 
             yield game.removeUserCards(u, card, true);
 
-            ctx.targets.delete(u);
-            ctx.targets.add(target);
+            let targets = U.toSet(ctx.targets).delete(u);
+            targets.add(target);
+            ctx.targets = U.toArray(targets);
             if (ctx.shanAble.has(u)) {
                 ctx.shanAble.set(target, ctx.shanAble.get(u));
                 ctx.shanAble.delete(u);
@@ -831,11 +832,6 @@ class SunShangXiang extends FigureBase {
                     ctx.target = game.userByPk(ctx.command.params);
                 }
             ));
-            m.addTransition(new FSM.Transition('T', 'UNCARD', 'C2', null,
-                (game, ctx) => {
-                    ctx.cards.delete(game.cardByPk(ctx.command.params));
-                }
-            ));
             m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
 
             m.addTransition(new FSM.Transition('O', 'OK', '_', null,
@@ -846,13 +842,6 @@ class SunShangXiang extends FigureBase {
             m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T', null,
                 (game, ctx) => {
                     ctx.target = null;
-                }
-            ));
-            m.addTransition(new FSM.Transition('O', 'UNCARD', 'C2', null,
-                (game, ctx) => {
-                    u.reply(`UNSELECT TARGET ${ctx.target.id}`);
-                    ctx.target = null;
-                    ctx.cards.delete(game.cardByPk(ctx.command.params));
                 }
             ));
             m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));

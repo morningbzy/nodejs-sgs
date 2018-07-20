@@ -85,6 +85,19 @@ Constants = {
     POPUP_MSG_TYPE: {
         JUDGE: 'JUDGE',
         INSTEAD: 'INSTEAD',
+    },
+    TARGET_SELECT_TYPE: {
+        SINGLE: 1,
+        NONE: 0,
+        ONE_OR_MORE: -1,
+        SELF: -2,
+        ALL_OTHERS: -3,
+        ALL: -4,
+    },
+    SELECT_TYPE: {
+        SINGLE: 1,
+        NONE: 0,
+        ONE_OR_MORE: -1,
     }
 };
 Constants.ROLES_MAPPING = {

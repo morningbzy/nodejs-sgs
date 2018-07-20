@@ -69,8 +69,8 @@ class TargetResult extends ResultBase {
 }
 
 class CardResult extends ResultBase {
-    constructor() {
-        super();
+    constructor(initState = RESULT_STATE.SUCCESS) {
+        super(initState);
     }
 
     set(card) {
@@ -153,6 +153,8 @@ class DistanceResult extends SuccessResult {
 
 
 module.exports = {
+    RESULT_STATE,
+
     ResultBase,
     SuccessResult,
     FailResult,

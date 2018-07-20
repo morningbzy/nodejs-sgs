@@ -1,4 +1,5 @@
 const R = require('../results');
+const U = require('../../utils');
 
 
 class Machine {
@@ -45,6 +46,10 @@ class Machine {
         from.addTransition(trans);
     }
 
+    setContext(obj) {
+        Object.assign(this.context, obj);
+    }
+
     start() {
         this.current = this.init;
     }
@@ -74,10 +79,13 @@ class Machine {
         this.move(trans.to);
     }
 
-    move(state) {
-        this.current = this.getState(state);
+    move(toState) {
+        if(toState instanceof Function) {
+            toState = toState(this.game, this.context);
+        }
+        this.current = this.getState(toState);
         this.done = (this.current === this.end);
-        if(this.done && this.finalHandler) {
+        if (this.done && this.finalHandler) {
             this.result = this.finalHandler(this.result);
         }
     }
@@ -108,8 +116,6 @@ class State {
     }
 }
 
-const END_STATE = new State('_');
-
 class Transition {
     constructor(from, cmd, to, validator, action) {
         this.from = from;
@@ -137,6 +143,8 @@ class Transition {
     }
 }
 
+
+const END_STATE = new State('_');
 
 module.exports = {
     Machine, State, Transition,

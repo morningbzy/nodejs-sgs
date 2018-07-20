@@ -165,7 +165,7 @@ class Game {
         fsm.start();
         while (!fsm.done) {
             let state = fsm.current;
-            console.log(`|= * ${state.pk}`);
+            console.log(`|= * State -> ${state.pk}`);
             let validCmds = state.getValidCmds();
             console.log(`|= * Wating ${validCmds}`);
             let command;
@@ -173,8 +173,7 @@ class Game {
             if (state.subMachine) {
                 console.log(`|= _SUB`);
                 let result = yield fsm.intoSub(state, ctx);
-                console.log(result.nextCmd);
-                command = new Command(u.pk, result.command, []);
+                command = new Command(u.pk, result.command, result.params || []);
             } else {
                 command = yield this.wait(u, {
                     validCmds: validCmds,
@@ -186,9 +185,7 @@ class Game {
             console.log(`|= command < ${command.cmd}`);
             fsm.next(command);
         }
-
-        u.reply('UNSELECT ALL');
-        console.log(`|=F= FSM Done: ${fsm.result.get()}`);
+        console.log('|=F= FSM Done:', fsm.result.get());
         return fsm.result;
     }
 
