@@ -10,12 +10,15 @@ const WAITING_FOR = {
     CARD: 0x0002,
     TARGET: 0x0004,
     CONFIRM: 0x0008,
-    PLAY: 0x0010,
+    SKILL: 0x0010,
     OK: 0x0020,
     CANCEL: 0x0040,
     UNCARD: 0x0080,
     UNTARGET: 0x0100,
     CHOICE: 0x0200,
+    CARD_CANDIDATE: 0x0400,
+    FIGURE: 0x0800,
+    PASS: 0x1000,
 };
 
 const SKILL_STATE = {

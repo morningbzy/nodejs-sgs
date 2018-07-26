@@ -62,7 +62,7 @@ class TargetResult extends ResultBase {
 
     set(target) {
         if (Array.isArray(target)) {
-            console.log(`|<!> TargetResult can only set Target, but receive ${target}`);
+            console.warn(`|<!> TargetResult can only set Target, but receive ${target}`);
         }
         this._resultObj = target;
         return this;
@@ -80,7 +80,7 @@ class CardResult extends ResultBase {
 
     set(card) {
         if (Array.isArray(card)) {
-            console.log(`|<!> CardResult can only set Card, but receive ${card}`);
+            console.warn(`|<!> CardResult can only set Card, but receive ${card}`);
         }
         this._resultObj = U.toSingle(card);
         return this;

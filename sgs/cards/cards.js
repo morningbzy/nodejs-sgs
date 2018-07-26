@@ -409,7 +409,7 @@ class Sha extends NormalCard {
         let u = ctx.i.sourceUser;
         yield u.on('useSha', game, ctx);
         if (ctx.phaseCtx.i.shaCount < 1) {
-            console.log(`|<!> Use too many Sha`);
+            console.log(`|[i] Use too many Sha`);
             return yield Promise.resolve(R.fail);
         }
         let opt = {

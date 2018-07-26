@@ -58,7 +58,7 @@ class Game {
 
         if (!result.valid) {
             u.reply(`TOAST danger 操作无效`, true);
-            console.log(`|<!> invalid command!`);
+            console.log(`|[i] invalid command!`);
             console.log(`+--------------------`);
             console.log(``);
             return;
@@ -68,7 +68,7 @@ class Game {
         if (typeof(handler) === 'function') {
             handler(this, u, params);
         } else {
-            console.log(`|<!> No command handler is found!`);
+            console.warn(`|<!> No command handler is found!`);
         }
 
         console.log(`+ - - - - - - - - - -`);
@@ -87,10 +87,10 @@ class Game {
             if (validator === undefined || validator(command)) {
                 return {valid: true, waiting};
             } else {
-                console.log(`|<!> Waiting: validator failed!`);
+                console.log(`|[i] Waiting: validator failed!`);
             }
         } else {
-            console.log(`|<!> Waiting: [${waiting.u.seatNum}]${waiting.u.name} - ${waiting.validCmds}!`);
+            console.log(`|[!] Waiting: [${waiting.u.seatNum}]${waiting.u.name} - ${waiting.validCmds}!`);
         }
         this.waitingStack.push(waiting);
         return {valid: false};
@@ -99,6 +99,9 @@ class Game {
     wait(u, waiting) {
         let waitingTag = C.WAITING_FOR.NOTHING;
         for (let k of waiting.validCmds) {
+            if(C.WAITING_FOR[k] === undefined) {
+                console.warn(`|<!> Missing C.WAITING_FOR.${k}`);
+            }
             waitingTag += C.WAITING_FOR[k] || 0;
         }
         console.log(`|[i] Waiting for ${u.figure ? u.figure.name : u.name} @ ${u.seatNum}, CMD: ${waiting.validCmds} @ ${waitingTag}`);

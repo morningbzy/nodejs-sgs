@@ -360,6 +360,14 @@ const Cmd = {
 
         if (marker === '*') {
             Cmd.waitingTag = parseInt(params[1]);
+            $('[waiting-tag]').each((i, el) => {
+                console.log(Boolean(Cmd.waitingTag & parseInt(WAITING_FOR[$(el).attr('waiting-tag')])));
+                if(0 === (Cmd.waitingTag & parseInt(WAITING_FOR[$(el).attr('waiting-tag')]))) {
+                    $(el).addClass('disabled').removeClass('btn-primary');
+                } else {
+                    $(el).removeClass('disabled').addClass('btn-primary');
+                }
+            });
         }
     },
 

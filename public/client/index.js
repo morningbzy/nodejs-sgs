@@ -90,7 +90,7 @@ class Game {
             }
         });
         table.on('click', '#sgs-card-panel .sgs-card', (e) => {
-            if ((WAITING_FOR.PLAY + WAITING_FOR.CARD + WAITING_FOR.UNCARD) & Cmd.waitingTag) {
+            if ((WAITING_FOR.CARD + WAITING_FOR.UNCARD) & Cmd.waitingTag) {
                 let el = $(e.currentTarget);
                 let pk = $(e.currentTarget).attr('pk');
                 Cmd.send({
@@ -103,14 +103,9 @@ class Game {
             let pk = $(e.currentTarget).attr('pk');
             Cmd.send({cmd: 'SKILL', params: [pk],});
         });
-        table.on('click', '.sgs-action-ok', (e) => {
-            Cmd.send({cmd: 'OK', params: [],});
-        });
-        table.on('click', '.sgs-action-cancel', (e) => {
-            Cmd.send({cmd: 'CANCEL', params: [],});
-        });
-        table.on('click', '.sgs-action-pass', (e) => {
-            Cmd.send({cmd: 'PASS', params: [],});
+        table.on('click', '.sgs-action:not(.disabled)', (e) => {
+            let action = $(e.currentTarget).attr('action');
+            Cmd.send({cmd: action, params: [],});
         });
         table.on('click', '#sgs-candidate-panel .sgs-card', (e) => {
             let el = $(e.currentTarget);
