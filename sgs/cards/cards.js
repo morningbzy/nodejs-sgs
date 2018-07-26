@@ -861,6 +861,25 @@ class GuanShiFu extends WeaponCard {
 }
 
 
+class ZhuGeLianNu extends WeaponCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '诸葛连弩';
+        this.shortName = '弩';
+        this.range = 1;
+    }
+
+    * run(game, ctx) {
+        ctx.phaseCtx.i.shaCount = Infinity;
+        return yield super.run(game, ctx);
+    }
+
+    * play(game, ctx) {
+        ctx.phaseCtx.i.shaCount = Infinity;
+    }
+}
+
+
 class BaGuaZhen extends ArmorCard {
     constructor(suit, number) {
         super(suit, number);
@@ -977,8 +996,8 @@ const cardSet = new Map();
     // new YinYueQiang(C.CARD_SUIT.DIAMOND, 12),
     // new ZhangBaSheMao(C.CARD_SUIT.SPADE, 12),
     // new ZhuQueYuShan(C.CARD_SUIT.DIAMOND, 1),
-    // new ZhuGeLianNu(C.CARD_SUIT.DIAMOND, 1),
-    // new ZhuGeLianNu(C.CARD_SUIT.CLUB, 1),
+    new ZhuGeLianNu(C.CARD_SUIT.DIAMOND, 1),
+    new ZhuGeLianNu(C.CARD_SUIT.CLUB, 1),
 
     // 防具
     new BaGuaZhen(C.CARD_SUIT.SPADE, 2),

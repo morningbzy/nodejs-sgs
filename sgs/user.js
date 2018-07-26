@@ -303,13 +303,10 @@ class User extends EventListener {
     // ---  ---
 
     * play(game, ctx) {
-        let result = yield this.figure.on('play', game, ctx);
-        if (!result && this.equipments.armor) {
-            result = yield this.equipments.armor.card.on('play', game, ctx);
+        yield this.figure.on('play', game, ctx);
+        if (this.equipments.weapon) {
+            yield this.equipments.weapon.card.on('play', game, ctx);
         }
-        if (!result) {
-        }
-        return yield Promise.resolve(result);
     }
 
     * useSha(game, ctx) {
