@@ -4,6 +4,7 @@ RESULT_STATE = {
     ABORT: 1,
     FAIL: 2,
     SUCCESS: 3,
+    UNIMPLEMENTED: 4,
 };
 
 class ResultBase {
@@ -66,6 +67,10 @@ class TargetResult extends ResultBase {
         this._resultObj = target;
         return this;
     }
+
+    toString() {
+        return `[TargetResult: ${this._resultObj}]`;
+    }
 }
 
 class CardResult extends ResultBase {
@@ -80,18 +85,11 @@ class CardResult extends ResultBase {
         this._resultObj = U.toSingle(card);
         return this;
     }
-}
 
-// class CardsResult extends ResultBase {
-//     constructor() {
-//         super();
-//     }
-//
-//     set(cards) {
-//         this._resultObj = Array.isArray(cards) ? cards : Array.from([cards]);
-//         return this;
-//     }
-// }
+    toString() {
+        return `[CardResult: ${this._resultObj}]`;
+    }
+}
 
 class CardTargetResult extends ResultBase {
     constructor() {
@@ -101,6 +99,12 @@ class CardTargetResult extends ResultBase {
     set(card, target) {
         this._resultObj = {card, target};
         return this;
+    }
+
+    toString() {
+        let cardStr = U.toArray(this._resultObj.card).map(c => c.toString()).join(',');
+        let targetStr = U.toArray(this._resultObj.target).map(t => t.toString()).join(',');
+        return `[CardTargetResult: ${cardStr} -> ${targetStr}]`;
     }
 }
 

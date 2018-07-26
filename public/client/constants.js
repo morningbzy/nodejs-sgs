@@ -2,6 +2,7 @@ const waitingClass = 'waiting bg-warning';
 const readyClass = ' bg-success';
 const selectedCardClass = 'selected sgs-card-selected border-success';
 const selectedPlayerClass = 'selected sgs-player-selected border-success';
+const selectedSkillClass = 'selected sgs-skill-selected border-success';
 const lockedCardClass = 'locked sgs-card-locked border-danger';
 const WAITING_FOR = {
     NOTHING: 0x0000,

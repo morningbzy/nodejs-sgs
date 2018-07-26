@@ -1,7 +1,7 @@
 const C = require('./constants');
 const R = require('./common/results');
 const Context = require('./context');
-const FSM = require('./common/stateMachines');
+const FSM = require('./common/fsm');
 const sgsCards = require('./cards/cards');
 const EventListener = require('./common/eventListener');
 
@@ -78,6 +78,10 @@ class User extends EventListener {
 
     toJsonString(u) {
         return JSON.stringify(this.toJson(u));
+    }
+
+    toString() {
+        return this.figure? this.figure.name: this.name;
     }
 
     setResp(resp) {
@@ -198,7 +202,7 @@ class User extends EventListener {
     }
 
     removeJudge(card) {
-        return this.judgeStack = this.judgeStack.filter(c => c.pk !== card.pk);
+        this.judgeStack = this.judgeStack.filter(c => c.pk !== card.pk);
     }
 
     equipCard(card) {
@@ -259,7 +263,7 @@ class User extends EventListener {
     // NOTE: This is NOT an event handler
     * requireCard(game, cardClass, ctx) {
         const u = this;
-        let result = yield game.waitFSM(u, FSM.get('requireSingleCard', game, {
+        let result = yield game.waitFSM(u, FSM.get('requireSingleCard', game, ctx, {
             cardValidator: (command) => {
                 let card = game.cardByPk(command.params);
                 return (this.hasCard(card) && card instanceof cardClass);
@@ -285,15 +289,15 @@ class User extends EventListener {
     }
 
     // --- 阶段事件 ---
-    // 阶段事件的ctx都是phaseContext
+    // 阶段事件的ctx都是PhaseContext
 
-    * roundPlayPhaseStart(game, ctx) {
-        ctx.shaCount = 1;
-        return yield this.figure.on('roundPlayPhaseStart', game, ctx);
+    * roundPlayPhaseStart(game, phaseCtx) {
+        phaseCtx.i.shaCount = 1;
+        return yield this.figure.on('roundPlayPhaseStart', game, phaseCtx);
     }
 
-    * roundPlayPhaseEnd(game, ctx) {
-        return yield this.figure.on('roundPlayPhaseEnd', game, ctx);
+    * roundPlayPhaseEnd(game, phaseCtx) {
+        return yield this.figure.on('roundPlayPhaseEnd', game, phaseCtx);
     }
 
     // ---  ---
@@ -322,12 +326,12 @@ class User extends EventListener {
     }
 
     * usedSha(game, ctx) {
-        ctx.phaseContext.shaCount--;
+        ctx.phaseCtx.i.shaCount--;
     }
 
     * useTao(game, ctx) {
         yield this.on('heal', game, ctx);
-        yield game.removeUserCards(ctx.sourceUser, ctx.sourceCards, true);
+        yield game.removeUserCards(ctx.i.sourceUser, ctx.i.card, true);
     }
 
     * damage(game, ctx) {
@@ -336,7 +340,7 @@ class User extends EventListener {
             return yield Promise.resolve(result);
         }
 
-        let willDamage = ctx.damage + (ctx.exDamage || 0);
+        let willDamage = ctx.i.damage.value + (ctx.i.exDamage || 0);
         console.log(`|<U> HP - ${willDamage}`);
         this.hp -= willDamage;
         game.message([this, '受到', willDamage, '点伤害']);
@@ -353,7 +357,7 @@ class User extends EventListener {
     }
 
     * heal(game, ctx) {
-        let willHeal = Math.min(this.maxHp - this.hp, ctx.heal);
+        let willHeal = Math.min(this.maxHp - this.hp, ctx.i.heal);
         console.log(`|<U> HP${this.hp} + ${willHeal} = ${this.hp + willHeal}`);
         this.hp += willHeal;
         game.message([this, '恢复', willHeal, '点体力']);
@@ -380,7 +384,7 @@ class User extends EventListener {
                     if (result.success) {
                         let cards = result.get();
                         yield game.removeUserCards(u, cards, true);
-                        ctx.heal = 1;
+                        ctx.i.heal = 1;
                         yield this.on('heal', game, ctx);
                     }
                 } else {
@@ -413,7 +417,10 @@ class User extends EventListener {
                 u: this,
                 cardClass: sgsCards.Sha,
             };
-            result = yield game.waitFSM(this, FSM.get('requireSpecCard', game, opt), ctx);
+            this.reply('ALERT 请出杀...', true, true);
+            result = yield game.waitFSM(this, FSM.get('requireSpecCard', game, ctx, opt), ctx);
+            this.reply('CLEAR_ALERT');
+            this.popRestoreCmd('ALERT');
         }
         return yield Promise.resolve(result);
     }
@@ -428,7 +435,10 @@ class User extends EventListener {
                 u: this,
                 cardClass: sgsCards.Shan,
             };
-            result = yield game.waitFSM(this, FSM.get('requireSpecCard', game, opt), ctx);
+            this.reply('ALERT 请出闪...', true, true);
+            result = yield game.waitFSM(this, FSM.get('requireSpecCard', game, ctx, opt), ctx);
+            this.reply('CLEAR_ALERT');
+            this.popRestoreCmd('ALERT');
         }
         return yield Promise.resolve(result);
     }

@@ -11,7 +11,10 @@ module.exports = class extends Phase {
     static* start(game) {
         game.state = C.GAME_STATE.CHOOSING_FIGURE;
         const zhugong = game.zhugong;
-        let figures = [new (Figures.CaoCao)(), new (Figures.LiuBei)()];
+        let figures = [
+            new (Figures.CaoCao)(game),
+            new (Figures.LiuBei)(game)
+        ];
         zhugong.reply(`FIGURE_CANDIDATE ${JSON.stringify(figures.map((f) => f.toJson()))}`, true, true);
         game.broadcast('MSG 等待主公选择武将');
 
@@ -26,25 +29,25 @@ module.exports = class extends Phase {
             },
         });
         let figurePk = command.params[0];
-        zhugong.setFigure(new Figures[figurePk]());
+        zhugong.setFigure(new Figures[figurePk](game));
         zhugong.showFigure = true;
         zhugong.reply(`CLEAR_CANDIDATE`);
-        zhugong.popRestoreCmd();
+        zhugong.popRestoreCmd('FIGURE_CANDIDATE');
         zhugong.state = C.USER_STATE.ALIVE;
         game.message(['主公选择了武将', zhugong]);
         game.broadcastUserInfo(zhugong);
 
         for (let u of game.userRound(zhugong, true)) {
             figures = [
-                new (Figures.CaoCao)(),
-                new (Figures.LiuBei)(),
-                new (Figures.SiMaYi)(),
-                new (Figures.GuanYu)(),
-                new (Figures.ZhaoYun)(),
-                new (Figures.MaChao)(),
-                new (Figures.DaQiao)(),
-                new (Figures.XiaoQiao)(),
-                new (Figures.SunShangXiang)(),
+                new (Figures.CaoCao)(game),
+                new (Figures.LiuBei)(game),
+                new (Figures.SiMaYi)(game),
+                new (Figures.GuanYu)(game),
+                new (Figures.ZhaoYun)(game),
+                new (Figures.MaChao)(game),
+                new (Figures.DaQiao)(game),
+                new (Figures.XiaoQiao)(game),
+                new (Figures.SunShangXiang)(game),
             ];
             u.reply(`FIGURE_CANDIDATE ${JSON.stringify(figures.map((f) => f.toJson()))}`, true, true);
             command = yield game.wait(u, {
@@ -55,7 +58,7 @@ module.exports = class extends Phase {
                 },
             });
             figurePk = command.params[0];
-            u.setFigure(new Figures[figurePk]());
+            u.setFigure(new Figures[figurePk](game));
             u.reply(`CLEAR_CANDIDATE`);
             u.popRestoreCmd(`FIGURE_CANDIDATE`);
             u.reply(`USER_INFO ${u.seatNum} ${u.toJsonString(u)}`, true);

@@ -1,30 +1,23 @@
 const C = require('../constants');
+const FSM = require('../common/fsm');
 
 class Skill {
+    constructor(figure, opt) {
+        this.figure = figure;
+        for (let k of Object.keys(opt)) {
+            this[k] = opt[k];
+        }
+    }
+
     * init(game, ctx) {
-        let u = ctx.sourceUser;
-        let opt = {
+        let u = this.figure.owner;
+        let defaultOpt = {
             u,
-            cardValidator: (command) => {
-
-            },
-            targetValidator: (command) => {
-                let target = game.userByPk(command.params);
-                return target.id !== u.id;
-            },
-            cardCount: ctx.skill.cardCount || C.SELECT_TYPE.SINGLE,
-            targetCount: ctx.skill.targetCount || C.SELECT_TYPE.SINGLE,
-            initCtx: {
-                skill: ctx.skill,
-            }
+            cardValidator: FSM.BASIC_VALIDATORS.ownCardValidator,
+            targetValidator: FSM.BASIC_VALIDATORS.notMeTargetValidator,
         };
-        // [C-T-O]
-        const initSkill1 = (game, opt) => {
-            let m = new FSM.Machine(game);
-            m.setContext(opt.initCtx);
-        };
-
-        return yield game.waitFSM(u, initSilkBag(game, opt), ctx);
+        let opt = Object.assign(defaultOpt, this.fsmOpt);
+        return yield game.waitFSM(u, FSM.get('requireCardsAndTargets', game, ctx, opt), ctx);
     }
 }
 

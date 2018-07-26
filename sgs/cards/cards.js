@@ -3,10 +3,160 @@ const uuid = require('uuid/v4');
 const C = require('../constants');
 const R = require('../common/results');
 const U = require('../utils');
-const Context = require('../context');
-const FSM = require('../common/stateMachines');
+const {CardContext} = require('../context');
+const FSM = require('../common/fsm');
 const EventListener = require('../common/eventListener');
-const ShaStage = require('../phases/sha/ShaStage');
+const Damage = require('../common/damage');
+
+
+const initCardFSM = (game, parentCtx, opt) => {
+    const {
+        u,
+        targetValidator,
+        targetCount,
+    } = opt;
+    let m = new FSM.Machine(game, parentCtx);
+    m.setContext(opt.initCtx);
+
+    switch (targetCount) {
+        case C.TARGET_SELECT_TYPE.SELF:
+        case C.TARGET_SELECT_TYPE.ALL:
+        case C.TARGET_SELECT_TYPE.ALL_OTHERS:
+            switch (targetCount) {
+                case C.TARGET_SELECT_TYPE.SELF:
+                    m.setContext({targets: [u]});
+                    break;
+                case C.TARGET_SELECT_TYPE.ALL:
+                    m.setContext({targets: game.userRound(u)});
+                    break;
+                case C.TARGET_SELECT_TYPE.ALL_OTHERS:
+                    m.setContext({targets: game.userRound(u, true)});
+                    break;
+            }
+            m.addState(new FSM.State('O'), true);
+
+            m.addTransition(new FSM.Transition('O', 'OK', '_', null,
+                (game, info) => {
+                    info.result = new R.CardTargetResult().set(info.card, info.targets);
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
+                (game, info) => {
+                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    let card = game.cardByPk(info.command.params);
+                    info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
+            m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
+            break;
+        case C.TARGET_SELECT_TYPE.SINGLE:
+            m.addState(new FSM.State('T'), true);
+            m.addState(new FSM.State('O'));
+            m.addTransition(new FSM.Transition('T', 'TARGET', 'O',
+                targetValidator,
+                (game, info) => {
+                    info.target = game.userByPk(info.command.params);
+                }
+            ));
+            m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
+                (game, info) => {
+                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    let card = game.cardByPk(info.command.params);
+                    info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
+                }
+            ));
+            m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
+            m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
+
+            m.addTransition(new FSM.Transition('O', 'TARGET', 'O',
+                targetValidator,
+                (game, info) => {
+                    u.reply(`UNSELECT TARGET ${info.target.id}`);
+                    info.target = game.userByPk(info.command.params);
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T', null,
+                (game, info) => {
+                    info.target = null;
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
+                (game, info) => {
+                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    u.reply(`UNSELECT TARGET ${info.target.id}`);
+                    let card = game.cardByPk(info.command.params);
+                    info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'OK', '_', null,
+                (game, info) => {
+                    info.result = new R.CardTargetResult().set(info.card, info.target);
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
+            m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
+            break;
+        default:
+            m.setContext({targets: new Set()});
+            m.addState(new FSM.State('T'), true);
+            m.addState(new FSM.State('O'));
+            m.addTransition(new FSM.Transition('T', 'TARGET',
+                (game, info) => {
+                    return (info.targets.size < targetCount) ? 'T' : 'O';
+                },
+                targetValidator,
+                (game, info) => {
+                    info.targets.add(game.userByPk(info.command.params));
+                }
+            ));
+            m.addTransition(new FSM.Transition('T', 'UNTARGET', 'T',
+                targetValidator,
+                (game, info) => {
+                    info.targets.delete(game.userByPk(info.command.params));
+                }
+            ));
+            m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
+                (game, info) => {
+                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    for (let target of info.targets) {
+                        u.reply(`UNSELECT TARGET ${target.id}`);
+                    }
+                    let card = game.cardByPk(info.command.params);
+                    info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
+                }
+            ));
+            m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
+            m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
+
+            m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T',
+                targetValidator,
+                (game, info) => {
+                    info.targets.delete(game.userByPk(info.command.params));
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'CARD', '_',
+                (game, info) => {
+                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    for (let target of info.targets) {
+                        u.reply(`UNSELECT TARGET ${target.id}`);
+                    }
+                    let card = game.cardByPk(info.command.params);
+                    info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'OK', '_', null,
+                (game, info) => {
+                    info.result = new R.CardTargetResult().set(info.card, U.toArray(info.targets));
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
+            m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
+            break;
+    }
+
+    return m;
+};
 
 
 class CardBase {
@@ -47,6 +197,14 @@ class CardBase {
         return JSON.stringify(this.toJson());
     }
 
+    toString() {
+        let str = this.name;
+        if (this.faked) {
+            str += `(${U.toArray(this.getOriginCards()).map(c => c.toString()).join(',')})`;
+        }
+        return str;
+    }
+
     * init(game, ctx) {
         // 初始化：从用户点击该牌开始，到选中目标，到最终OK为止。
         // 此为连贯动作，期间不应插入其它事件。
@@ -82,7 +240,7 @@ class SilkBagCard extends CardBase {
     }
 
     * init(game, ctx) {
-        let u = ctx.sourceUser;
+        let u = ctx.i.sourceUser;
         let opt = {
             u,
             targetValidator: (command) => {
@@ -94,171 +252,19 @@ class SilkBagCard extends CardBase {
                 card: this,
             }
         };
-        const initSilkBag = (game, opt) => {
-            const {
-                u,
-                targetValidator,
-                targetCount,
-            } = opt;
-            let m = new FSM.Machine(game);
-            m.setContext(opt.initCtx);
-
-            switch (targetCount) {
-                case C.TARGET_SELECT_TYPE.SELF:
-                case C.TARGET_SELECT_TYPE.ALL:
-                case C.TARGET_SELECT_TYPE.ALL_OTHERS:
-                    switch (targetCount) {
-                        case C.TARGET_SELECT_TYPE.SELF:
-                            m.setContext({targets: [u]});
-                            break;
-                        case C.TARGET_SELECT_TYPE.ALL:
-                            m.setContext({targets: game.userRound(u)});
-                            break;
-                        case C.TARGET_SELECT_TYPE.ALL_OTHERS:
-                            m.setContext({targets: game.userRound(u, true)});
-                            break;
-                    }
-                    m.addState(new FSM.State('O'), true);
-
-                    m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                        (game, ctx) => {
-                            return new R.CardTargetResult().set(ctx.card, ctx.targets);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-                    break;
-                case 1:
-                    m.addState(new FSM.State('T'), true);
-                    m.addState(new FSM.State('O'));
-                    m.addTransition(new FSM.Transition('T', 'TARGET', 'O',
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.target = game.userByPk(ctx.command.params);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
-
-                    m.addTransition(new FSM.Transition('O', 'TARGET', 'O',
-                        targetValidator,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT TARGET ${ctx.target.id}`);
-                            ctx.target = game.userByPk(ctx.command.params);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T', null,
-                        (game, ctx) => {
-                            ctx.target = null;
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            u.reply(`UNSELECT TARGET ${ctx.target.id}`);
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                        (game, ctx) => {
-                            return new R.CardTargetResult().set(ctx.card, ctx.target);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-                    break;
-                default:
-                    m.setContext({targets: new Set()});
-                    m.addState(new FSM.State('T'), true);
-                    m.addState(new FSM.State('O'));
-                    m.addTransition(new FSM.Transition('T', 'TARGET',
-                        (game, ctx) => {
-                            return (ctx.targets.size < targetCount) ? 'T' : 'O';
-                        },
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.targets.add(game.userByPk(ctx.command.params));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'UNTARGET', 'T',
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.targets.delete(game.userByPk(ctx.command.params));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            for (let target of ctx.targets) {
-                                u.reply(`UNSELECT TARGET ${target.id}`);
-                            }
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
-
-                    m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T',
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.targets.delete(game.userByPk(ctx.command.params));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'CARD', '_',
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            for (let target of ctx.targets) {
-                                u.reply(`UNSELECT TARGET ${target.id}`);
-                            }
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                        (game, ctx) => {
-                            return new R.CardTargetResult().set(ctx.card, U.toArray(ctx.targets));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-                    break;
-            }
-
-            m.setFinalHandler((r) => {
-                return r.get().pop();
-            });
-
-            return m;
-        };
-        return yield game.waitFSM(u, initSilkBag(game, opt), ctx);
+        return yield game.waitFSM(u, initCardFSM(game, ctx, opt), ctx);
     }
 
     * start(game, ctx) {
-        let u = ctx.sourceUser;
-        let card = U.toSingle(ctx.sourceCards);
-        let targets = ctx.targets;
+        let u = ctx.i.sourceUser;
+        let card = U.toSingle(ctx.i.card);
+        let targets = ctx.i.targets;
         let targetMsg = (card.targetCount < C.TARGET_SELECT_TYPE.SINGLE) ? '' : ['对', targets];
         game.message([u, targetMsg, '使用了', card]);
 
         for (let target of targets) {
             // TODO WuXieKeJi
-            ctx.currentTarget = target;
+            ctx.i.currentTarget = target;
             yield this.run(game, ctx);
         }
     }
@@ -274,7 +280,7 @@ class DelayedSilkBagCard extends CardBase {
     }
 
     * init(game, ctx) {
-        let u = ctx.sourceUser;
+        let u = ctx.i.sourceUser;
         let distance = this.distance;
         let opt = {
             u,
@@ -289,167 +295,16 @@ class DelayedSilkBagCard extends CardBase {
                 card: this,
             }
         };
-        const initSilkBag = (game, opt) => {
-            const {
-                u,
-                targetValidator,
-                targetCount,
-            } = opt;
-            let m = new FSM.Machine(game);
-            m.setContext(opt.initCtx);
-
-            switch (targetCount) {
-                case C.TARGET_SELECT_TYPE.SELF:
-                case C.TARGET_SELECT_TYPE.ALL:
-                case C.TARGET_SELECT_TYPE.ALL_OTHERS:
-                    switch (targetCount) {
-                        case C.TARGET_SELECT_TYPE.SELF:
-                            m.setContext({targets: [u]});
-                            break;
-                        case C.TARGET_SELECT_TYPE.ALL:
-                            m.setContext({targets: game.userRound(u)});
-                            break;
-                        case C.TARGET_SELECT_TYPE.ALL_OTHERS:
-                            m.setContext({targets: game.userRound(u, true)});
-                            break;
-                    }
-                    m.addState(new FSM.State('O'), true);
-
-                    m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                        (game, ctx) => {
-                            return new R.CardTargetResult().set(ctx.card, ctx.targets);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-                    break;
-                case 1:
-                    m.addState(new FSM.State('T'), true);
-                    m.addState(new FSM.State('O'));
-                    m.addTransition(new FSM.Transition('T', 'TARGET', 'O',
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.target = game.userByPk(ctx.command.params);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
-
-                    m.addTransition(new FSM.Transition('O', 'TARGET', 'O',
-                        targetValidator,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT TARGET ${ctx.target.id}`);
-                            ctx.target = game.userByPk(ctx.command.params);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T', null,
-                        (game, ctx) => {
-                            ctx.target = null;
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            u.reply(`UNSELECT TARGET ${ctx.target.id}`);
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                        (game, ctx) => {
-                            return new R.CardTargetResult().set(ctx.card, ctx.target);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-                    break;
-                default:
-                    m.setContext({targets: new Set()});
-                    m.addState(new FSM.State('T'), true);
-                    m.addState(new FSM.State('O'));
-                    m.addTransition(new FSM.Transition('T', 'TARGET',
-                        (game, ctx) => {
-                            return (ctx.targets.size < targetCount) ? 'T' : 'O';
-                        },
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.targets.add(game.userByPk(ctx.command.params));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'UNTARGET', 'T',
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.targets.delete(game.userByPk(ctx.command.params));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            for (let target of ctx.targets) {
-                                u.reply(`UNSELECT TARGET ${target.id}`);
-                            }
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
-
-                    m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T',
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.targets.delete(game.userByPk(ctx.command.params));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'CARD', '_',
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            for (let target of ctx.targets) {
-                                u.reply(`UNSELECT TARGET ${target.id}`);
-                            }
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                        (game, ctx) => {
-                            return new R.CardTargetResult().set(ctx.card, U.toArray(ctx.targets));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-                    break;
-            }
-
-            m.setFinalHandler((r) => {
-                return r.get().pop();
-            });
-
-            return m;
-        };
-        return yield game.waitFSM(u, initSilkBag(game, opt), ctx);
+        return yield game.waitFSM(u, initCardFSM(game, ctx, opt), ctx);
     }
 
     * start(game, ctx) {
-        let u = ctx.sourceUser;
-        let card = U.toSingle(ctx.sourceCards);
-        let targets = ctx.targets;
+        let u = ctx.i.sourceUser;
+        let card = U.toSingle(ctx.i.card);
+        let targets = ctx.i.targets;
         game.message([u, '对', targets, '使用了', card]);
-        ctx.targets.forEach((t) => game.pushUserJudge(t, card));
+        ctx.i.targets.forEach((t) => game.pushUserJudge(t, card));
+        ctx.handlingCards.delete(card);
     }
 
     * judgeEffect(u, game) {
@@ -479,7 +334,7 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
     }
 
     * init(game, ctx) {
-        let u = ctx.sourceUser;
+        let u = ctx.i.sourceUser;
         let opt = {
             u,
             targetValidator: (command) => {
@@ -491,159 +346,7 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
                 card: this,
             }
         };
-        const initSilkBag = (game, opt) => {
-            const {
-                u,
-                targetValidator,
-                targetCount,
-            } = opt;
-            let m = new FSM.Machine(game);
-            m.setContext(opt.initCtx);
-
-            switch (targetCount) {
-                case C.TARGET_SELECT_TYPE.SELF:
-                case C.TARGET_SELECT_TYPE.ALL:
-                case C.TARGET_SELECT_TYPE.ALL_OTHERS:
-                    switch (targetCount) {
-                        case C.TARGET_SELECT_TYPE.SELF:
-                            m.setContext({targets: [u]});
-                            break;
-                        case C.TARGET_SELECT_TYPE.ALL:
-                            m.setContext({targets: game.userRound(u)});
-                            break;
-                        case C.TARGET_SELECT_TYPE.ALL_OTHERS:
-                            m.setContext({targets: game.userRound(u, true)});
-                            break;
-                    }
-                    m.addState(new FSM.State('O'), true);
-
-                    m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                        (game, ctx) => {
-                            return new R.CardTargetResult().set(ctx.card, ctx.targets);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-                    break;
-                case 1:
-                    m.addState(new FSM.State('T'), true);
-                    m.addState(new FSM.State('O'));
-                    m.addTransition(new FSM.Transition('T', 'TARGET', 'O',
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.target = game.userByPk(ctx.command.params);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
-
-                    m.addTransition(new FSM.Transition('O', 'TARGET', 'O',
-                        targetValidator,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT TARGET ${ctx.target.id}`);
-                            ctx.target = game.userByPk(ctx.command.params);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T', null,
-                        (game, ctx) => {
-                            ctx.target = null;
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            u.reply(`UNSELECT TARGET ${ctx.target.id}`);
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                        (game, ctx) => {
-                            return new R.CardTargetResult().set(ctx.card, ctx.target);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-                    break;
-                default:
-                    m.setContext({targets: new Set()});
-                    m.addState(new FSM.State('T'), true);
-                    m.addState(new FSM.State('O'));
-                    m.addTransition(new FSM.Transition('T', 'TARGET',
-                        (game, ctx) => {
-                            return (ctx.targets.size < targetCount) ? 'T' : 'O';
-                        },
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.targets.add(game.userByPk(ctx.command.params));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'UNTARGET', 'T',
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.targets.delete(game.userByPk(ctx.command.params));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            for (let target of ctx.targets) {
-                                u.reply(`UNSELECT TARGET ${target.id}`);
-                            }
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
-
-                    m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T',
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.targets.delete(game.userByPk(ctx.command.params));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'CARD', '_',
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            for (let target of ctx.targets) {
-                                u.reply(`UNSELECT TARGET ${target.id}`);
-                            }
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                        (game, ctx) => {
-                            return new R.CardTargetResult().set(ctx.card, U.toArray(ctx.targets));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-                    break;
-            }
-
-            m.setFinalHandler((r) => {
-                return r.get().pop();
-            });
-
-            return m;
-        };
-        return yield game.waitFSM(u, initSilkBag(game, opt), ctx);
+        return yield game.waitFSM(u, initCardFSM(game, ctx, opt), ctx);
     }
 
     * start(game, ctx) {
@@ -651,7 +354,7 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
     }
 
     * run(game, ctx) {
-        yield game.equipUserCard(U.toSingle(ctx.targets), this);
+        yield game.equipUserCard(U.toSingle(ctx.i.targets), this);
         return yield Promise.resolve(R.success);
     }
 
@@ -703,9 +406,9 @@ class Sha extends NormalCard {
     }
 
     * init(game, ctx) {
-        let u = ctx.sourceUser;
+        let u = ctx.i.sourceUser;
         yield u.on('useSha', game, ctx);
-        if (ctx.phaseContext.shaCount < 1) {
+        if (ctx.phaseCtx.i.shaCount < 1) {
             console.log(`|<!> Use too many Sha`);
             return yield Promise.resolve(R.fail);
         }
@@ -720,169 +423,17 @@ class Sha extends NormalCard {
                 card: this,
             }
         };
-        const initSilkBag = (game, opt) => {
-            const {
-                u,
-                targetValidator,
-                targetCount,
-            } = opt;
-            let m = new FSM.Machine(game);
-            m.setContext(opt.initCtx);
-
-            switch (targetCount) {
-                case C.TARGET_SELECT_TYPE.SELF:
-                case C.TARGET_SELECT_TYPE.ALL:
-                case C.TARGET_SELECT_TYPE.ALL_OTHERS:
-                    switch (targetCount) {
-                        case C.TARGET_SELECT_TYPE.SELF:
-                            m.setContext({targets: [u]});
-                            break;
-                        case C.TARGET_SELECT_TYPE.ALL:
-                            m.setContext({targets: game.userRound(u)});
-                            break;
-                        case C.TARGET_SELECT_TYPE.ALL_OTHERS:
-                            m.setContext({targets: game.userRound(u, true)});
-                            break;
-                    }
-                    m.addState(new FSM.State('O'), true);
-
-                    m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                        (game, ctx) => {
-                            return new R.CardTargetResult().set(ctx.card, ctx.targets);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-                    break;
-                case 1:
-                    m.addState(new FSM.State('T'), true);
-                    m.addState(new FSM.State('O'));
-                    m.addTransition(new FSM.Transition('T', 'TARGET', 'O',
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.target = game.userByPk(ctx.command.params);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
-
-                    m.addTransition(new FSM.Transition('O', 'TARGET', 'O',
-                        targetValidator,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT TARGET ${ctx.target.id}`);
-                            ctx.target = game.userByPk(ctx.command.params);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T', null,
-                        (game, ctx) => {
-                            ctx.target = null;
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            u.reply(`UNSELECT TARGET ${ctx.target.id}`);
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                        (game, ctx) => {
-                            return new R.CardTargetResult().set(ctx.card, ctx.target);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-                    break;
-                default:
-                    m.setContext({targets: new Set()});
-                    m.addState(new FSM.State('T'), true);
-                    m.addState(new FSM.State('O'));
-                    m.addTransition(new FSM.Transition('T', 'TARGET',
-                        (game, ctx) => {
-                            return (ctx.targets.size < targetCount) ? 'T' : 'O';
-                        },
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.targets.add(game.userByPk(ctx.command.params));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'UNTARGET', 'T',
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.targets.delete(game.userByPk(ctx.command.params));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            for (let target of ctx.targets) {
-                                u.reply(`UNSELECT TARGET ${target.id}`);
-                            }
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
-
-                    m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T',
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.targets.delete(game.userByPk(ctx.command.params));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'CARD', '_',
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            for (let target of ctx.targets) {
-                                u.reply(`UNSELECT TARGET ${target.id}`);
-                            }
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                        (game, ctx) => {
-                            return new R.CardTargetResult().set(ctx.card, U.toArray(ctx.targets));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-                    break;
-            }
-
-            m.setFinalHandler((r) => {
-                return r.get().pop();
-            });
-
-            return m;
-        };
-        return yield game.waitFSM(u, initSilkBag(game, opt), ctx);
+        return yield game.waitFSM(u, initCardFSM(game, ctx, opt), ctx);
     }
 
     * targetEvents(game, ctx) {
-        const u = ctx.sourceUser;
+        const u = ctx.i.sourceUser;
 
         // 指定目标时
         yield u.on('shaTarget', game, ctx);
 
         // 成为目标时
-        for (let t of ctx.targets) {
+        for (let t of ctx.i.targets) {
             yield t.on('beShaTarget', game, ctx);
         }
 
@@ -890,30 +441,31 @@ class Sha extends NormalCard {
         yield u.on('afterShaTarget', game, ctx);
 
         // 成为目标后
-        for (let t of ctx.targets) {
+        for (let t of ctx.i.targets) {
             yield t.on('afterBeShaTarget', game, ctx);
         }
     }
 
     * run(game, ctx) {
-        ctx.shanAble = new Map();
-        if(!ctx.skipShaInitStage) {
+        ctx.i.shanAble = new Map();
+        if (!ctx.i.skipShaInitStage) {
             yield this.targetEvents(game, ctx);
         }
 
-        const u = ctx.sourceUser;
-        const targets = ctx.targets;
-        ctx.damage = 1;
+        const u = ctx.i.sourceUser;
+        const card = ctx.i.card;
+        const targets = ctx.i.targets;
+        ctx.i.damage = new Damage(u, card, 1);
 
-        yield game.removeUserCards(ctx.sourceUser, ctx.sourceCards);
-        game.message([ctx.sourceUser, '对', ctx.targets, '使用', ctx.sourceCards,]);
+        yield game.removeUserCards(ctx.i.sourceUser, card);
+        game.message([ctx.i.sourceUser, '对', ctx.i.targets, '使用', card]);
 
         for (let target of targets) {
-            ctx.hit = true;  // 命中
-            ctx.shaTarget = target;
-            ctx.exDamage = 0;
+            ctx.i.hit = true;  // 命中
+            ctx.i.shaTarget = target;
+            ctx.i.exDamage = 0;
 
-            if (!ctx.shanAble.has(target) || ctx.shanAble.get(target)) {
+            if (!ctx.i.shanAble.has(target) || ctx.i.shanAble.get(target)) {
                 let result = yield target.on('requireShan', game, ctx);
                 if (result.success) {
                     if (result instanceof R.CardResult) {
@@ -923,12 +475,12 @@ class Sha extends NormalCard {
                     }
 
                     yield target.on('usedShan', game, ctx);
-                    ctx.hit = false;
+                    ctx.i.hit = false;
                     yield u.on('shaBeenShan', game, ctx);
                 }
             }
 
-            if (ctx.hit) {
+            if (ctx.i.hit) {
                 yield u.on('shaHitTarget', game, ctx);
                 yield target.on('damage', game, ctx);
             }
@@ -959,7 +511,7 @@ class Tao extends NormalCard {
     }
 
     * init(game, ctx) {
-        let u = ctx.sourceUser;
+        let u = ctx.i.sourceUser;
         if (u.hp >= u.maxHp) {
             return yield Promise.resolve(R.fail);
         }
@@ -974,165 +526,13 @@ class Tao extends NormalCard {
                 card: this,
             }
         };
-        const initSilkBag = (game, opt) => {
-            const {
-                u,
-                targetValidator,
-                targetCount,
-            } = opt;
-            let m = new FSM.Machine(game);
-            m.setContext(opt.initCtx);
-
-            switch (targetCount) {
-                case C.TARGET_SELECT_TYPE.SELF:
-                case C.TARGET_SELECT_TYPE.ALL:
-                case C.TARGET_SELECT_TYPE.ALL_OTHERS:
-                    switch (targetCount) {
-                        case C.TARGET_SELECT_TYPE.SELF:
-                            m.setContext({targets: [u]});
-                            break;
-                        case C.TARGET_SELECT_TYPE.ALL:
-                            m.setContext({targets: game.userRound(u)});
-                            break;
-                        case C.TARGET_SELECT_TYPE.ALL_OTHERS:
-                            m.setContext({targets: game.userRound(u, true)});
-                            break;
-                    }
-                    m.addState(new FSM.State('O'), true);
-
-                    m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                        (game, ctx) => {
-                            return new R.CardTargetResult().set(ctx.card, ctx.targets);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-                    break;
-                case 1:
-                    m.addState(new FSM.State('T'), true);
-                    m.addState(new FSM.State('O'));
-                    m.addTransition(new FSM.Transition('T', 'TARGET', 'O',
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.target = game.userByPk(ctx.command.params);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
-
-                    m.addTransition(new FSM.Transition('O', 'TARGET', 'O',
-                        targetValidator,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT TARGET ${ctx.target.id}`);
-                            ctx.target = game.userByPk(ctx.command.params);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T', null,
-                        (game, ctx) => {
-                            ctx.target = null;
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            u.reply(`UNSELECT TARGET ${ctx.target.id}`);
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                        (game, ctx) => {
-                            return new R.CardTargetResult().set(ctx.card, ctx.target);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-                    break;
-                default:
-                    m.setContext({targets: new Set()});
-                    m.addState(new FSM.State('T'), true);
-                    m.addState(new FSM.State('O'));
-                    m.addTransition(new FSM.Transition('T', 'TARGET',
-                        (game, ctx) => {
-                            return (ctx.targets.size < targetCount) ? 'T' : 'O';
-                        },
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.targets.add(game.userByPk(ctx.command.params));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'UNTARGET', 'T',
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.targets.delete(game.userByPk(ctx.command.params));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            for (let target of ctx.targets) {
-                                u.reply(`UNSELECT TARGET ${target.id}`);
-                            }
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
-
-                    m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T',
-                        targetValidator,
-                        (game, ctx) => {
-                            ctx.targets.delete(game.userByPk(ctx.command.params));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'CARD', '_',
-                        (game, ctx) => {
-                            u.reply(`UNSELECT CARD ${ctx.card.pk}`);
-                            for (let target of ctx.targets) {
-                                u.reply(`UNSELECT TARGET ${target.id}`);
-                            }
-                            let card = game.cardByPk(ctx.command.params);
-                            return new R.CardResult(R.RESULT_STATE.ABORT).set(card);
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'OK', '_', null,
-                        (game, ctx) => {
-                            return new R.CardTargetResult().set(ctx.card, U.toArray(ctx.targets));
-                        }
-                    ));
-                    m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
-                    m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
-                    break;
-            }
-
-            m.setFinalHandler((r) => {
-                return r.get().pop();
-            });
-
-            return m;
-        };
-        return yield game.waitFSM(u, initSilkBag(game, opt), ctx);
+        return yield game.waitFSM(u, initCardFSM(game, ctx, opt), ctx);
     }
 
     * run(game, ctx) {
-        game.message([ctx.sourceUser, '使用了', ctx.sourceCards]);
-        ctx.heal = 1;
-        return yield U.toSingle(ctx.targets).on('useTao', game, ctx);
+        game.message([ctx.i.sourceUser, '使用了', ctx.i.card]);
+        ctx.i.heal = 1;
+        return yield U.toSingle(ctx.i.targets).on('useTao', game, ctx);
     }
 }
 
@@ -1144,8 +544,8 @@ class JueDou extends SilkBagCard {
     }
 
     * run(game, ctx) {
-        let u = ctx.sourceUser;
-        let t = ctx.currentTarget;
+        let u = ctx.i.sourceUser;
+        let t = ctx.i.currentTarget;
 
         let users = [t, u];
         let done = false;
@@ -1154,14 +554,14 @@ class JueDou extends SilkBagCard {
             for (let _u of users) {
                 let result = yield _u.on('requireSha', game, ctx);
                 if (result.success) {
-                    game.discardCards(ctx.sourceCards);
-                    ctx.handlingCards.delete(ctx.sourceCards);
+                    game.discardCards(ctx.i.card);
+                    ctx.handlingCards.delete(ctx.i.card);
 
-                    ctx.sourceUser = _u;
-                    ctx.sourceCards = result.get();
-                    yield game.removeUserCards(_u, ctx.sourceCards);
-                    ctx.handlingCards.add(ctx.sourceCards);
-                    game.message([_u, '打出了', ctx.sourceCards]);
+                    ctx.i.sourceUser = _u;
+                    ctx.i.card = result.get();
+                    yield game.removeUserCards(_u, ctx.i.card);
+                    ctx.handlingCards.add(ctx.i.card);
+                    game.message([_u, '打出了', ctx.i.card]);
                 } else {
                     done = true;
                     loser = _u;
@@ -1170,7 +570,7 @@ class JueDou extends SilkBagCard {
             }
         }
 
-        ctx.damage = 1;
+        ctx.i.damage = new Damage(ctx.i.sourceUser, ctx.i.card, 1);
         yield loser.on('damage', game, ctx);
     }
 }
@@ -1183,8 +583,8 @@ class GuoHeChaiQiao extends SilkBagCard {
     }
 
     * run(game, ctx) {
-        let u = ctx.sourceUser;
-        let t = ctx.currentTarget;
+        let u = ctx.i.sourceUser;
+        let t = ctx.i.currentTarget;
 
         // Show all card candidates
         let cardCandidates = t.cardCandidates();
@@ -1200,7 +600,7 @@ class GuoHeChaiQiao extends SilkBagCard {
         u.popRestoreCmd('CARD_CANDIDATE');
 
         let card = game.cardByPk(command.params);
-        game.message([u, '拆掉了', t, '的一张牌']);
+        game.message([u, '拆掉了', t, '的一张牌', card]);
         yield game.removeUserCardsEx(t, card, true);
     }
 }
@@ -1214,8 +614,8 @@ class NanManRuQin extends SilkBagCard {
     }
 
     * run(game, ctx) {
-        const t = ctx.currentTarget;
-        ctx.damage = 1;
+        const t = ctx.i.currentTarget;
+        ctx.i.damage = new Damage(ctx.i.sourceUser, this, 1);
         let result = yield t.on('requireSha', game, ctx);
         if (result.success) {
             let card = result.get();
@@ -1236,8 +636,8 @@ class WuZhongShengYou extends SilkBagCard {
     }
 
     * run(game, ctx) {
-        const u = ctx.sourceUser;
-        yield game.removeUserCards(u, ctx.sourceCards, true);
+        const u = ctx.i.sourceUser;
+        yield game.removeUserCards(u, ctx.i.card, true);
         game.message([u, '使用', this, '获得两张牌']);
         game.dispatchCards(u, 2);
     }
@@ -1294,7 +694,9 @@ class ShanDian extends DelayedSilkBagCard {
     }
 
     * judgeEffect(u, game) {
-        let ctx = new Context({damage: 3, sourceCards: this});
+        let ctx = new CardContext(game, this, {
+            damage: new Damage(null, this, 3),
+        });
         yield u.on('damage', game, ctx);
         yield super.judgeEffect(u, game);
     }
@@ -1325,19 +727,17 @@ class QingLongYanYueDao extends WeaponCard {
         let result = yield u.on('requireSha', game, ctx);
         if (result.success) {
             let card = result.get();
-            let context = new Context({
+            let cardCtx = new CardContext(game, card, {
                 sourceUser: u,
-                sourceCards: card,
-                targets: U.toSet(ctx.shaTarget),
+                targets: U.toSet(ctx.i.shaTarget),
                 skipShaInitStage: true,
-                damage: 1,
-                phaseContext: ctx.phaseContext,
-            });
-            context.handlingCards.add(card);
-            game.message([u, '发动了', this, '使用了', context.sourceCards, '追杀', context.targets]);
-            context.phaseContext.shaCount++;  // 青龙偃月刀算额外的杀
-            result = yield card.start(game, context);
-            game.discardCards(context.handlingCards);
+                damage: new Damage(u, card, 1),
+            }).linkParent(ctx.parentCtx);
+            cardCtx.handlingCards.add(card);
+            game.message([u, '发动了', this, '使用了', cardCtx.i.card, '追杀', cardCtx.i.targets]);
+            cardCtx.phaseCtx.i.shaCount++;  // 青龙偃月刀算额外的杀
+            result = yield card.start(game, cardCtx);
+            game.discardCards(cardCtx.allHandlingCards());
             return yield Promise.resolve(result);
         }
     }
@@ -1362,10 +762,11 @@ class GuDingDao extends WeaponCard {
     }
 
     * shaHitTarget(game, ctx) {
-        const target = ctx.shaTarget;
+        const u = this.equiper(game);
+        const target = ctx.i.shaTarget;
         if (target.cards.size <= 0) {
             game.message([u, '的装备', this, '生效，此【杀】伤害+1']);
-            ctx.exDamage += 1;
+            ctx.i.exDamage += 1;
         }
         return yield Promise.resolve(R.success);
     }
@@ -1381,8 +782,8 @@ class CiXiongShuangGuJian extends WeaponCard {
     }
 
     * afterShaTarget(game, ctx) {
-        const u = ctx.sourceUser;
-        for (let t of ctx.targets) {
+        const u = ctx.i.sourceUser;
+        for (let t of ctx.i.targets) {
             if (u.gender !== t.gender) {
                 let command = yield game.waitConfirm(u, `是否对${t.figure.name}使用武器【${this.name}】？`);
                 if (command.cmd === C.CONFIRM.Y) {
@@ -1452,7 +853,7 @@ class GuanShiFu extends WeaponCard {
                 let cards = game.cardsByPk(command.params);
                 game.message([u, '弃掉', cards, '，发动武器', this, '使【杀】强制命中']);
                 yield game.removeUserCardsEx(u, cards, true);
-                ctx.hit = true;
+                ctx.i.hit = true;
             }
         }
         return yield Promise.resolve(R.success);
@@ -1511,20 +912,6 @@ class ChiTu extends DefenseHorseCard {
 const cardSet = new Map();
 
 [
-    // TEST
-    new Sha(C.CARD_SUIT.SPADE, 10),
-    new Sha(C.CARD_SUIT.SPADE, 10),
-    new Sha(C.CARD_SUIT.HEART, 10),
-    new Sha(C.CARD_SUIT.CLUB, 3),
-    new Sha(C.CARD_SUIT.CLUB, 6),
-    new Sha(C.CARD_SUIT.CLUB, 9),
-    new Sha(C.CARD_SUIT.CLUB, 10),
-    new Sha(C.CARD_SUIT.DIAMOND, 9),
-    new Tao(C.CARD_SUIT.HEART, 5),
-    new Tao(C.CARD_SUIT.HEART, 7),
-    new Tao(C.CARD_SUIT.DIAMOND, 2),
-    // TEST END
-
     // 基本牌
     new Sha(C.CARD_SUIT.SPADE, 10),
     new Sha(C.CARD_SUIT.SPADE, 10),
