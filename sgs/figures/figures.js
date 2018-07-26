@@ -44,7 +44,11 @@ class FigureBase extends EventListener {
 
     // 主动使用技能
     * useSkill(skill, game, ctx) {
+        console.log(`|[F] USE SKILL ${skill.name}`);
+        const oleState = skill.state;
+        this.changeSkillState(skill, C.SKILL_STATE.FIRING);
         let result = yield this[skill.handler](game, ctx);
+        this.changeSkillState(skill, oleState);
         return yield Promise.resolve(result);
     }
 
@@ -298,6 +302,10 @@ class LiuBei extends FigureBase {
     * requireSha(game, ctx) {
         this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.ENABLED);
     }
+
+    * unrequireSha(game, ctx) {
+        this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.DISABLED);
+    }
 }
 
 
@@ -378,6 +386,10 @@ class GuanYu extends FigureBase {
 
     * requireSha(game, ctx) {
         this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.ENABLED);
+    }
+
+    * unrequireSha(game, ctx) {
+        this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.DISABLED);
     }
 }
 
@@ -467,6 +479,16 @@ class ZhaoYun extends FigureBase {
     * requireShan(game, ctx) {
         this.skills.SHU005s01.info = {originClass: sgsCards.Sha, fakeClass: sgsCards.Shan};
         this.changeSkillState(this.skills.SHU005s01, C.SKILL_STATE.ENABLED);
+    }
+
+    * unrequireSha(game, ctx) {
+        this.skills.SHU005s01.info = null;
+        this.changeSkillState(this.skills.SHU005s01, C.SKILL_STATE.DISABLED);
+    }
+
+    * unrequireShan(game, ctx) {
+        this.skills.SHU005s01.info = null;
+        this.changeSkillState(this.skills.SHU005s01, C.SKILL_STATE.DISABLED);
     }
 }
 

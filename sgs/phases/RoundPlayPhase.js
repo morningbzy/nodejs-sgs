@@ -11,30 +11,6 @@ class RoundPlayPhase extends Phase {
         super(game);
     }
 
-    static* useCard(game, ctx) {
-        let u = ctx.sourceUser;
-        let card = U.toSingle(ctx.card);
-
-        if (card.faked) {
-            console.log(`|[i] Use card [${Array.from(card.originCards, c => c.name).join(', ')}] as [${card.name}]`);
-        } else {
-            console.log(`|[i] Use card [${card.name}]`);
-        }
-
-        // TODO fire '?Target' events
-        // on shaTarget, beShaTarget, afterShaTarget, afterBeShaTarget ...
-
-        yield game.removeUserCards(u, ctx.card);
-        ctx.handlingCards.add(card);
-
-        yield card.start(game, ctx);
-    }
-
-    static* useSkill(game, ctx) {
-        let u = ctx.sourceUser;
-        let skill = ctx.skill;
-    }
-
     static* start(game) {
         const u = game.roundOwner;  // 当前回合玩家
         const phaseCtx = new PhaseContext(game);

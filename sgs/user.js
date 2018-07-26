@@ -81,7 +81,7 @@ class User extends EventListener {
     }
 
     toString() {
-        return this.figure? this.figure.name: this.name;
+        return this.figure ? this.figure.name : this.name;
     }
 
     setResp(resp) {
@@ -419,6 +419,8 @@ class User extends EventListener {
             this.reply('CLEAR_ALERT');
             this.popRestoreCmd('ALERT');
         }
+
+        yield this.on('unrequireSha', game, ctx);
         return yield Promise.resolve(result);
     }
 
@@ -427,7 +429,7 @@ class User extends EventListener {
         if (result.fail && this.equipments.armor) {
             result = yield this.equipments.armor.card.on('requireShan', game, ctx);
         }
-        if(result.fail) {
+        if (result.fail) {
             let opt = {
                 u: this,
                 cardClass: sgsCards.Shan,
@@ -437,6 +439,8 @@ class User extends EventListener {
             this.reply('CLEAR_ALERT');
             this.popRestoreCmd('ALERT');
         }
+
+        yield this.on('unrequireShan', game, ctx);
         return yield Promise.resolve(result);
     }
 
@@ -445,7 +449,29 @@ class User extends EventListener {
         if (!result.abort && result.fail) {
             result = yield this.requireCard(game, sgsCards.Tao, ctx);
         }
+        yield this.on('unrequireTao', game, ctx);
         return yield Promise.resolve(result);
+    }
+
+    * unrequireSha(game, ctx) {
+        yield this.figure.on('unrequireSha', game, ctx);
+        if (this.equipments.weapon) {
+            yield this.equipments.weapon.card.on('unrequireSha', game, ctx);
+        }
+    }
+
+    * unrequireShan(game, ctx) {
+        yield this.figure.on('unrequireShan', game, ctx);
+        if (this.equipments.weapon) {
+            yield this.equipments.weapon.card.on('unrequireShan', game, ctx);
+        }
+    }
+
+    * unrequireTao(game, ctx) {
+        yield this.figure.on('unrequireTao', game, ctx);
+        if (this.equipments.weapon) {
+            yield this.equipments.weapon.card.on('unrequireTao', game, ctx);
+        }
     }
 
     * beforeJudgeEffect(game, ctx) {
