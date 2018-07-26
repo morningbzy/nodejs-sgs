@@ -12,6 +12,8 @@ class RoundDiscardPhase extends Phase {
         console.log('ROUND-DISCARD-PHASE');
         const u = game.roundOwner;
 
+        u.reply('ALERT 请弃牌...', true, true);
+
         let discardCount = Math.max(u.cards.size - u.hp, 0);
         while (discardCount > 0) {
             let command = yield game.wait(u, {
@@ -33,6 +35,9 @@ class RoundDiscardPhase extends Phase {
             yield game.removeUserCards(u, cards, true);
             discardCount = Math.max(u.cards.size - u.hp, 0);
         }
+
+        u.reply('CLEAR_ALERT');
+        u.popRestoreCmd('ALERT');
     }
 }
 

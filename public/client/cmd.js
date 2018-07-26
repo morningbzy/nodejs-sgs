@@ -422,6 +422,9 @@ const Cmd = {
             case 'target':
                 $(`.sgs-player[pk=${pk}] .sgs-player-card`).addClass(selectedPlayerClass);
                 break;
+            case 'skill':
+                $(`#sgs-skill-panel .sgs-skill[pk=${pk}]`).addClass(selectedSkillClass);
+                break;
         }
     },
 
@@ -433,12 +436,16 @@ const Cmd = {
             case 'all':
                 $('.sgs-card.selected').removeClass(selectedCardClass);
                 $('.sgs-player .selected').removeClass(selectedPlayerClass);
+                $('.sgs-skill.selected').removeClass(selectedSkillClass);
                 break;
             case 'card':
                 $(`.sgs-card[pk=${pk}]`).removeClass(selectedCardClass);
                 break;
             case 'target':
                 $(`.sgs-player[pk=${pk}] .sgs-player-card`).removeClass(selectedPlayerClass);
+                break;
+            case 'skill':
+                $(`#sgs-skill-panel .sgs-skill[pk=${pk}]`).removeClass(selectedSkillClass);
                 break;
         }
     },

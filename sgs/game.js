@@ -3,7 +3,7 @@ let co = require('co');
 const C = require('./constants');
 const R = require('./common/results');
 const U = require('./utils');
-const Context = require('./context');
+const {JudgeContext} = require('./context');
 const User = require('./user');
 const cmdHandler = require('./cmd');
 const cardManager = require('./cards');
@@ -101,7 +101,7 @@ class Game {
         for (let k of waiting.validCmds) {
             waitingTag += C.WAITING_FOR[k] || 0;
         }
-        console.log(`|[i] Waiting for CMD: ${waiting.validCmds} @ ${waitingTag}`);
+        console.log(`|[i] Waiting for ${u.figure ? u.figure.name : u.name} @ ${u.seatNum}, CMD: ${waiting.validCmds} @ ${waitingTag}`);
         u.waiting = {waitingTag};
         this.broadcast(`WAITING ${u.seatNum} ${waitingTag}`, u);
         return new Promise((res, rej) => {
@@ -161,20 +161,22 @@ class Game {
 
     * waitFSM(u, fsm, ctx) {
         console.log(`|=F= FSM Start`);
-        let game = this;
+        fsm.setContext({sourceUser: u});
         fsm.start();
         while (!fsm.done) {
-            let state = fsm.current;
-            console.log(`|= * ${state.pk}`);
-            let validCmds = state.getValidCmds();
+            let state = fsm.currentState;
+            console.log(`|= * State -> ${state.pk}`);
+            let validCmds = fsm.getValidCmds();
             console.log(`|= * Wating ${validCmds}`);
             let command;
 
             if (state.subMachine) {
-                console.log(`|= _SUB`);
-                let result = yield fsm.intoSub(state, ctx);
-                console.log(result.nextCmd);
-                command = new Command(u.pk, result.command, []);
+                console.log(`|= = SUB FSM`);
+                let result = yield fsm.intoSub(state);
+                command = new Command(result.uid, result.cmd, U.toArray(result.params));
+                if(!fsm.validate(command)) {
+                    console.log(`|= SUB FSM return an invalid command < ${command.cmd}`);
+                }
             } else {
                 command = yield this.wait(u, {
                     validCmds: validCmds,
@@ -186,9 +188,7 @@ class Game {
             console.log(`|= command < ${command.cmd}`);
             fsm.next(command);
         }
-
-        u.reply('UNSELECT ALL');
-        console.log(`|=F= FSM Done: ${fsm.result.get()}`);
+        console.log(`|=F= FSM Done: ${fsm.result}`);
         return fsm.result;
     }
 
@@ -327,16 +327,12 @@ class Game {
         }
         let exFrom = from.distanceFrom(this, ctx);
         let exTo = to.distanceTo(this, ctx);
-        // console.log(t);
-        // console.log(i);
-        // console.log(exFrom);
-        // console.log(exTo);
-        console.log(`|>>${Math.min(t, i - t) + exFrom + exTo}<<`);
+        console.log(`|[R] Distance: ${Math.min(t, i - t) + exFrom + exTo}<<`);
         return Math.min(t, i - t) + exFrom + exTo;
     }
 
     userAttackRange(u, ctx) {
-        console.log(`|<<${u.attackRange(this, ctx)}>>`);
+        console.log(`|[R] AttackRange: ${u.attackRange(this, ctx)}>>`);
         return u.attackRange(this, ctx);
     }
 
@@ -399,6 +395,7 @@ class Game {
                 yield this.removeUserJudge(user, card, discard);
             } else if (user.hasEquipedCard(card)) {
                 yield this.unequipUserCard(user, card.equipType, discard);
+            } else {
             }
         }
     }
@@ -428,24 +425,24 @@ class Game {
 
     discardCardPks(cardPks) {
         this.cardManager.useCards(U.toArray(cardPks));
+        this.cardManager.destroyFakeCardPks(cardPks);
     }
 
     discardCards(cards) {
         cards = U.toArray(cards);
         this.discardCardPks(this.cardManager.unfakeCards(cards).map(x => x.pk));
-        this.cardManager.destroyFakeCards(cards);
     }
 
     // ----- Judgement related
-    pushUserJudge(user, judgeCard) {
-        user.pushJudge(judgeCard);
+    pushUserJudge(user, card) {
+        user.pushJudge(card);
         this.broadcastUserInfo(user);
     }
 
-    * removeUserJudge(user, judgeCard, discard = false) {
-        user.removeJudge(judgeCard);
+    * removeUserJudge(user, card, discard = false) {
+        user.removeJudge(card);
         if (discard) {
-            this.discardCards(judgeCard);
+            this.discardCards(card);
         }
         this.broadcastUserInfo(user);
     }
@@ -455,28 +452,23 @@ class Game {
     }
 
     * doJudge(u, judgeFunction) {
-        // ---------------------------------
-        // TODO: Before judge, ask WuXieKeJi
-        // for(let _u of game.userRound()) {
-        //     judgeCard = _u.on('beforeJudge');
-        // }
         let judgeCard = this.getJudgeCard();
 
-        let context = new Context({judgeCard});
+        let context = new JudgeContext(game, {judgeCard});
         context.handlingCards.add(judgeCard);
 
         game.broadcastPopup(`JUDGE ${judgeCard.toJsonString()}`, u);
-        game.message(['判定牌为', context.judgeCard]);
+        game.message(['判定牌为', context.i.judgeCard]);
 
         for (let _u of game.userRound()) {
             yield _u.on('beforeJudgeEffect', game, context);
         }
 
         yield u.on('judge', game, context);  // 目前仅用于小乔的【红颜】
-        game.discardCards(context.handlingCards);
+        game.discardCards(context.allHandlingCards());
         game.broadcastClearPopup(u);
 
-        return R.judge(context.judgeCard, judgeFunction(context.judgeCard));
+        return R.judge(context.i.judgeCard, judgeFunction(context.i.judgeCard));
     }
 
     // -----

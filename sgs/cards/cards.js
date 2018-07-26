@@ -3,10 +3,160 @@ const uuid = require('uuid/v4');
 const C = require('../constants');
 const R = require('../common/results');
 const U = require('../utils');
-const Context = require('../context');
-const FSM = require('../common/stateMachines');
+const {CardContext} = require('../context');
+const FSM = require('../common/fsm');
 const EventListener = require('../common/eventListener');
-const ShaStage = require('../phases/sha/ShaStage');
+const Damage = require('../common/damage');
+
+
+const initCardFSM = (game, parentCtx, opt) => {
+    const {
+        u,
+        targetValidator,
+        targetCount,
+    } = opt;
+    let m = new FSM.Machine(game, parentCtx);
+    m.setContext(opt.initCtx);
+
+    switch (targetCount) {
+        case C.TARGET_SELECT_TYPE.SELF:
+        case C.TARGET_SELECT_TYPE.ALL:
+        case C.TARGET_SELECT_TYPE.ALL_OTHERS:
+            switch (targetCount) {
+                case C.TARGET_SELECT_TYPE.SELF:
+                    m.setContext({targets: [u]});
+                    break;
+                case C.TARGET_SELECT_TYPE.ALL:
+                    m.setContext({targets: game.userRound(u)});
+                    break;
+                case C.TARGET_SELECT_TYPE.ALL_OTHERS:
+                    m.setContext({targets: game.userRound(u, true)});
+                    break;
+            }
+            m.addState(new FSM.State('O'), true);
+
+            m.addTransition(new FSM.Transition('O', 'OK', '_', null,
+                (game, info) => {
+                    info.result = new R.CardTargetResult().set(info.card, info.targets);
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
+                (game, info) => {
+                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    let card = game.cardByPk(info.command.params);
+                    info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
+            m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
+            break;
+        case C.TARGET_SELECT_TYPE.SINGLE:
+            m.addState(new FSM.State('T'), true);
+            m.addState(new FSM.State('O'));
+            m.addTransition(new FSM.Transition('T', 'TARGET', 'O',
+                targetValidator,
+                (game, info) => {
+                    info.target = game.userByPk(info.command.params);
+                }
+            ));
+            m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
+                (game, info) => {
+                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    let card = game.cardByPk(info.command.params);
+                    info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
+                }
+            ));
+            m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
+            m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
+
+            m.addTransition(new FSM.Transition('O', 'TARGET', 'O',
+                targetValidator,
+                (game, info) => {
+                    u.reply(`UNSELECT TARGET ${info.target.id}`);
+                    info.target = game.userByPk(info.command.params);
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T', null,
+                (game, info) => {
+                    info.target = null;
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
+                (game, info) => {
+                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    u.reply(`UNSELECT TARGET ${info.target.id}`);
+                    let card = game.cardByPk(info.command.params);
+                    info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'OK', '_', null,
+                (game, info) => {
+                    info.result = new R.CardTargetResult().set(info.card, info.target);
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
+            m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
+            break;
+        default:
+            m.setContext({targets: new Set()});
+            m.addState(new FSM.State('T'), true);
+            m.addState(new FSM.State('O'));
+            m.addTransition(new FSM.Transition('T', 'TARGET',
+                (game, info) => {
+                    return (info.targets.size < targetCount) ? 'T' : 'O';
+                },
+                targetValidator,
+                (game, info) => {
+                    info.targets.add(game.userByPk(info.command.params));
+                }
+            ));
+            m.addTransition(new FSM.Transition('T', 'UNTARGET', 'T',
+                targetValidator,
+                (game, info) => {
+                    info.targets.delete(game.userByPk(info.command.params));
+                }
+            ));
+            m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
+                (game, info) => {
+                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    for (let target of info.targets) {
+                        u.reply(`UNSELECT TARGET ${target.id}`);
+                    }
+                    let card = game.cardByPk(info.command.params);
+                    info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
+                }
+            ));
+            m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
+            m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
+
+            m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T',
+                targetValidator,
+                (game, info) => {
+                    info.targets.delete(game.userByPk(info.command.params));
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'CARD', '_',
+                (game, info) => {
+                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    for (let target of info.targets) {
+                        u.reply(`UNSELECT TARGET ${target.id}`);
+                    }
+                    let card = game.cardByPk(info.command.params);
+                    info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'OK', '_', null,
+                (game, info) => {
+                    info.result = new R.CardTargetResult().set(info.card, U.toArray(info.targets));
+                }
+            ));
+            m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
+            m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
+            break;
+    }
+
+    return m;
+};
 
 
 class CardBase {
@@ -17,8 +167,6 @@ class CardBase {
 
         this.faked = false;
         this.originCards = null;
-
-        this.requireOk = false;
     }
 
     getOriginCards() {
@@ -49,14 +197,22 @@ class CardBase {
         return JSON.stringify(this.toJson());
     }
 
-    * start(game, ctx) {
-        let u = ctx.sourceUser;
-        if (!(this.run instanceof Function) ||
-            this.requireOk && !(yield game.waitFSM(u, FSM.get('requireOk', game), ctx)).success) {
-            return yield Promise.resolve(R.fail);
+    toString() {
+        let str = this.name;
+        if (this.faked) {
+            str += `(${U.toArray(this.getOriginCards()).map(c => c.toString()).join(',')})`;
         }
+        return str;
+    }
 
-        return yield this.run(game, ctx);
+    * init(game, ctx) {
+        // 初始化：从用户点击该牌开始，到选中目标，到最终OK为止。
+        // 此为连贯动作，期间不应插入其它事件。
+        return yield Promise.resolve(new R.CardResult().set(this));
+    }
+
+    * start(game, ctx) {
+        return yield Promise.resolve(R.success);
     }
 }
 
@@ -66,6 +222,12 @@ class NormalCard extends CardBase {
         super(suit, number);
         this.category = C.CARD_CATEGORY.NORMAL;
     }
+
+    * start(game, ctx) {
+        if (this.run instanceof Function) {
+            yield this.run(game, ctx);
+        }
+    }
 }
 
 
@@ -74,6 +236,37 @@ class SilkBagCard extends CardBase {
         super(suit, number);
         this.category = C.CARD_CATEGORY.SILK_BAG;
         this.distance = Infinity;
+        this.targetCount = 1;  // Could be C.TARGET_SELECT_TYPE.* or an positive integer
+    }
+
+    * init(game, ctx) {
+        let u = ctx.i.sourceUser;
+        let opt = {
+            u,
+            targetValidator: (command) => {
+                let target = game.userByPk(command.params);
+                return target.id !== u.id;
+            },
+            targetCount: this.targetCount,
+            initCtx: {
+                card: this,
+            }
+        };
+        return yield game.waitFSM(u, initCardFSM(game, ctx, opt), ctx);
+    }
+
+    * start(game, ctx) {
+        let u = ctx.i.sourceUser;
+        let card = U.toSingle(ctx.i.card);
+        let targets = ctx.i.targets;
+        let targetMsg = (card.targetCount < C.TARGET_SELECT_TYPE.SINGLE) ? '' : ['对', targets];
+        game.message([u, targetMsg, '使用了', card]);
+
+        for (let target of targets) {
+            // TODO WuXieKeJi
+            ctx.i.currentTarget = target;
+            yield this.run(game, ctx);
+        }
     }
 }
 
@@ -83,44 +276,35 @@ class DelayedSilkBagCard extends CardBase {
         super(suit, number);
         this.category = C.CARD_CATEGORY.DELAYED_SILK_BAG;
         this.distance = Infinity;
-        this.needTarget = true;
+        this.targetCount = 1;  // Could be C.TARGET_SELECT_TYPE.* or an positive integer
     }
 
-    * run(game, ctx) {
-        let u = ctx.sourceUser;
+    * init(game, ctx) {
+        let u = ctx.i.sourceUser;
         let distance = this.distance;
-        let card = this;
-        game.lockUserCards(u, ctx.sourceCards);
-        let result;
-        if (this.needTarget) {
-            result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {
-                cancelOnUncard: true,
-                targetValidator: (command) => {
-                    let target = game.userByPk(command.params);
-                    return (target.id !== u.id
-                        && game.distanceOf(u, target) <= distance
-                        && !target.hasJudgeType(card));
-                }
-            }), ctx);
-        } else if (!u.hasJudgeType(card) && (yield game.waitOk(u))) {
-            result = new R.TargetResult().set(u);
-        } else {
-            result = R.abort;
-        }
-        game.unlockUserCards(u, ctx.sourceCards);
+        let opt = {
+            u,
+            targetValidator: (command) => {
+                let target = game.userByPk(command.params);
+                return (target.id !== u.id
+                    && game.distanceOf(u, target) <= distance
+                    && !target.hasJudgeType(this));
+            },
+            targetCount: this.targetCount,
+            initCtx: {
+                card: this,
+            }
+        };
+        return yield game.waitFSM(u, initCardFSM(game, ctx, opt), ctx);
+    }
 
-        if (result.success) {
-            yield game.removeUserCards(u, ctx.sourceCards);
-
-            let target = result.get();
-            ctx.targets = U.toSet(target);
-            game.message([ctx.sourceUser, '对', ctx.targets, '使用了', ctx.sourceCards]);
-            ctx.targets.forEach((t) => game.pushUserJudge(t, ctx.sourceCards[0]));
-
-            return yield Promise.resolve(R.success);
-        } else {
-            return yield Promise.resolve(R.abort);
-        }
+    * start(game, ctx) {
+        let u = ctx.i.sourceUser;
+        let card = U.toSingle(ctx.i.card);
+        let targets = ctx.i.targets;
+        game.message([u, '对', targets, '使用了', card]);
+        ctx.i.targets.forEach((t) => game.pushUserJudge(t, card));
+        ctx.handlingCards.delete(card);
     }
 
     * judgeEffect(u, game) {
@@ -137,8 +321,7 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
     constructor(suit, number) {
         super(suit, number);
         this.category = C.CARD_CATEGORY.EQUIPMENT;
-
-        this.requireOk = true;
+        this.targetCount = C.TARGET_SELECT_TYPE.SELF;
         this.equiperPk = null;
     }
 
@@ -150,8 +333,28 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
         return game.userByPk(this.equiperPk);
     }
 
+    * init(game, ctx) {
+        let u = ctx.i.sourceUser;
+        let opt = {
+            u,
+            targetValidator: (command) => {
+                let target = game.userByPk(command.params);
+                return target.id !== u.id;
+            },
+            targetCount: this.targetCount,
+            initCtx: {
+                card: this,
+            }
+        };
+        return yield game.waitFSM(u, initCardFSM(game, ctx, opt), ctx);
+    }
+
+    * start(game, ctx) {
+        yield this.run(game, ctx);
+    }
+
     * run(game, ctx) {
-        yield game.equipUserCard(game.roundOwner, this);
+        yield game.equipUserCard(U.toSingle(ctx.i.targets), this);
         return yield Promise.resolve(R.success);
     }
 
@@ -199,10 +402,91 @@ class Sha extends NormalCard {
     constructor(suit, number) {
         super(suit, number);
         this.name = '杀';
+        this.targetCount = 1;  // TODO: How many targets are required
+    }
+
+    * init(game, ctx) {
+        let u = ctx.i.sourceUser;
+        yield u.on('useSha', game, ctx);
+        if (ctx.phaseCtx.i.shaCount < 1) {
+            console.log(`|<!> Use too many Sha`);
+            return yield Promise.resolve(R.fail);
+        }
+        let opt = {
+            u,
+            targetValidator: (command) => {
+                let target = game.userByPk(command.params);
+                return target.id !== u.id && game.inAttackRange(u, target);
+            },
+            targetCount: this.targetCount,
+            initCtx: {
+                card: this,
+            }
+        };
+        return yield game.waitFSM(u, initCardFSM(game, ctx, opt), ctx);
+    }
+
+    * targetEvents(game, ctx) {
+        const u = ctx.i.sourceUser;
+
+        // 指定目标时
+        yield u.on('shaTarget', game, ctx);
+
+        // 成为目标时
+        for (let t of ctx.i.targets) {
+            yield t.on('beShaTarget', game, ctx);
+        }
+
+        // 指定目标后
+        yield u.on('afterShaTarget', game, ctx);
+
+        // 成为目标后
+        for (let t of ctx.i.targets) {
+            yield t.on('afterBeShaTarget', game, ctx);
+        }
     }
 
     * run(game, ctx) {
-        return yield ShaStage.start(game, ctx);
+        ctx.i.shanAble = new Map();
+        if (!ctx.i.skipShaInitStage) {
+            yield this.targetEvents(game, ctx);
+        }
+
+        const u = ctx.i.sourceUser;
+        const card = ctx.i.card;
+        const targets = ctx.i.targets;
+        ctx.i.damage = new Damage(u, card, 1);
+
+        yield game.removeUserCards(ctx.i.sourceUser, card);
+        game.message([ctx.i.sourceUser, '对', ctx.i.targets, '使用', card]);
+
+        for (let target of targets) {
+            ctx.i.hit = true;  // 命中
+            ctx.i.shaTarget = target;
+            ctx.i.exDamage = 0;
+
+            if (!ctx.i.shanAble.has(target) || ctx.i.shanAble.get(target)) {
+                let result = yield target.on('requireShan', game, ctx);
+                if (result.success) {
+                    if (result instanceof R.CardResult) {
+                        let cards = result.get();
+                        game.message([target, '使用了', cards]);
+                        yield game.removeUserCards(target, cards, true);
+                    }
+
+                    yield target.on('usedShan', game, ctx);
+                    ctx.i.hit = false;
+                    yield u.on('shaBeenShan', game, ctx);
+                }
+            }
+
+            if (ctx.i.hit) {
+                yield u.on('shaHitTarget', game, ctx);
+                yield target.on('damage', game, ctx);
+            }
+        }
+
+        yield u.on('usedSha', game, ctx);
     }
 }
 
@@ -212,6 +496,10 @@ class Shan extends NormalCard {
         super(suit, number);
         this.name = '闪';
     }
+
+    * init(game, ctx) {
+        return yield Promise.resolve(R.fail);
+    }
 }
 
 
@@ -219,11 +507,32 @@ class Tao extends NormalCard {
     constructor(suit, number) {
         super(suit, number);
         this.name = '桃';
-        this.requireOk = true;
+        this.targetCount = C.TARGET_SELECT_TYPE.SELF;
+    }
+
+    * init(game, ctx) {
+        let u = ctx.i.sourceUser;
+        if (u.hp >= u.maxHp) {
+            return yield Promise.resolve(R.fail);
+        }
+        let opt = {
+            u,
+            targetValidator: (command) => {
+                let target = game.userByPk(command.params);
+                return target.id !== u.id;
+            },
+            targetCount: this.targetCount,
+            initCtx: {
+                card: this,
+            }
+        };
+        return yield game.waitFSM(u, initCardFSM(game, ctx, opt), ctx);
     }
 
     * run(game, ctx) {
-        return yield game.roundOwner.on('useTao', game, ctx);
+        game.message([ctx.i.sourceUser, '使用了', ctx.i.card]);
+        ctx.i.heal = 1;
+        return yield U.toSingle(ctx.i.targets).on('useTao', game, ctx);
     }
 }
 
@@ -235,39 +544,24 @@ class JueDou extends SilkBagCard {
     }
 
     * run(game, ctx) {
-        let u = ctx.sourceUser;
-        game.lockUserCards(u, ctx.sourceCards);
-        let result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {
-            cancelOnUncard: true,
-            targetValidator: (command) => {
-                let target = game.userByPk(command.params);
-                return target.id !== u.id;
-            }
-        }), ctx);
-        game.unlockUserCards(u, ctx.sourceCards);
-        if (!result.success) {
-            return yield Promise.resolve(result);
-        }
+        let u = ctx.i.sourceUser;
+        let t = ctx.i.currentTarget;
 
-        yield game.removeUserCards(u, ctx.sourceCards);
-        ctx.targets = U.toArray(result.get());
-        game.message([ctx.sourceUser, '对', ctx.targets, '使用了', ctx.sourceCards]);
-
-        let users = ctx.targets.concat(u);
+        let users = [t, u];
         let done = false;
         let loser;
         while (!done) {
             for (let _u of users) {
                 let result = yield _u.on('requireSha', game, ctx);
                 if (result.success) {
-                    game.discardCards(ctx.sourceCards);
-                    ctx.handlingCards.delete(ctx.sourceCards);
+                    game.discardCards(ctx.i.card);
+                    ctx.handlingCards.delete(ctx.i.card);
 
-                    ctx.sourceUser = _u;
-                    ctx.sourceCards = result.get();
-                    yield game.removeUserCards(_u, ctx.sourceCards);
-                    ctx.handlingCards.add(ctx.sourceCards);
-                    game.message([_u, '打出了', ctx.sourceCards]);
+                    ctx.i.sourceUser = _u;
+                    ctx.i.card = result.get();
+                    yield game.removeUserCards(_u, ctx.i.card);
+                    ctx.handlingCards.add(ctx.i.card);
+                    game.message([_u, '打出了', ctx.i.card]);
                 } else {
                     done = true;
                     loser = _u;
@@ -276,9 +570,8 @@ class JueDou extends SilkBagCard {
             }
         }
 
-        ctx.damage = 1;
-        result = yield loser.on('damage', game, ctx);
-        return yield Promise.resolve(result);
+        ctx.i.damage = new Damage(ctx.i.sourceUser, ctx.i.card, 1);
+        yield loser.on('damage', game, ctx);
     }
 }
 
@@ -290,26 +583,11 @@ class GuoHeChaiQiao extends SilkBagCard {
     }
 
     * run(game, ctx) {
-        let u = ctx.sourceUser;
-
-        game.lockUserCards(u, ctx.sourceCards);
-        let result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, {
-            cancelOnUncard: true,
-        }), ctx);
-        game.unlockUserCards(u, ctx.sourceCards);
-        if (!result.success) {
-            return yield Promise.resolve(result);
-        }
-
-        yield game.removeUserCards(u, ctx.sourceCards, true);
-        let target = result.get();
-        ctx.targets = target;
-        game.message([ctx.sourceUser, '对', target, '使用了', ctx.sourceCards]);
-
-        // TODO: WuXieKeJi
+        let u = ctx.i.sourceUser;
+        let t = ctx.i.currentTarget;
 
         // Show all card candidates
-        let cardCandidates = target.cardCandidates();
+        let cardCandidates = t.cardCandidates();
         u.reply(`CARD_CANDIDATE ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
         let command = yield game.wait(u, {
             validCmds: ['CARD_CANDIDATE'],
@@ -322,10 +600,8 @@ class GuoHeChaiQiao extends SilkBagCard {
         u.popRestoreCmd('CARD_CANDIDATE');
 
         let card = game.cardByPk(command.params);
-        game.message([u, '拆掉了', target, '的一张牌']);
-        yield game.removeUserCardsEx(target, card, true);
-
-        return yield Promise.resolve(R.success);
+        game.message([u, '拆掉了', t, '的一张牌', card]);
+        yield game.removeUserCardsEx(t, card, true);
     }
 }
 
@@ -334,24 +610,19 @@ class NanManRuQin extends SilkBagCard {
     constructor(suit, number) {
         super(suit, number);
         this.name = '南蛮入侵';
-        this.requireOk = true;
+        this.targetCount = C.TARGET_SELECT_TYPE.ALL_OTHERS;
     }
 
     * run(game, ctx) {
-        const u = ctx.sourceUser;
-        game.message([u, '使用了', this]);
-        yield game.removeUserCards(u, ctx.sourceCards);
-
-        ctx.damage = 1;
-        for (let _u of game.userRound(game.roundOwner, true)) {
-            let result = yield _u.on('requireSha', game, ctx);
-            if (result.success) {
-                let card = result.get();
-                game.message([_u, '打出了', card]);
-                yield game.removeUserCards(_u, card, true);
-            } else {
-                yield _u.on('damage', game, ctx);
-            }
+        const t = ctx.i.currentTarget;
+        ctx.i.damage = new Damage(ctx.i.sourceUser, this, 1);
+        let result = yield t.on('requireSha', game, ctx);
+        if (result.success) {
+            let card = result.get();
+            game.message([t, '打出了', card]);
+            yield game.removeUserCards(t, card, true);
+        } else {
+            yield t.on('damage', game, ctx);
         }
     }
 }
@@ -361,16 +632,14 @@ class WuZhongShengYou extends SilkBagCard {
     constructor(suit, number) {
         super(suit, number);
         this.name = '无中生有';
-
-        this.requireOk = true;
+        this.targetCount = C.TARGET_SELECT_TYPE.SELF;
     }
 
     * run(game, ctx) {
-        const u = ctx.sourceUser;
-        yield game.removeUserCards(u, ctx.sourceCards, true);
+        const u = ctx.i.sourceUser;
+        yield game.removeUserCards(u, ctx.i.card, true);
         game.message([u, '使用', this, '获得两张牌']);
         game.dispatchCards(u, 2);
-        return yield Promise.resolve(R.success);
     }
 }
 
@@ -417,7 +686,7 @@ class ShanDian extends DelayedSilkBagCard {
         super(suit, number);
         this.name = '闪电';
         this.shortName = '电';
-        this.needTarget = false;
+        this.targetCount = C.TARGET_SELECT_TYPE.SELF;
     }
 
     judge(card) {
@@ -425,7 +694,9 @@ class ShanDian extends DelayedSilkBagCard {
     }
 
     * judgeEffect(u, game) {
-        let ctx = new Context({damage: 3, sourceCards: this});
+        let ctx = new CardContext(game, this, {
+            damage: new Damage(null, this, 3),
+        });
         yield u.on('damage', game, ctx);
         yield super.judgeEffect(u, game);
     }
@@ -456,19 +727,17 @@ class QingLongYanYueDao extends WeaponCard {
         let result = yield u.on('requireSha', game, ctx);
         if (result.success) {
             let card = result.get();
-            let context = new Context({
+            let cardCtx = new CardContext(game, card, {
                 sourceUser: u,
-                sourceCards: card,
-                targets: U.toSet(ctx.shaTarget),
+                targets: U.toSet(ctx.i.shaTarget),
                 skipShaInitStage: true,
-                damage: 1,
-                phaseContext: ctx.phaseContext,
-            });
-            context.handlingCards.add(card);
-            game.message([u, '发动了', this, '使用了', context.sourceCards, '追杀', context.targets]);
-            context.phaseContext.shaCount ++;  // 青龙偃月刀算额外的杀
-            result = yield ShaStage.start(game, context);
-            game.discardCards(context.handlingCards);
+                damage: new Damage(u, card, 1),
+            }).linkParent(ctx.parentCtx);
+            cardCtx.handlingCards.add(card);
+            game.message([u, '发动了', this, '使用了', cardCtx.i.card, '追杀', cardCtx.i.targets]);
+            cardCtx.phaseCtx.i.shaCount++;  // 青龙偃月刀算额外的杀
+            result = yield card.start(game, cardCtx);
+            game.discardCards(cardCtx.allHandlingCards());
             return yield Promise.resolve(result);
         }
     }
@@ -493,10 +762,11 @@ class GuDingDao extends WeaponCard {
     }
 
     * shaHitTarget(game, ctx) {
-        const target = ctx.shaTarget;
+        const u = this.equiper(game);
+        const target = ctx.i.shaTarget;
         if (target.cards.size <= 0) {
             game.message([u, '的装备', this, '生效，此【杀】伤害+1']);
-            ctx.exDamage += 1;
+            ctx.i.exDamage += 1;
         }
         return yield Promise.resolve(R.success);
     }
@@ -512,8 +782,8 @@ class CiXiongShuangGuJian extends WeaponCard {
     }
 
     * afterShaTarget(game, ctx) {
-        const u = ctx.sourceUser;
-        for (let t of ctx.targets) {
+        const u = ctx.i.sourceUser;
+        for (let t of ctx.i.targets) {
             if (u.gender !== t.gender) {
                 let command = yield game.waitConfirm(u, `是否对${t.figure.name}使用武器【${this.name}】？`);
                 if (command.cmd === C.CONFIRM.Y) {
@@ -566,7 +836,7 @@ class GuanShiFu extends WeaponCard {
             showHandCards: true,
         }).filter(c => c.card.pk !== this.pk);  // 排除当前装备的贯石斧
 
-        if(cardCandidates.length >= 2) {
+        if (cardCandidates.length >= 2) {
             let command = yield game.waitConfirm(u, `是否使用武器【${this.name}】？`);
             if (command.cmd === C.CONFIRM.Y) {
                 u.reply(`CARD_CANDIDATE ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
@@ -583,7 +853,7 @@ class GuanShiFu extends WeaponCard {
                 let cards = game.cardsByPk(command.params);
                 game.message([u, '弃掉', cards, '，发动武器', this, '使【杀】强制命中']);
                 yield game.removeUserCardsEx(u, cards, true);
-                ctx.hit = true;
+                ctx.i.hit = true;
             }
         }
         return yield Promise.resolve(R.success);

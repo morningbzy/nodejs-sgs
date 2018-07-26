@@ -20,12 +20,12 @@ module.exports = {
     },
 
     toArray(x) {
-        if (Array.isArray(x)) {
+        if (x === undefined || x === null) {
+            return [];
+        } else if (Array.isArray(x)) {
             return x;
         } else if (iterable(x)) {
             return Array.from(x);
-        } else if (x === undefined || x === null) {
-            return [];
         }
         return [x];
     },

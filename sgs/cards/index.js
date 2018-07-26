@@ -1,3 +1,4 @@
+const C = require('../constants');
 const U = require('../utils');
 const cards = require('./cards');
 const cardSet = cards.cardSet;
@@ -48,7 +49,7 @@ class CardManager {
     }
 
     getCards(pks) {
-        return Array.from(pks, (pk) => this.getCard(pk));
+        return Array.from(U.toArray(pks), (pk) => this.getCard(pk));
     }
 
     useCards(pks) {
@@ -57,6 +58,7 @@ class CardManager {
     }
 
     fakeCards(cards, fakeInfo = {}) {
+        cards = U.toArray(cards);
         console.assert(cards.length === 1 || fakeInfo.asClass !== undefined, 'Fake cards failed!');
         let {
             asClass = cards[0].constructor,
@@ -72,9 +74,13 @@ class CardManager {
         return fakeCard;
     }
 
-    destroyFakeCards(cards) {
-        U.toArray(cards).map(c => this.faked.delete(c.pk));
+    destroyFakeCardPks(pks) {
+        U.toArray(pks).map(pk => this.faked.delete(pk));
         this._status();
+    }
+
+    destroyFakeCards(cards) {
+        this.destroyFakeCardPks(U.toArray(cards).map(c => c.pk));
     }
 
     unfakeCard(card) {
