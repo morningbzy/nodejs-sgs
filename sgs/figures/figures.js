@@ -423,11 +423,10 @@ class GuanYu extends FigureBase {
                     targetCount: (ctx) => {
                         return ctx.i.requireCard ? ST.NONE : ST.SINGLE;
                     },
-                    cardValidator: (command) => {
-                        let card = game.cardByPk(command.params);
-                        return (this.owner.hasCard(card)
-                            && [C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND].includes(card.suit));
-                    },
+                    cardValidator: [
+                        FSM.BASIC_VALIDATORS.ownCardValidator,
+                        FSM.BASIC_VALIDATORS.buildCardSuitValidator('RED'),
+                    ],
                 },
             }),
         };
@@ -456,6 +455,7 @@ class GuanYu extends FigureBase {
             game.message([u, '使用技能【武圣】把', cards, '当作', fakeCard, '使用']);
         }
 
+        // yield game.removeUserCards(u, cards);
         this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.DISABLED);
         return yield Promise.resolve(result);
     }
@@ -687,7 +687,7 @@ class SiMaYi extends FigureBase {
             u.popRestoreCmd('CARD_CANDIDATE');
 
             let card = game.cardByPk(command.params);
-            yield game.removeUserCardsEx(ctx.i.sourceUser, card);
+            yield game.removeUserCards(ctx.i.sourceUser, card);
             game.addUserCards(u, card);
             game.message([u, '从', ctx.i.sourceUser, '处获得1张牌']);
         }
@@ -750,10 +750,10 @@ class DaQiao extends FigureBase {
                 fsmOpt: {
                     cardCount: ST.SINGLE,
                     targetCount: ST.SINGLE,
-                    cardValidator: (command) => {
-                        let card = game.cardByPk(command.params);
-                        return (this.owner.hasCard(card) && C.CARD_SUIT.DIAMOND === card.suit);
-                    },
+                    cardValidator: [
+                        FSM.BASIC_VALIDATORS.ownCardValidator,
+                        FSM.BASIC_VALIDATORS.buildCardSuitValidator(C.CARD_SUIT.DIAMOND),
+                    ],
                 },
             }),
             WU006s02: {
@@ -780,11 +780,14 @@ class DaQiao extends FigureBase {
     * s2(game, ctx) {
         const u = this.owner;
         let result = yield game.waitFSM(u, FSM.get('requireSingleCardAndTarget', game, ctx, {
+            cardValidator: FSM.BASIC_VALIDATORS.ownCardValidator,
             targetValidator: (command) => {
                 let target = game.userByPk(command.params);
                 return target !== ctx.i.sourceUser && game.inAttackRange(u, target);
             }
         }), ctx);
+
+        u.reply('UNSELECT ALL');
 
         if (result.success) {
             let card = result.get().card;
@@ -950,7 +953,7 @@ class SunShangXiang extends FigureBase {
         let target = U.toSingle(ctx.i.targets);
         ctx.i.heal = 1;
 
-        yield game.removeUserCardsEx(u, cards, true);
+        yield game.removeUserCards(u, cards, true);
         game.message([u, '使用技能【结姻】，弃置手牌', cards, '与', target, '各回复1点体力']);
         yield u.on('heal', game, ctx);
         yield target.on('heal', game, ctx);

@@ -5,9 +5,37 @@ const FSMFactory = require('./fsmFactory');
 
 
 module.exports.BASIC_VALIDATORS = {
-    ownCardValidator: (command, info) => {
+    handCardValidator: (command, info) => {
         let card = info.game.cardByPk(command.params);
         return info.sourceUser.hasCard(card);
+    },
+
+    equipCardValidator: (command, info) => {
+        let card = info.game.cardByPk(command.params);
+        return info.sourceUser.hasEquipedCard(card);
+    },
+
+    ownCardValidator: (command, info) => {
+        let card = info.game.cardByPk(command.params);
+        return info.sourceUser.hasCard(card) || info.sourceUser.hasEquipedCard(card);
+    },
+
+    buildCardSuitValidator: (suit) => {
+        let validSuits;
+        switch(suit) {
+            case 'RED':
+                validSuits = [C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND];
+                break;
+            case 'BLACK':
+                validSuits = [C.CARD_SUIT.SPADE, C.CARD_SUIT.CLUB];
+                break;
+            default:
+                validSuits = U.toArray(suit);
+        }
+        return (command, info) => {
+            let card = info.game.cardByPk(command.params);
+            return validSuits.includes(card.suit);
+        };
     },
 
     notMeTargetValidator: (command, info) => {

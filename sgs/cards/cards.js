@@ -601,7 +601,7 @@ class GuoHeChaiQiao extends SilkBagCard {
 
         let card = game.cardByPk(command.params);
         game.message([u, '拆掉了', t, '的一张牌', card]);
-        yield game.removeUserCardsEx(t, card, true);
+        yield game.removeUserCards(t, card, true);
     }
 }
 
@@ -852,7 +852,7 @@ class GuanShiFu extends WeaponCard {
 
                 let cards = game.cardsByPk(command.params);
                 game.message([u, '弃掉', cards, '，发动武器', this, '使【杀】强制命中']);
-                yield game.removeUserCardsEx(u, cards, true);
+                yield game.removeUserCards(u, cards, true);
                 ctx.i.hit = true;
             }
         }

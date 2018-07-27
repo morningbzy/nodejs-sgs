@@ -48,6 +48,7 @@ module.exports = class extends Phase {
                 new (Figures.DaQiao)(game),
                 new (Figures.XiaoQiao)(game),
                 new (Figures.SunShangXiang)(game),
+                new (Figures.ZhenJi)(game),
             ];
             u.reply(`FIGURE_CANDIDATE ${JSON.stringify(figures.map((f) => f.toJson()))}`, true, true);
             command = yield game.wait(u, {

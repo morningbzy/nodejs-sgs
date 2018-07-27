@@ -13,7 +13,7 @@ class Skill {
         let u = this.figure.owner;
         let defaultOpt = {
             u,
-            cardValidator: FSM.BASIC_VALIDATORS.ownCardValidator,
+            cardValidator: FSM.BASIC_VALIDATORS.handCardValidator,
             targetValidator: FSM.BASIC_VALIDATORS.notMeTargetValidator,
         };
         let opt = Object.assign(defaultOpt, this.fsmOpt);

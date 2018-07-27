@@ -245,10 +245,7 @@ class MachineFactory {
             stateC = null;
         } else {
             stateC = new FSM.State('C');
-            cardValidator = [
-                cardValidator,
-                FSM.BASIC_VALIDATORS.buildCountExceededValidator('cards', cardCount)
-            ];
+            cardValidator = U.toArray(cardValidator).concat([FSM.BASIC_VALIDATORS.buildCountExceededValidator('cards', cardCount)]);
             m.addState(stateC, true);
         }
 

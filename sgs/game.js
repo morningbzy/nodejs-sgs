@@ -377,7 +377,7 @@ class Game {
         // this.unlockUserCardPks(user, this.cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
-    * removeUserCards(user, cards, discard = false) {
+    * removeUserHandCards(user, cards, discard = false) {
         cards = U.toArray(cards);
         user.removeCardPks(this.cardManager.unfakeCards(cards).map(x => x.pk));
         if(discard) {
@@ -386,23 +386,25 @@ class Game {
         this.broadcastUserInfo(user);
     }
 
-    * removeUserCardsEx(user, cards, discard = false) {
+    * removeUserCards(user, cards, discard = false) {
         cards = U.toArray(cards);
-        for (let card of cards) {
-            if (user.hasCard(card)) {
-                yield this.removeUserCards(user, card, discard);
-            } else if (user.hasJudgeCard(card)) {
+        for (let card of new Set([...cards, ...this.cardManager.unfakeCards(cards)])) {
+            console.log(`|[DEBUG] ===== Removing card: ${card}`);
+            if (user.hasJudgeCard(card)) {
+                console.log(`|[DEBUG] ===== judge card: ${card}`);
                 yield this.removeUserJudge(user, card, discard);
             } else if (user.hasEquipedCard(card)) {
+                console.log(`|[DEBUG] ===== equip card: ${card}`);
                 yield this.unequipUserCard(user, card.equipType, discard);
             } else {
+                console.log(`|[DEBUG] ===== hand card: ${card}`);
+                yield this.removeUserHandCards(user, card, discard);
             }
         }
     }
 
     * equipUserCard(user, card) {
         yield this.unequipUserCard(user, card.equipType, true);
-        yield this.removeUserCards(user, [card]);
         user.equipCard(card);
         this.message([user, '装备了', card]);
         this.broadcastUserInfo(user);

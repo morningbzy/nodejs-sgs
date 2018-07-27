@@ -360,7 +360,7 @@ const Cmd = {
 
         if (marker === '*') {
             Cmd.waitingTag = parseInt(params[1]);
-            $('[waiting-tag]').each((i, el) => {
+            $('.sgs-action[waiting-tag]').each((i, el) => {
                 console.log(Boolean(Cmd.waitingTag & parseInt(WAITING_FOR[$(el).attr('waiting-tag')])));
                 if(0 === (Cmd.waitingTag & parseInt(WAITING_FOR[$(el).attr('waiting-tag')]))) {
                     $(el).addClass('disabled').removeClass('btn-primary');
@@ -425,7 +425,7 @@ const Cmd = {
 
         switch (category.toLowerCase()) {
             case 'card':
-                $(`#sgs-card-panel .sgs-card[pk=${pk}]`).addClass(selectedCardClass);
+                $(`#sgs-player-panel [pk=${pk}]`).addClass(selectedCardClass);
                 break;
             case 'target':
                 $(`.sgs-player[pk=${pk}] .sgs-player-card`).addClass(selectedPlayerClass);
@@ -447,7 +447,7 @@ const Cmd = {
                 $('.sgs-skill.selected').removeClass(selectedSkillClass);
                 break;
             case 'card':
-                $(`.sgs-card[pk=${pk}]`).removeClass(selectedCardClass);
+                $(`#sgs-player-panel [pk=${pk}]`).removeClass(selectedCardClass);
                 break;
             case 'target':
                 $(`.sgs-player[pk=${pk}] .sgs-player-card`).removeClass(selectedPlayerClass);

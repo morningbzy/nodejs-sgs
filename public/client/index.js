@@ -47,6 +47,9 @@ class Debug {
 
     log(log) {
         this._msg.innerHTML = '<li>' + log + '</li>' + this._msg.innerHTML;
+        if($('li', this._msg).length > 100) {
+            $('li', this._msg).map((i, el) => i >= 100? $(el).remove(): null);
+        }
     }
 }
 
@@ -89,7 +92,8 @@ class Game {
                 });
             }
         });
-        table.on('click', '#sgs-card-panel .sgs-card', (e) => {
+        table.on('click', '#sgs-card-panel .sgs-card, #sgs-player-panel .sgs-equipment', (e) => {
+            e.stopPropagation();
             if ((WAITING_FOR.CARD + WAITING_FOR.UNCARD) & Cmd.waitingTag) {
                 let el = $(e.currentTarget);
                 let pk = $(e.currentTarget).attr('pk');
