@@ -49,9 +49,6 @@ module.exports = {
         sender.reply(`SELECT SKILL ${params}`);
     },
 
-    cancel: (game, sender, params) => {
-    },
-
     target: (game, sender, params) => {
         console.log(`|[i] TARGET: ${game.userByPk(params).figure.name}`);
         sender.reply(`SELECT TARGET ${params}`);
@@ -59,6 +56,21 @@ module.exports = {
 
     untarget: (game, sender, params) => {
         sender.reply(`UNSELECT TARGET ${params}`);
+    },
+
+    y: (game, sender, params) => {
+    },
+
+    n: (game, sender, params) => {
+    },
+
+    card_candidate: (game, sender, params) => {
+    },
+
+    ok: (game, sender, params) => {
+    },
+
+    cancel: (game, sender, params) => {
     },
 
     pass: (game, sender, params) => {

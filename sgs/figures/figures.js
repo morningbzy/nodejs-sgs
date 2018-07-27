@@ -82,8 +82,7 @@ class FigureBase extends EventListener {
 
 
 class CaoCao extends FigureBase {
-// 【曹操】 魏，男，4血
-// 【奸雄】【护驾】
+// 【曹操】 魏，男，4血 【奸雄】【护驾】
     constructor(game) {
         super();
         this.name = '曹操';
@@ -115,7 +114,7 @@ class CaoCao extends FigureBase {
         let cards = U.toArray(ctx.i.damage.srcCard);
         for (let card of cards) {
             if (ctx.phaseCtx.allHandlingCards().includes(card)) {
-                game.message([this.owner, '获得了', card]);
+                game.message([this.owner, '获得了', cardManager.unfakeCard(card)]);
                 game.addUserCards(this.owner, card);
                 ctx.handlingCards.delete(card);
             }
@@ -163,6 +162,99 @@ class CaoCao extends FigureBase {
             return yield this.triggerSkill(this.skills.WEI001s02, game, ctx);
         }
         return yield Promise.resolve(R.fail);
+    }
+}
+
+
+class ZhenJi extends FigureBase {
+// 【甄姬】 魏，女，3血 【倾国】【洛神】
+    constructor(game) {
+        super();
+        this.name = '甄姬';
+        this.country = C.COUNTRY.WEI;
+        this.gender = C.GENDER.FEMALE;
+        this.hp = 3;
+
+        this.skills = {
+            WEI007s01: new Skill(this, {
+                pk: 'WEI007s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '倾国',
+                desc: '你可以将一张黑色的手牌当【闪】使用或打出。',
+                handler: 's1',
+                fsmOpt: {
+                    cardCount: ST.SINGLE,
+                    targetCount: ST.NONE,
+                    cardValidator: (command, info) => {
+                        let card = game.cardByPk(command.params);
+                        return (this.owner.hasCard(card)
+                            && [C.CARD_SUIT.SPADE, C.CARD_SUIT.CLUB].includes(card.suit));
+                    },
+                },
+            }),
+            WEI007s02: new Skill(this, {
+                pk: 'WEI007s02',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '洛神',
+                desc: '准备阶段开始时，你可以进行判定，若结果为黑色，你获得生效' +
+                '后的判定牌且你可以重复此流程。',
+                handler: 's2',
+            }),
+        };
+    }
+
+    * s1(game, ctx) {
+        const u = this.owner;
+        let cards;
+        let result = yield ctx.skill.init(game, ctx);
+        if (result.success) {
+            cards = result.get().card;
+        } else {
+            return yield Promise.resolve(R.fail);
+        }
+
+        let fakeCard = cardManager.fakeCards(cards, {asClass: sgsCards.Shan});
+        game.message([u, '使用技能【倾国】把', cards, '当作', fakeCard, '使用']);
+        return yield Promise.resolve(new R.CardResult().set(fakeCard));
+    }
+
+    * s2(game, ctx) {
+        const u = this.owner;
+        game.message([u, '发动了【洛神】']);
+        let result = yield game.doJudge(u,
+            (card) => [C.CARD_SUIT.SPADE, C.CARD_SUIT.CLUB].includes(card.suit)
+        );
+        game.message([u, '判定【洛神】为', result.get(), '判定', result.success ? '生效' : '未生效']);
+        if (result.success) {
+            let card = result.get();
+            ctx.handlingCards.delete(card);
+            game.addUserCards(u, card);
+            game.message([u, '获得卡牌', card]);
+        }
+        return result;
+    }
+
+    * roundPreparePhaseStart(game, phaseCtx) {
+        const u = this.owner;
+        let more = true;
+        while (more) {
+            let command = yield game.waitConfirm(u, `是否发动技能【洛神】？`);
+            if (command.cmd === C.CONFIRM.Y) {
+                let result = yield this.triggerSkill(this.skills.WEI007s02, game, phaseCtx);
+                more = result.success;
+            } else {
+                more = false;
+            }
+
+        }
+    }
+
+    * requireShan(game, ctx) {
+        this.changeSkillState(this.skills.WEI007s01, C.SKILL_STATE.ENABLED);
+    }
+
+    * unrequireShan(game, ctx) {
+        this.changeSkillState(this.skills.WEI007s01, C.SKILL_STATE.DISABLED);
     }
 }
 
@@ -294,7 +386,7 @@ class LiuBei extends FigureBase {
         }
     }
 
-    * roundPlayPhaseEnd(game, ctx) {
+    * roundPlayPhaseEnd(game, phaseCtx) {
         this.changeSkillState(this.skills.SHU001s01, C.SKILL_STATE.DISABLED);
         this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.DISABLED);
     }
@@ -368,7 +460,7 @@ class GuanYu extends FigureBase {
         return yield Promise.resolve(result);
     }
 
-    * roundPlayPhaseStart(game, ctx) {
+    * roundPlayPhaseStart(game, phaseCtx) {
         this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.ENABLED);
     }
 
@@ -380,7 +472,7 @@ class GuanYu extends FigureBase {
         }
     }
 
-    * roundPlayPhaseEnd(game, ctx) {
+    * roundPlayPhaseEnd(game, phaseCtx) {
         this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.DISABLED);
     }
 
@@ -457,7 +549,7 @@ class ZhaoYun extends FigureBase {
         return yield Promise.resolve(result);
     }
 
-    * roundPlayPhaseEnd(game, ctx) {
+    * roundPlayPhaseEnd(game, phaseCtx) {
         this.skills.SHU005s01.info = null;
         this.changeSkillState(this.skills.SHU005s01, C.SKILL_STATE.DISABLED);
     }
@@ -550,9 +642,7 @@ class MaChao extends FigureBase {
 
 
 class SiMaYi extends FigureBase {
-// 【司马懿】 蜀，男，3血
-// 【反馈】
-// 【鬼才】
+// 【司马懿】 蜀，男，3血 【反馈】【鬼才】
     constructor(game) {
         super();
         this.name = '司马懿';
@@ -578,6 +668,7 @@ class SiMaYi extends FigureBase {
         };
     }
 
+    // 【反馈】
     * s1(game, ctx) {
         const u = this.owner;
         if (ctx.i.sourceUser) {
@@ -603,6 +694,7 @@ class SiMaYi extends FigureBase {
         return yield Promise.resolve(R.success);
     }
 
+    // 【鬼才】
     * s2(game, ctx) {
         let result = yield this.owner.requireCard(game, sgsCards.CardBase, ctx);
         if (result.success) {
@@ -715,11 +807,11 @@ class DaQiao extends FigureBase {
         }
     }
 
-    * roundPlayPhaseStart(game, ctx) {
+    * roundPlayPhaseStart(game, phaseCtx) {
         this.changeSkillState(this.skills.WU006s01, C.SKILL_STATE.ENABLED);
     }
 
-    * roundPlayPhaseEnd(game, ctx) {
+    * roundPlayPhaseEnd(game, phaseCtx) {
         this.changeSkillState(this.skills.WU006s01, C.SKILL_STATE.DISABLED);
     }
 
@@ -881,11 +973,11 @@ class SunShangXiang extends FigureBase {
         }
     }
 
-    * roundPlayPhaseStart(game, ctx) {
+    * roundPlayPhaseStart(game, phaseCtx) {
         ctx.i.usedWU008s01 = false;
     }
 
-    * roundPlayPhaseEnd(game, ctx) {
+    * roundPlayPhaseEnd(game, phaseCtx) {
         this.changeSkillState(this.skills.WU008s01, C.SKILL_STATE.DISABLED);
     }
 
@@ -902,6 +994,7 @@ class SunShangXiang extends FigureBase {
 
 CaoCao.pk = 'WEI001';
 SiMaYi.pk = 'WEI002';
+ZhenJi.pk = 'WEI007';
 
 LiuBei.pk = 'SHU001';
 GuanYu.pk = 'SHU002';
@@ -915,6 +1008,7 @@ XiaoQiao.pk = 'WU011';
 figures = {
     CaoCao,
     SiMaYi,
+    ZhenJi,
 
     LiuBei,
     GuanYu,

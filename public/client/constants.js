@@ -18,7 +18,9 @@ const WAITING_FOR = {
     CHOICE: 0x0200,
     CARD_CANDIDATE: 0x0400,
     FIGURE: 0x0800,
-    PASS: 0x1000,
+    Y: 0x1000,
+    N: 0x2000,
+    PASS: 0x4000,
 };
 
 const SKILL_STATE = {

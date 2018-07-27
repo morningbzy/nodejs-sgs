@@ -52,8 +52,12 @@ class CardManager {
         return Array.from(U.toArray(pks), (pk) => this.getCard(pk));
     }
 
-    useCards(pks) {
-        this.used.push(...this.getCards(pks));
+    discardCards(cards) {
+        for(let card of this.unfakeCards(cards)) {
+            console.log(`|[i] Discard ${card}`);
+            this.used.push(card);
+        }
+        this.destroyFakeCards(cards);
         this._status();
     }
 
@@ -70,26 +74,25 @@ class CardManager {
         fakeCard.faked = true;
         fakeCard.originCards = new Set(cards);
         this.faked.set(fakeCard.pk, fakeCard);
+        console.log(`|[i] Fake card ${fakeCard}`);
         this._status();
         return fakeCard;
     }
 
-    destroyFakeCardPks(pks) {
-        U.toArray(pks).map(pk => this.faked.delete(pk));
+    destroyFakeCards(cards) {
+        U.toArray(cards).filter(c => c.faked).map(c => {
+            console.log(`|[i] Destory faked card ${c}`);
+            this.faked.delete(c.pk);
+        });
         this._status();
     }
 
-    destroyFakeCards(cards) {
-        this.destroyFakeCardPks(U.toArray(cards).map(c => c.pk));
-    }
-
     unfakeCard(card) {
-        let rtn = U.toArray(card.getOriginCards());
-        return rtn;
+        return U.toArray(card.getOriginCards());
     }
 
     unfakeCards(cards) {
-        return cards.reduce((r, c) => {
+        return U.toArray(cards).reduce((r, c) => {
             return r.concat(this.unfakeCard(c));
         }, []);
     }

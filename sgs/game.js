@@ -68,7 +68,7 @@ class Game {
         if (typeof(handler) === 'function') {
             handler(this, u, params);
         } else {
-            console.warn(`|<!> No command handler is found!`);
+            console.warn(`|<!> No command handler for '${cmd}'!`);
         }
 
         console.log(`+ - - - - - - - - - -`);
@@ -354,6 +354,7 @@ class Game {
     addUserCards(user, cards) {
         cards = U.toArray(cards);
         user.addCards(this.cardManager.unfakeCards(cards));
+        this.cardManager.destroyFakeCards(cards);
         this.broadcastUserInfo(user);
     }
 
@@ -376,17 +377,13 @@ class Game {
         // this.unlockUserCardPks(user, this.cardManager.unfakeCards(cards).map(x => x.pk));
     }
 
-    removeUserCardPks(user, cardPks, discard = false) {
-        user.removeCardPks(cardPks);
-        if (discard) {
-            this.discardCardPks(cardPks);
-        }
-        this.broadcastUserInfo(user);
-    }
-
     * removeUserCards(user, cards, discard = false) {
         cards = U.toArray(cards);
-        this.removeUserCardPks(user, this.cardManager.unfakeCards(cards).map(x => x.pk), discard);
+        user.removeCardPks(this.cardManager.unfakeCards(cards).map(x => x.pk));
+        if(discard) {
+            this.discardCards(cards);
+        }
+        this.broadcastUserInfo(user);
     }
 
     * removeUserCardsEx(user, cards, discard = false) {
@@ -426,14 +423,8 @@ class Game {
         }
     }
 
-    discardCardPks(cardPks) {
-        this.cardManager.useCards(U.toArray(cardPks));
-        this.cardManager.destroyFakeCardPks(cardPks);
-    }
-
     discardCards(cards) {
-        cards = U.toArray(cards);
-        this.discardCardPks(this.cardManager.unfakeCards(cards).map(x => x.pk));
+        this.cardManager.discardCards(cards);
     }
 
     // ----- Judgement related

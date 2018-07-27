@@ -202,7 +202,7 @@ class CardBase {
         if (this.faked) {
             str += `(${U.toArray(this.getOriginCards()).map(c => c.toString()).join(',')})`;
         }
-        return str;
+        return `[Card: ${str}]`;
     }
 
     * init(game, ctx) {

@@ -1,5 +1,6 @@
 const C = require('../constants');
 const Phase = require('./phase');
+const {PhaseContext} = require('../context');
 
 
 class RoundPreparePhase extends Phase {
@@ -8,8 +9,10 @@ class RoundPreparePhase extends Phase {
     }
 
     static* start(game) {
-        console.log('ROUND-PREPARE-PHASE');
         const u = game.roundOwner;
+        const phaseCtx = new PhaseContext(game);
+        yield u.on('roundPreparePhaseStart', game, phaseCtx);
+        game.discardCards(phaseCtx.allHandlingCards());
     }
 }
 

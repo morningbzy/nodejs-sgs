@@ -163,6 +163,7 @@ class RoundPlayPhase extends Phase {
         }
 
         yield u.on('roundPlayPhaseEnd', game, phaseCtx);
+        game.discardCards(phaseCtx.allHandlingCards());
     }
 }
 

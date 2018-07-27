@@ -291,6 +291,10 @@ class User extends EventListener {
     // --- 阶段事件 ---
     // 阶段事件的ctx都是PhaseContext
 
+    * roundPreparePhaseStart(game, phaseCtx) {
+        return yield this.figure.on('roundPreparePhaseStart', game, phaseCtx);
+    }
+
     * roundPlayPhaseStart(game, phaseCtx) {
         phaseCtx.i.shaCount = 1;
         return yield this.figure.on('roundPlayPhaseStart', game, phaseCtx);
@@ -462,8 +466,8 @@ class User extends EventListener {
 
     * unrequireShan(game, ctx) {
         yield this.figure.on('unrequireShan', game, ctx);
-        if (this.equipments.weapon) {
-            yield this.equipments.weapon.card.on('unrequireShan', game, ctx);
+        if (this.equipments.armor) {
+            yield this.equipments.armor.card.on('unrequireShan', game, ctx);
         }
     }
 
