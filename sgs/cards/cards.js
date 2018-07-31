@@ -16,7 +16,7 @@ const initCardFSM = (game, parentCtx, opt) => {
         targetCount,
     } = opt;
     let m = new FSM.Machine(game, parentCtx);
-    m.setContext(opt.initCtx);
+    m.setInfo(opt.initInfo);
 
     switch (targetCount) {
         case C.TARGET_SELECT_TYPE.SELF:
@@ -24,13 +24,13 @@ const initCardFSM = (game, parentCtx, opt) => {
         case C.TARGET_SELECT_TYPE.ALL_OTHERS:
             switch (targetCount) {
                 case C.TARGET_SELECT_TYPE.SELF:
-                    m.setContext({targets: [u]});
+                    m.setInfo({targets: [u]});
                     break;
                 case C.TARGET_SELECT_TYPE.ALL:
-                    m.setContext({targets: game.userRound(u)});
+                    m.setInfo({targets: game.userRound(u)});
                     break;
                 case C.TARGET_SELECT_TYPE.ALL_OTHERS:
-                    m.setContext({targets: game.userRound(u, true)});
+                    m.setInfo({targets: game.userRound(u, true)});
                     break;
             }
             m.addState(new FSM.State('O'), true);
@@ -98,7 +98,7 @@ const initCardFSM = (game, parentCtx, opt) => {
             m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
             break;
         default:
-            m.setContext({targets: new Set()});
+            m.setInfo({targets: new Set()});
             m.addState(new FSM.State('T'), true);
             m.addState(new FSM.State('O'));
             m.addTransition(new FSM.Transition('T', 'TARGET',
@@ -248,7 +248,7 @@ class SilkBagCard extends CardBase {
                 return target.id !== u.id;
             },
             targetCount: this.targetCount,
-            initCtx: {
+            initInfo: {
                 card: this,
             }
         };
@@ -287,11 +287,11 @@ class DelayedSilkBagCard extends CardBase {
             targetValidator: (command) => {
                 let target = game.userByPk(command.params);
                 return (target.id !== u.id
-                    && game.distanceOf(u, target) <= distance
+                    && game.distanceOf(u, target, ctx) <= distance
                     && !target.hasJudgeType(this));
             },
             targetCount: this.targetCount,
-            initCtx: {
+            initInfo: {
                 card: this,
             }
         };
@@ -342,7 +342,7 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
                 return target.id !== u.id;
             },
             targetCount: this.targetCount,
-            initCtx: {
+            initInfo: {
                 card: this,
             }
         };
@@ -408,7 +408,7 @@ class Sha extends NormalCard {
     * init(game, ctx) {
         let u = ctx.i.sourceUser;
         yield u.on('useSha', game, ctx);
-        if (ctx.phaseCtx.i.shaCount < 1) {
+        if (ctx.phaseCtx.i.shaLimit <= ctx.phaseCtx.i.shaCount) {
             console.log(`|[i] Use too many Sha`);
             return yield Promise.resolve(R.fail);
         }
@@ -416,10 +416,10 @@ class Sha extends NormalCard {
             u,
             targetValidator: (command) => {
                 let target = game.userByPk(command.params);
-                return target.id !== u.id && game.inAttackRange(u, target);
+                return target.id !== u.id && game.inAttackRange(u, target, ctx);
             },
             targetCount: this.targetCount,
-            initCtx: {
+            initInfo: {
                 card: this,
             }
         };
@@ -522,7 +522,7 @@ class Tao extends NormalCard {
                 return target.id !== u.id;
             },
             targetCount: this.targetCount,
-            initCtx: {
+            initInfo: {
                 card: this,
             }
         };
@@ -735,7 +735,7 @@ class QingLongYanYueDao extends WeaponCard {
             }).linkParent(ctx.parentCtx);
             cardCtx.handlingCards.add(card);
             game.message([u, '发动了', this, '使用了', cardCtx.i.card, '追杀', cardCtx.i.targets]);
-            cardCtx.phaseCtx.i.shaCount++;  // 青龙偃月刀算额外的杀
+            cardCtx.phaseCtx.i.shaLimit++;  // 青龙偃月刀算额外的杀
             result = yield card.start(game, cardCtx);
             game.discardCards(cardCtx.allHandlingCards());
             return yield Promise.resolve(result);
@@ -870,12 +870,16 @@ class ZhuGeLianNu extends WeaponCard {
     }
 
     * run(game, ctx) {
-        ctx.phaseCtx.i.shaCount = Infinity;
+        ctx.phaseCtx.i.shaLimit = Infinity;
         return yield super.run(game, ctx);
     }
 
     * play(game, ctx) {
-        ctx.phaseCtx.i.shaCount = Infinity;
+        ctx.phaseCtx.i.shaLimit = Infinity;
+    }
+
+    * beforeUnequip(game, ctx) {
+        ctx.phaseCtx.i.shaLimit = 1;  // Should re-calculate shaLimit
     }
 }
 

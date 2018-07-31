@@ -128,21 +128,24 @@ class User extends EventListener {
         this.gender = figure.gender;
     }
 
-    distanceFrom(game, ctx) {
-        let exDistance = this.figure.distanceFrom(game, ctx);
-        exDistance += this.equipments.attackHorse === null ? 0 : -1;
+    distanceFrom(game, ctx, info) {
+        let exDistance = this.figure.distanceFrom(game, ctx, info);
+        let equip = this.equipments.attackHorse;
+        exDistance += (equip === null || info.planToRemove && info.planToRemove.has(equip.card)) ? 0 : -1;
         return exDistance;
     }
 
-    distanceTo(game, ctx) {
-        let exDistance = this.figure.distanceTo(game, ctx);
-        exDistance += this.equipments.defenseHorse === null ? 0 : 1;
+    distanceTo(game, ctx, info) {
+        let exDistance = this.figure.distanceTo(game, ctx, info);
+        let equip = this.equipments.defenseHorse;
+        exDistance += (equip === null || info.planToRemove && info.planToRemove.has(equip.card)) ? 0 : 1;
         return exDistance;
     }
 
-    attackRange(game, ctx) {
-        let exRange = this.figure.attackRange(game, ctx);
-        exRange += this.equipments.weapon === null ? 1 : this.equipments.weapon.card.range;
+    attackRange(game, ctx, info) {
+        let exRange = this.figure.attackRange(game, ctx, info);
+        let equip = this.equipments.weapon;
+        exRange += (equip === null || info.planToRemove && info.planToRemove.has(equip.card)) ? 1 : equip.card.range;
         return exRange;
     }
 
@@ -260,7 +263,7 @@ class User extends EventListener {
         return candidates;
     }
 
-    // NOTE: This is NOT an event handler
+    // NOTE: This is NOT an event handler.
     * requireCard(game, cardClass, ctx) {
         const u = this;
         let result = yield game.waitFSM(u, FSM.get('requireSingleCard', game, ctx, {
@@ -288,15 +291,16 @@ class User extends EventListener {
         return yield super.on(event, game, ctx);
     }
 
-    // --- 阶段事件 ---
-    // 阶段事件的ctx都是PhaseContext
+    // --- Phase Event ---
+    // All contexts of PhaseEvent are PhaseContext.
 
     * roundPreparePhaseStart(game, phaseCtx) {
         return yield this.figure.on('roundPreparePhaseStart', game, phaseCtx);
     }
 
     * roundPlayPhaseStart(game, phaseCtx) {
-        phaseCtx.i.shaCount = 1;
+        phaseCtx.i.shaLimit = 1;
+        phaseCtx.i.shaCount = 0;
         return yield this.figure.on('roundPlayPhaseStart', game, phaseCtx);
     }
 
@@ -327,7 +331,7 @@ class User extends EventListener {
     }
 
     * usedSha(game, ctx) {
-        ctx.phaseCtx.i.shaCount--;
+        ctx.phaseCtx.i.shaCount++;
     }
 
     * useTao(game, ctx) {
@@ -528,11 +532,25 @@ class User extends EventListener {
         return yield Promise.resolve(result);
     }
 
-    * unequip(game, ctx) {
-        let result = yield this.figure.on('unequip', game, ctx);
-        return yield Promise.resolve(result);
+    * beforeUnequip(game, ctx) {
+        yield this.figure.on('beforeUnequip', game, ctx);
+        if (this.equipments.weapon) {
+            yield this.equipments.weapon.card.on('beforeUnequip', game, ctx);
+        }
+        if (this.equipments.armor) {
+            yield this.equipments.armor.card.on('beforeUnequip', game, ctx);
+        }
     }
 
+    * unequip(game, ctx) {
+        yield this.figure.on('unequip', game, ctx);
+        if (this.equipments.weapon) {
+            yield this.equipments.weapon.card.on('unequip', game, ctx);
+        }
+        if (this.equipments.armor) {
+            yield this.equipments.armor.card.on('unequip', game, ctx);
+        }
+    }
 }
 
 module.exports = User;

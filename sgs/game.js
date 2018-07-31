@@ -99,7 +99,7 @@ class Game {
     wait(u, waiting) {
         let waitingTag = C.WAITING_FOR.NOTHING;
         for (let k of waiting.validCmds) {
-            if(C.WAITING_FOR[k] === undefined) {
+            if (C.WAITING_FOR[k] === undefined) {
                 console.warn(`|<!> Missing C.WAITING_FOR.${k}`);
             }
             waitingTag += C.WAITING_FOR[k] || 0;
@@ -164,7 +164,7 @@ class Game {
 
     * waitFSM(u, fsm, ctx) {
         console.log(`|=F= FSM Start`);
-        fsm.setContext({sourceUser: u});
+        fsm.setInfo({sourceUser: u});
         fsm.start();
         while (!fsm.done) {
             let state = fsm.currentState;
@@ -177,7 +177,7 @@ class Game {
                 console.log(`|= = SUB FSM`);
                 let result = yield fsm.intoSub(state);
                 command = new Command(result.uid, result.cmd, U.toArray(result.params));
-                if(!fsm.validate(command)) {
+                if (!fsm.validate(command)) {
                     console.log(`|= SUB FSM return an invalid command < ${command.cmd}`);
                 }
             } else {
@@ -320,7 +320,7 @@ class Game {
     }
 
     // ----- Utils
-    distanceOf(from, to, ctx = {}) {
+    distanceOf(from, to, ctx, info = {}) {
         let t, i = 0;
         for (let u of this.userRound(from)) {
             if (u.id === to.id) {
@@ -328,19 +328,19 @@ class Game {
             }
             i++;
         }
-        let exFrom = from.distanceFrom(this, ctx);
-        let exTo = to.distanceTo(this, ctx);
+        let exFrom = from.distanceFrom(this, ctx, info);
+        let exTo = to.distanceTo(this, ctx, info);
         console.log(`|[R] Distance: ${Math.min(t, i - t) + exFrom + exTo}<<`);
         return Math.min(t, i - t) + exFrom + exTo;
     }
 
-    userAttackRange(u, ctx) {
-        console.log(`|[R] AttackRange: ${u.attackRange(this, ctx)}>>`);
-        return u.attackRange(this, ctx);
+    userAttackRange(u, ctx, info) {
+        console.log(`|[R] AttackRange: ${u.attackRange(this, ctx, info)}>>`);
+        return u.attackRange(this, ctx, info);
     }
 
-    inAttackRange(from, to, ctx = {}) {
-        return this.userAttackRange(from) >= this.distanceOf(from, to, ctx);
+    inAttackRange(from, to, ctx, info = {}) {
+        return this.userAttackRange(from, ctx, info) >= this.distanceOf(from, to, ctx, info);
     }
 
     // ----- Card related
@@ -380,7 +380,7 @@ class Game {
     * removeUserHandCards(user, cards, discard = false) {
         cards = U.toArray(cards);
         user.removeCardPks(this.cardManager.unfakeCards(cards).map(x => x.pk));
-        if(discard) {
+        if (discard) {
             this.discardCards(cards);
         }
         this.broadcastUserInfo(user);
@@ -389,15 +389,11 @@ class Game {
     * removeUserCards(user, cards, discard = false) {
         cards = U.toArray(cards);
         for (let card of new Set([...cards, ...this.cardManager.unfakeCards(cards)])) {
-            console.log(`|[DEBUG] ===== Removing card: ${card}`);
             if (user.hasJudgeCard(card)) {
-                console.log(`|[DEBUG] ===== judge card: ${card}`);
                 yield this.removeUserJudge(user, card, discard);
             } else if (user.hasEquipedCard(card)) {
-                console.log(`|[DEBUG] ===== equip card: ${card}`);
                 yield this.unequipUserCard(user, card.equipType, discard);
             } else {
-                console.log(`|[DEBUG] ===== hand card: ${card}`);
                 yield this.removeUserHandCards(user, card, discard);
             }
         }
@@ -411,6 +407,7 @@ class Game {
     }
 
     * unequipUserCard(user, equipType, discard = false) {
+        yield user.on('beforeUnequip', game, {});
         let oldCard = user.unequipCard(equipType);
         if (oldCard) {
             if (user.state === C.USER_STATE.ALIVE) {
@@ -435,16 +432,16 @@ class Game {
         this.broadcastUserInfo(user);
     }
 
+    getJudgeCard() {
+        return this.cardManager.shiftCards()[0];
+    }
+
     * removeUserJudge(user, card, discard = false) {
         user.removeJudge(card);
         if (discard) {
             this.discardCards(card);
         }
         this.broadcastUserInfo(user);
-    }
-
-    getJudgeCard() {
-        return this.cardManager.shiftCards()[0];
     }
 
     * doJudge(u, judgeFunction) {

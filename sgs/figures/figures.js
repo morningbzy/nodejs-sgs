@@ -67,15 +67,15 @@ class FigureBase extends EventListener {
         return yield super.on(event, game, ctx);
     }
 
-    distanceFrom(game, ctx) {
+    distanceFrom(game, ctx, info) {
         return 0;
     }
 
-    distanceTo(game, ctx) {
+    distanceTo(game, ctx, info) {
         return 0;
     }
 
-    attackRange(game, ctx) {
+    attackRange(game, ctx, info) {
         return 0;
     }
 }
@@ -379,7 +379,7 @@ class LiuBei extends FigureBase {
     }
 
     * play(game, ctx) {
-        if (ctx.phaseCtx.i.shaCount > 0) {
+        if (ctx.phaseCtx.i.shaCount < ctx.phaseCtx.i.shaLimit) {
             this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.ENABLED);
         } else {
             this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.DISABLED);
@@ -427,6 +427,16 @@ class GuanYu extends FigureBase {
                         FSM.BASIC_VALIDATORS.ownCardValidator,
                         FSM.BASIC_VALIDATORS.buildCardSuitValidator('RED'),
                     ],
+                    targetValidator: [
+                        FSM.BASIC_VALIDATORS.notMeTargetValidator,
+                        (command, info) => {
+                            let u = info.sourceUser;
+                            let target = info.game.userByPk(command.params);
+                            return info.game.inAttackRange(u, target, info.parentCtx, {
+                                planToRemove: info.cards,
+                            });
+                        },
+                    ],
                 },
             }),
         };
@@ -465,7 +475,7 @@ class GuanYu extends FigureBase {
     }
 
     * play(game, ctx) {
-        if (ctx.phaseCtx.i.shaCount > 0) {
+        if (ctx.phaseCtx.i.shaCount < ctx.phaseCtx.i.shaLimit) {
             this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.ENABLED);
         } else {
             this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.DISABLED);
@@ -555,7 +565,7 @@ class ZhaoYun extends FigureBase {
     }
 
     * play(game, ctx) {
-        if (ctx.phaseCtx.i.shaCount > 0) {
+        if (ctx.phaseCtx.i.shaCount < ctx.phaseCtx.i.shaLimit) {
             this.skills.SHU005s01.info = {originClass: sgsCards.Shan, fakeClass: sgsCards.Sha};
             this.changeSkillState(this.skills.SHU005s01, C.SKILL_STATE.ENABLED);
         } else {
@@ -615,7 +625,7 @@ class MaChao extends FigureBase {
         };
     }
 
-    distanceFrom(game, ctx) {
+    distanceFrom(game, ctx, info) {
         return -1;
     }
 

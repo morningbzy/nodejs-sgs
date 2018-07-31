@@ -4,70 +4,6 @@ const U = require('../../utils');
 const FSMFactory = require('./fsmFactory');
 
 
-module.exports.BASIC_VALIDATORS = {
-    handCardValidator: (command, info) => {
-        let card = info.game.cardByPk(command.params);
-        return info.sourceUser.hasCard(card);
-    },
-
-    equipCardValidator: (command, info) => {
-        let card = info.game.cardByPk(command.params);
-        return info.sourceUser.hasEquipedCard(card);
-    },
-
-    ownCardValidator: (command, info) => {
-        let card = info.game.cardByPk(command.params);
-        return info.sourceUser.hasCard(card) || info.sourceUser.hasEquipedCard(card);
-    },
-
-    buildCardSuitValidator: (suit) => {
-        let validSuits;
-        switch(suit) {
-            case 'RED':
-                validSuits = [C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND];
-                break;
-            case 'BLACK':
-                validSuits = [C.CARD_SUIT.SPADE, C.CARD_SUIT.CLUB];
-                break;
-            default:
-                validSuits = U.toArray(suit);
-        }
-        return (command, info) => {
-            let card = info.game.cardByPk(command.params);
-            return validSuits.includes(card.suit);
-        };
-    },
-
-    notMeTargetValidator: (command, info) => {
-        return U.toSingle(command.params) !== info.sourceUser.id;
-    },
-
-    enabledSkillValidator: (command, info) => {
-        let skill = info.sourceUser.figure.skills[U.toSingle(command.params)];
-        return (skill.state === C.SKILL_STATE.ENABLED);
-    },
-
-    buildCountExceededValidator: (category, amount) => {
-        return (command, info) => {
-            return amount < C.SELECT_TYPE.NONE || info[category].size < amount;
-        };
-    }
-};
-
-
-module.exports.BASIC_ACTIONS = {
-    cardToContext: (game, info) => {
-        info.card = game.cardByPk(info.command.params);
-    },
-    skillToContext: (game, info) => {
-        info.skill = info.sourceUser.figure.skills[U.toSingle(info.command.params)];
-    },
-    targetToContext: (game, info) => {
-        info.target = game.userByPk(info.command.params);
-    },
-};
-
-
 class Machine {
     constructor(game, parentCtx) {
         this.game = game;
@@ -126,7 +62,7 @@ class Machine {
         this.validCmds.get(trans.from).add(trans.cmd);
     }
 
-    setContext(obj) {
+    setInfo(obj) {
         Object.assign(this.info, obj);
     }
 
@@ -198,6 +134,10 @@ class Transition {
         this.addValidators(validators);
     }
 
+    toString() {
+        return `${this.from}-${this.cmd}-${this.to}`;
+    }
+
     addValidators(validators) {
         this.conditions.push(...U.toArray(validators));
     }
@@ -218,6 +158,72 @@ class Transition {
 
 
 const END_STATE = new State('_');
+
+
+module.exports.BASIC_VALIDATORS = {
+    handCardValidator: (command, info) => {
+        let card = info.game.cardByPk(command.params);
+        return info.sourceUser.hasCard(card);
+    },
+
+    equipCardValidator: (command, info) => {
+        let card = info.game.cardByPk(command.params);
+        return info.sourceUser.hasEquipedCard(card);
+    },
+
+    ownCardValidator: (command, info) => {
+        let card = info.game.cardByPk(command.params);
+        return info.sourceUser.hasCard(card) || info.sourceUser.hasEquipedCard(card);
+    },
+
+    buildCardSuitValidator: (suit) => {
+        let validSuits;
+        switch(suit) {
+            case 'RED':
+                validSuits = [C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND];
+                break;
+            case 'BLACK':
+                validSuits = [C.CARD_SUIT.SPADE, C.CARD_SUIT.CLUB];
+                break;
+            default:
+                validSuits = U.toArray(suit);
+        }
+        return (command, info) => {
+            let card = info.game.cardByPk(command.params);
+            return validSuits.includes(card.suit);
+        };
+    },
+
+    notMeTargetValidator: (command, info) => {
+        return U.toSingle(command.params) !== info.sourceUser.id;
+    },
+
+    enabledSkillValidator: (command, info) => {
+        let skill = info.sourceUser.figure.skills[U.toSingle(command.params)];
+        return (skill.state === C.SKILL_STATE.ENABLED);
+    },
+
+    buildCountExceededValidator: (category, amount) => {
+        return (command, info) => {
+            return (amount === C.SELECT_TYPE.SINGLE
+                || amount < C.SELECT_TYPE.NONE
+                || info[category].size < amount);
+        };
+    }
+};
+
+
+module.exports.BASIC_ACTIONS = {
+    cardToContext: (game, info) => {
+        info.card = game.cardByPk(info.command.params);
+    },
+    skillToContext: (game, info) => {
+        info.skill = info.sourceUser.figure.skills[U.toSingle(info.command.params)];
+    },
+    targetToContext: (game, info) => {
+        info.target = game.userByPk(info.command.params);
+    },
+};
 
 
 module.exports.Machine = Machine;

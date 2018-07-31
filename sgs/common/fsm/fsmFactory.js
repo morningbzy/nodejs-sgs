@@ -228,7 +228,7 @@ class MachineFactory {
             targetCount,
             cardValidator,
             targetValidator,
-            initCtx = {
+            initInfo = {
                 cards: new Set(),
                 targets: new Set(),
             }
@@ -238,14 +238,17 @@ class MachineFactory {
         targetCount = targetCount instanceof Function ? targetCount(ctx) : targetCount;
 
         let m = new FSM.Machine(game, ctx);
-        m.setContext(initCtx);
+        m.setInfo(initInfo);
 
         let stateC, stateT, stateO;
         if (cardCount === ST.NONE) {
             stateC = null;
         } else {
             stateC = new FSM.State('C');
-            cardValidator = U.toArray(cardValidator).concat([FSM.BASIC_VALIDATORS.buildCountExceededValidator('cards', cardCount)]);
+            cardValidator = [
+                FSM.BASIC_VALIDATORS.buildCountExceededValidator('cards', cardCount),
+                ...U.toArray(cardValidator),
+            ];
             m.addState(stateC, true);
         }
 
@@ -257,8 +260,8 @@ class MachineFactory {
         } else {
             stateT = new FSM.State('T');
             targetValidator = [
-                targetValidator,
-                FSM.BASIC_VALIDATORS.buildCountExceededValidator('targets', targetCount)
+                FSM.BASIC_VALIDATORS.buildCountExceededValidator('targets', targetCount),
+                ...U.toArray(targetValidator),
             ];
             m.addState(stateT, stateC === null);
         }
@@ -406,7 +409,13 @@ class MachineFactory {
                 if (stateC) {
                     m.addTransition(new FSM.Transition('O', 'CARD',
                         (game, info) => {
-                            return (stateT.pk === 'CT') ? 'CT' : 'C';
+                            if (stateT.pk === 'CT') {
+                                return 'CT';
+                            }
+                            if (cardCount === ST.SINGLE) {
+                                return stateT === null ? 'O' : stateT.pk;
+                            }
+                            return 'C';
                         },
                         cardValidator,
                         (game, info) => {
