@@ -263,9 +263,14 @@ class SilkBagCard extends CardBase {
         game.message([u, targetMsg, '使用了', card]);
 
         for (let target of targets) {
-            // TODO WuXieKeJi
+            ctx.i.silkCardEffect = true;
             ctx.i.currentTarget = target;
-            yield this.run(game, ctx);
+
+            yield target.on('beforeSilkCardEffect', game, ctx);
+
+            if (ctx.i.silkCardEffect) {
+                yield this.run(game, ctx);
+            }
         }
     }
 }
@@ -408,7 +413,7 @@ class Sha extends NormalCard {
     * init(game, ctx) {
         let u = ctx.i.sourceUser;
         yield u.on('useSha', game, ctx);
-        if (ctx.phaseCtx.i.shaLimit <= ctx.phaseCtx.i.shaCount) {
+        if (ctx.phaseCtx.i.shaCount >= u.getShaLimit()) {
             console.log(`|[i] Use too many Sha`);
             return yield Promise.resolve(R.fail);
         }
@@ -644,6 +649,19 @@ class WuZhongShengYou extends SilkBagCard {
 }
 
 
+class WuXieKeJi extends SilkBagCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '无懈可击';
+        this.targetCount = C.TARGET_SELECT_TYPE.SINGLE;
+    }
+
+    * run(game, ctx) {
+        ctx.parentCtx.i.silkCardEffect = false;
+    }
+}
+
+
 class LeBuSiShu extends DelayedSilkBagCard {
     constructor(suit, number) {
         super(suit, number);
@@ -735,7 +753,7 @@ class QingLongYanYueDao extends WeaponCard {
             }).linkParent(ctx.parentCtx);
             cardCtx.handlingCards.add(card);
             game.message([u, '发动了', this, '使用了', cardCtx.i.card, '追杀', cardCtx.i.targets]);
-            cardCtx.phaseCtx.i.shaLimit++;  // 青龙偃月刀算额外的杀
+            cardCtx.i.isExtraSha = true;  // 青龙偃月刀算额外的杀
             result = yield card.start(game, cardCtx);
             game.discardCards(cardCtx.allHandlingCards());
             return yield Promise.resolve(result);
@@ -868,19 +886,6 @@ class ZhuGeLianNu extends WeaponCard {
         this.shortName = '弩';
         this.range = 1;
     }
-
-    * run(game, ctx) {
-        ctx.phaseCtx.i.shaLimit = Infinity;
-        return yield super.run(game, ctx);
-    }
-
-    * play(game, ctx) {
-        ctx.phaseCtx.i.shaLimit = Infinity;
-    }
-
-    * beforeUnequip(game, ctx) {
-        ctx.phaseCtx.i.shaLimit = 1;  // Should re-calculate shaLimit
-    }
 }
 
 
@@ -985,6 +990,14 @@ const cardSet = new Map();
     new ShanDian(C.CARD_SUIT.SPADE, 1),
     new ShanDian(C.CARD_SUIT.HEART, 12),
 
+    new WuXieKeJi(C.CARD_SUIT.DIAMOND, 12),
+    new WuXieKeJi(C.CARD_SUIT.SPADE, 11),
+    new WuXieKeJi(C.CARD_SUIT.SPADE, 13),
+    new WuXieKeJi(C.CARD_SUIT.CLUB, 12),
+    new WuXieKeJi(C.CARD_SUIT.CLUB, 13),
+    new WuXieKeJi(C.CARD_SUIT.HEART, 1),
+    new WuXieKeJi(C.CARD_SUIT.HEART, 13),
+
     // 武器
     new QingLongYanYueDao(C.CARD_SUIT.SPADE, 5),
 
@@ -1033,6 +1046,7 @@ module.exports = {
     GuoHeChaiQiao,
     WuZhongShengYou,
     NanManRuQin,
+    WuXieKeJi,
 
     LeBuSiShu,
     BingLiangCunDuan,
@@ -1042,6 +1056,7 @@ module.exports = {
     GuDingDao,
     CiXiongShuangGuJian,
     GuanShiFu,
+    ZhuGeLianNu,
 
     DiLu,
     ChiTu,

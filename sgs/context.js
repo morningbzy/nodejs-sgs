@@ -43,6 +43,11 @@ class Context extends Object {
 }
 
 
+class SimpleContext extends Context {
+
+}
+
+
 class RoundContext extends Context {
     constructor(game, initValue) {
         super(game, initValue);
@@ -99,6 +104,7 @@ class JudgeContext extends Context {
 }
 
 // module.exports.Context = Context;
+module.exports.SimpleContext = SimpleContext;
 module.exports.RoundContext = RoundContext;
 module.exports.PhaseContext = PhaseContext;
 module.exports.PlayContext = PlayContext;

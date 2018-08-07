@@ -379,7 +379,7 @@ class LiuBei extends FigureBase {
     }
 
     * play(game, ctx) {
-        if (ctx.phaseCtx.i.shaCount < ctx.phaseCtx.i.shaLimit) {
+        if (ctx.phaseCtx.i.shaCount < ctx.i.sourceUser.getShaLimit()) {
             this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.ENABLED);
         } else {
             this.changeSkillState(this.skills.SHU001s02, C.SKILL_STATE.DISABLED);
@@ -475,7 +475,7 @@ class GuanYu extends FigureBase {
     }
 
     * play(game, ctx) {
-        if (ctx.phaseCtx.i.shaCount < ctx.phaseCtx.i.shaLimit) {
+        if (ctx.phaseCtx.i.shaCount < ctx.i.sourceUser.getShaLimit()) {
             this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.ENABLED);
         } else {
             this.changeSkillState(this.skills.SHU002s01, C.SKILL_STATE.DISABLED);
@@ -565,7 +565,7 @@ class ZhaoYun extends FigureBase {
     }
 
     * play(game, ctx) {
-        if (ctx.phaseCtx.i.shaCount < ctx.phaseCtx.i.shaLimit) {
+        if (ctx.phaseCtx.i.shaCount < ctx.i.sourceUser.getShaLimit()) {
             this.skills.SHU005s01.info = {originClass: sgsCards.Shan, fakeClass: sgsCards.Sha};
             this.changeSkillState(this.skills.SHU005s01, C.SKILL_STATE.ENABLED);
         } else {

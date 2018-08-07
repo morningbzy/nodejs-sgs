@@ -1,6 +1,6 @@
 const C = require('./constants');
 const R = require('./common/results');
-const Context = require('./context');
+const {Context, CardContext} = require('./context');
 const FSM = require('./common/fsm');
 const sgsCards = require('./cards/cards');
 const EventListener = require('./common/eventListener');
@@ -128,27 +128,6 @@ class User extends EventListener {
         this.gender = figure.gender;
     }
 
-    distanceFrom(game, ctx, info) {
-        let exDistance = this.figure.distanceFrom(game, ctx, info);
-        let equip = this.equipments.attackHorse;
-        exDistance += (equip === null || info.planToRemove && info.planToRemove.has(equip.card)) ? 0 : -1;
-        return exDistance;
-    }
-
-    distanceTo(game, ctx, info) {
-        let exDistance = this.figure.distanceTo(game, ctx, info);
-        let equip = this.equipments.defenseHorse;
-        exDistance += (equip === null || info.planToRemove && info.planToRemove.has(equip.card)) ? 0 : 1;
-        return exDistance;
-    }
-
-    attackRange(game, ctx, info) {
-        let exRange = this.figure.attackRange(game, ctx, info);
-        let equip = this.equipments.weapon;
-        exRange += (equip === null || info.planToRemove && info.planToRemove.has(equip.card)) ? 1 : equip.card.range;
-        return exRange;
-    }
-
     addCards(cards) {
         for (let card of cards) {
             this.cards.set(card.pk, card);
@@ -263,6 +242,42 @@ class User extends EventListener {
         return candidates;
     }
 
+    getEquipCard(equipType) {
+        if (this.equipments[equipType]) {
+            return this.equipments[equipType].card;
+        }
+        return null;
+    }
+
+    getShaLimit() {
+        // 计算可用杀的数量
+        if (this.getEquipCard('weapon') instanceof sgsCards.ZhuGeLianNu) {
+            return Infinity;
+        }
+        return 1;  // DEFAULT_SHA_LIMIT
+    }
+
+    distanceFrom(game, ctx, info) {
+        let exDistance = this.figure.distanceFrom(game, ctx, info);
+        let equip = this.equipments.attackHorse;
+        exDistance += (equip === null || info.planToRemove && info.planToRemove.has(equip.card)) ? 0 : -1;
+        return exDistance;
+    }
+
+    distanceTo(game, ctx, info) {
+        let exDistance = this.figure.distanceTo(game, ctx, info);
+        let equip = this.equipments.defenseHorse;
+        exDistance += (equip === null || info.planToRemove && info.planToRemove.has(equip.card)) ? 0 : 1;
+        return exDistance;
+    }
+
+    attackRange(game, ctx, info) {
+        let exRange = this.figure.attackRange(game, ctx, info);
+        let equip = this.equipments.weapon;
+        exRange += (equip === null || info.planToRemove && info.planToRemove.has(equip.card)) ? 1 : equip.card.range;
+        return exRange;
+    }
+
     // NOTE: This is NOT an event handler.
     * requireCard(game, cardClass, ctx) {
         const u = this;
@@ -299,7 +314,6 @@ class User extends EventListener {
     }
 
     * roundPlayPhaseStart(game, phaseCtx) {
-        phaseCtx.i.shaLimit = 1;
         phaseCtx.i.shaCount = 0;
         return yield this.figure.on('roundPlayPhaseStart', game, phaseCtx);
     }
@@ -331,7 +345,10 @@ class User extends EventListener {
     }
 
     * usedSha(game, ctx) {
-        ctx.phaseCtx.i.shaCount++;
+        if (ctx.i.isExtraSha) {
+        } else {
+            ctx.phaseCtx.i.shaCount++;
+        }
     }
 
     * useTao(game, ctx) {
@@ -379,7 +396,6 @@ class User extends EventListener {
         this.state = C.USER_STATE.DYING;
         game.broadcastUserInfo(this);
 
-        // TODO require Tao
         for (let u of game.userRound()) {
             while (this.state === C.USER_STATE.DYING) {
                 // 同一个人可以出多次桃救
@@ -461,6 +477,11 @@ class User extends EventListener {
         return yield Promise.resolve(result);
     }
 
+    * requireWuXieKeJi(game, ctx) {
+        let result = yield this.requireCard(game, sgsCards.WuXieKeJi, ctx);
+        return yield Promise.resolve(result);
+    }
+
     * unrequireSha(game, ctx) {
         yield this.figure.on('unrequireSha', game, ctx);
         if (this.equipments.weapon) {
@@ -485,6 +506,27 @@ class User extends EventListener {
     * beforeJudgeEffect(game, ctx) {
         let result = yield this.figure.on('beforeJudgeEffect', game, ctx);
         return yield Promise.resolve(result);
+    }
+
+    * beforeSilkCardEffect(game, ctx) {
+        for (let u of game.userRound()) {
+            let command = yield game.waitConfirm(u, `是否为${this.figure.name}出【无懈可击】？`);
+            if (command.cmd === C.CONFIRM.Y) {
+                let result = yield u.on('requireWuXieKeJi', game, ctx);
+                if (result.success) {
+                    let card = result.get();
+
+                    let cardCtx = new CardContext(game, card, {
+                        sourceUser: u,
+                        targets: new Set([this]),
+                    }).linkParent(ctx);
+
+                    yield game.removeUserCards(u, card, true);
+                    yield card.start(game, cardCtx);
+                    break;
+                }
+            }
+        }
     }
 
     * judge(game, ctx) {
@@ -534,21 +576,17 @@ class User extends EventListener {
 
     * beforeUnequip(game, ctx) {
         yield this.figure.on('beforeUnequip', game, ctx);
-        if (this.equipments.weapon) {
-            yield this.equipments.weapon.card.on('beforeUnequip', game, ctx);
-        }
-        if (this.equipments.armor) {
-            yield this.equipments.armor.card.on('beforeUnequip', game, ctx);
+        let equipCard = this.getEquipCard(ctx.equipType);
+        if(equipCard) {
+            yield equipCard.on('beforeUnequip', game, ctx);
         }
     }
 
     * unequip(game, ctx) {
         yield this.figure.on('unequip', game, ctx);
-        if (this.equipments.weapon) {
-            yield this.equipments.weapon.card.on('unequip', game, ctx);
-        }
-        if (this.equipments.armor) {
-            yield this.equipments.armor.card.on('unequip', game, ctx);
+        let equipCard = this.getEquipCard(ctx.equipType);
+        if(equipCard) {
+            yield equipCard.on('unequip', game, ctx);
         }
     }
 }

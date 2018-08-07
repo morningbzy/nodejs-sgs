@@ -407,12 +407,12 @@ class Game {
     }
 
     * unequipUserCard(user, equipType, discard = false) {
-        yield user.on('beforeUnequip', game, {});
+        yield user.on('beforeUnequip', game, {equipType});
         let oldCard = user.unequipCard(equipType);
         if (oldCard) {
             if (user.state === C.USER_STATE.ALIVE) {
                 this.message([user, '失去了装备', oldCard]);
-                yield user.on('unequip', game, {});
+                yield user.on('unequip', game, {equipType});
             }
             this.broadcastUserInfo(user);
             if (discard) {

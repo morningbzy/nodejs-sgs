@@ -5,7 +5,7 @@ const cardSet = cards.cardSet;
 
 class CardManager {
     constructor() {
-        this.used = Array.from(cardSet.values());  // 弃牌堆
+        this.used = new Set(cardSet.values());  // 弃牌堆
         this.unused = [];  // 摸牌堆
         this.faked = new Map();  // 假牌
     }
@@ -13,7 +13,7 @@ class CardManager {
     _status() {
         console.log(`|[i] `
             + `Unused: ${this.unused.length}, `
-            + `Used: ${this.used.length}, `
+            + `Used: ${this.used.size}, `
             + `Faked: ${this.faked.size}, `
         );
     }
@@ -21,7 +21,7 @@ class CardManager {
     shuffle() {
         // 将弃牌对归入摸牌堆，并洗牌
         this.unused.push(...U.shuffle(this.used));
-        this.used = [];
+        this.used.clear();
         this._status();
     }
 
@@ -55,7 +55,7 @@ class CardManager {
     discardCards(cards) {
         for(let card of this.unfakeCards(cards)) {
             console.log(`|[i] Discard ${card}`);
-            this.used.push(card);
+            this.used.add(card);
         }
         this.destroyFakeCards(cards);
         this._status();

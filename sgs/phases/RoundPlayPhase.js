@@ -51,16 +51,16 @@ class RoundPlayPhase extends Phase {
                     const {game, sourceUser: u, card, targets} = info;
                     u.reply('UNSELECT ALL');
 
-                    let cardCtx = new CardContext(game, card, {
-                        sourceUser: u,
-                        targets
-                    }).linkParent(info.parentCtx);
-
                     if (card.faked) {
                         console.log(`|[i] Use card [${Array.from(card.originCards, c => c.name).join(', ')}] as [${card.name}]`);
                     } else {
                         console.log(`|[i] Use card [${card.name}]`);
                     }
+
+                    let cardCtx = new CardContext(game, card, {
+                        sourceUser: u,
+                        targets
+                    }).linkParent(info.parentCtx);
                     // TODO fire '?Target' events
                     // on shaTarget, beShaTarget, afterShaTarget, afterBeShaTarget ...
                     yield game.removeUserCards(u, card);
