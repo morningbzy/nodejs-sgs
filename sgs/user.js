@@ -1,5 +1,6 @@
 const C = require('./constants');
 const R = require('./common/results');
+const U = require('./utils');
 const {Context, CardContext} = require('./context');
 const FSM = require('./common/fsm');
 const sgsCards = require('./cards/cards');
@@ -21,7 +22,7 @@ class User extends EventListener {
         this.maxHp = 0;
         this.gender = C.GENDER.UNKNOWN;
         this.waiting = C.WAITING_FOR.NOTHING;
-        this.faceUp = true;
+        this.status = new Set();
 
         this.showFigure = false;
         this.cards = new Map();  // [];
@@ -59,6 +60,7 @@ class User extends EventListener {
             seatNum: this.seatNum,
 
             state: this.state,
+            status: U.toArray(this.status),
             waiting: this.waiting,
             roundOwner: this.roundOwner,
 
@@ -66,7 +68,6 @@ class User extends EventListener {
             figure: ((u.id === this.id || this.showFigure) && this.figure) ? this.figure.toJson() : null,
             hp: this.showFigure ? this.hp : 0,
             maxHp: this.showFigure ? this.maxHp : 0,
-            faceUp: this.faceUp,
             judgeStack: this.judgeStack,
 
             cardCount: this.cards.size,
@@ -247,6 +248,18 @@ class User extends EventListener {
             return this.equipments[equipType].card;
         }
         return null;
+    }
+
+    addStatus(status) {
+        this.status.add(status);
+    }
+
+    removeStatus(status) {
+        this.status.delete(status);
+    }
+
+    toggleStatus(status) {
+        this.status.has(status) ? this.status.delete(status) : this.status.add(status);
     }
 
     getShaLimit() {
@@ -577,7 +590,7 @@ class User extends EventListener {
     * beforeUnequip(game, ctx) {
         yield this.figure.on('beforeUnequip', game, ctx);
         let equipCard = this.getEquipCard(ctx.equipType);
-        if(equipCard) {
+        if (equipCard) {
             yield equipCard.on('beforeUnequip', game, ctx);
         }
     }
@@ -585,7 +598,7 @@ class User extends EventListener {
     * unequip(game, ctx) {
         yield this.figure.on('unequip', game, ctx);
         let equipCard = this.getEquipCard(ctx.equipType);
-        if(equipCard) {
+        if (equipCard) {
             yield equipCard.on('unequip', game, ctx);
         }
     }

@@ -319,6 +319,23 @@ class Game {
         }
     }
 
+    // -----
+    addUserStatus(user, status) {
+        user.addStatus(status);
+        game.broadcastUserInfo(user);
+    }
+
+    removeUserStatus(user, status) {
+        user.removeStatus(status);
+        game.broadcastUserInfo(user);
+    }
+
+    toggleUserStatus(user, status) {
+        user.toggleStatus(status);
+        game.broadcastUserInfo(user);
+    }
+
+
     // ----- Utils
     distanceOf(from, to, ctx, info = {}) {
         let t, i = 0;

@@ -361,7 +361,6 @@ const Cmd = {
         if (marker === '*') {
             Cmd.waitingTag = parseInt(params[1]);
             $('.sgs-action[waiting-tag]').each((i, el) => {
-                console.log(Boolean(Cmd.waitingTag & parseInt(WAITING_FOR[$(el).attr('waiting-tag')])));
                 if(0 === (Cmd.waitingTag & parseInt(WAITING_FOR[$(el).attr('waiting-tag')]))) {
                     $(el).addClass('disabled').removeClass('btn-primary');
                 } else {

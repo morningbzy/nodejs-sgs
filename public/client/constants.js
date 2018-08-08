@@ -40,6 +40,7 @@ const EQUIP_TYPE = {
 const POPUP_MSG_TYPE = {
     JUDGE: 'JUDGE',
     INSTEAD: 'INSTEAD',
+    TEXT: 'TEXT',
 };
 
 function sleep(ms) {

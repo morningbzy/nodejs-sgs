@@ -97,6 +97,62 @@ const initCardFSM = (game, parentCtx, opt) => {
             m.addTransition(new FSM.Transition('O', 'UNCARD', '_'));
             m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
             break;
+        case C.TARGET_SELECT_TYPE.ONE_OR_MORE:
+            m.setInfo({targets: new Set()});
+            m.addState(new FSM.State('T'), true);
+            m.addState(new FSM.State('TO'));
+            m.addTransition(new FSM.Transition('T', 'TARGET', 'TO',
+                targetValidator,
+                (game, info) => {
+                    info.targets.add(game.userByPk(info.command.params));
+                }
+            ));
+            m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
+                (game, info) => {
+                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    for (let target of info.targets) {
+                        u.reply(`UNSELECT TARGET ${target.id}`);
+                    }
+                    let card = game.cardByPk(info.command.params);
+                    info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
+                }
+            ));
+            m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
+            m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
+
+            m.addTransition(new FSM.Transition('TO', 'TARGET', 'TO',
+                targetValidator,
+                (game, info) => {
+                    info.targets.add(game.userByPk(info.command.params));
+                }
+            ));
+            m.addTransition(new FSM.Transition('TO', 'UNTARGET',
+                (game, info) => {
+                    return (info.targets.size <= 0) ? 'T' : 'TO';
+                },
+                null,
+                (game, info) => {
+                    info.targets.delete(game.userByPk(info.command.params));
+                }
+            ));
+            m.addTransition(new FSM.Transition('TO', 'CARD', '_',
+                (game, info) => {
+                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    for (let target of info.targets) {
+                        u.reply(`UNSELECT TARGET ${target.id}`);
+                    }
+                    let card = game.cardByPk(info.command.params);
+                    info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
+                }
+            ));
+            m.addTransition(new FSM.Transition('TO', 'OK', '_', null,
+                (game, info) => {
+                    info.result = new R.CardTargetResult().set(info.card, U.toArray(info.targets));
+                }
+            ));
+            m.addTransition(new FSM.Transition('TO', 'UNCARD', '_'));
+            m.addTransition(new FSM.Transition('TO', 'CANCEL', '_'));
+            break;
         default:
             m.setInfo({targets: new Set()});
             m.addState(new FSM.State('T'), true);
@@ -110,8 +166,7 @@ const initCardFSM = (game, parentCtx, opt) => {
                     info.targets.add(game.userByPk(info.command.params));
                 }
             ));
-            m.addTransition(new FSM.Transition('T', 'UNTARGET', 'T',
-                targetValidator,
+            m.addTransition(new FSM.Transition('T', 'UNTARGET', 'T', null,
                 (game, info) => {
                     info.targets.delete(game.userByPk(info.command.params));
                 }
@@ -129,8 +184,7 @@ const initCardFSM = (game, parentCtx, opt) => {
             m.addTransition(new FSM.Transition('T', 'UNCARD', '_'));
             m.addTransition(new FSM.Transition('T', 'CANCEL', '_'));
 
-            m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T',
-                targetValidator,
+            m.addTransition(new FSM.Transition('O', 'UNTARGET', 'T', null,
                 (game, info) => {
                     info.targets.delete(game.userByPk(info.command.params));
                 }
@@ -236,17 +290,17 @@ class SilkBagCard extends CardBase {
         super(suit, number);
         this.category = C.CARD_CATEGORY.SILK_BAG;
         this.distance = Infinity;
-        this.targetCount = 1;  // Could be C.TARGET_SELECT_TYPE.* or an positive integer
+        this.targetCount = C.TARGET_SELECT_TYPE.SINGLE;  // Could be C.TARGET_SELECT_TYPE.* or an positive integer
+        this.targetValidators = [
+            FSM.BASIC_VALIDATORS.notMeTargetValidator,
+        ];
     }
 
     * init(game, ctx) {
         let u = ctx.i.sourceUser;
         let opt = {
             u,
-            targetValidator: (command) => {
-                let target = game.userByPk(command.params);
-                return target.id !== u.id;
-            },
+            targetValidator: this.targetValidators,
             targetCount: this.targetCount,
             initInfo: {
                 card: this,
@@ -542,6 +596,21 @@ class Tao extends NormalCard {
 }
 
 
+class TaoYuanJieYi extends SilkBagCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '桃园结义';
+        this.targetCount = C.TARGET_SELECT_TYPE.ALL;
+    }
+
+    * run(game, ctx) {
+        const t = ctx.i.currentTarget;
+        ctx.i.heal = 1;
+        yield t.on('heal', game, ctx);
+    }
+}
+
+
 class JueDou extends SilkBagCard {
     constructor(suit, number) {
         super(suit, number);
@@ -658,6 +727,23 @@ class WuXieKeJi extends SilkBagCard {
 
     * run(game, ctx) {
         ctx.parentCtx.i.silkCardEffect = false;
+    }
+}
+
+
+class TieSuoLianHuan extends SilkBagCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '铁索连环';
+        this.targetCount = C.TARGET_SELECT_TYPE.ONE_OR_MORE;
+        this.targetValidators = [
+            FSM.BASIC_VALIDATORS.buildCountExceededValidator('targets', 2)
+        ];
+    }
+
+    * run(game, ctx) {
+        let t = ctx.i.currentTarget;
+        game.toggleUserStatus(t, C.USER_STATUS.LINKED);
     }
 }
 
@@ -960,6 +1046,8 @@ const cardSet = new Map();
     new Tao(C.CARD_SUIT.DIAMOND, 2),
 
     // 非延时锦囊
+    new TaoYuanJieYi(C.CARD_SUIT.HEART, 1),
+
     new JueDou(C.CARD_SUIT.SPADE, 1),
     new JueDou(C.CARD_SUIT.CLUB, 1),
     new JueDou(C.CARD_SUIT.DIAMOND, 1),
@@ -979,6 +1067,21 @@ const cardSet = new Map();
     new NanManRuQin(C.CARD_SUIT.SPADE, 7),
     new NanManRuQin(C.CARD_SUIT.CLUB, 7),
 
+    new WuXieKeJi(C.CARD_SUIT.DIAMOND, 12),
+    new WuXieKeJi(C.CARD_SUIT.SPADE, 11),
+    new WuXieKeJi(C.CARD_SUIT.SPADE, 13),
+    new WuXieKeJi(C.CARD_SUIT.CLUB, 12),
+    new WuXieKeJi(C.CARD_SUIT.CLUB, 13),
+    new WuXieKeJi(C.CARD_SUIT.HEART, 1),
+    new WuXieKeJi(C.CARD_SUIT.HEART, 13),
+
+    new TieSuoLianHuan(C.CARD_SUIT.SPADE, 11),
+    new TieSuoLianHuan(C.CARD_SUIT.SPADE, 12),
+    new TieSuoLianHuan(C.CARD_SUIT.CLUB, 10),
+    new TieSuoLianHuan(C.CARD_SUIT.CLUB, 11),
+    new TieSuoLianHuan(C.CARD_SUIT.CLUB, 12),
+    new TieSuoLianHuan(C.CARD_SUIT.CLUB, 13),
+
     // 延时锦囊
     new LeBuSiShu(C.CARD_SUIT.SPADE, 6),
     new LeBuSiShu(C.CARD_SUIT.HEART, 6),
@@ -989,14 +1092,6 @@ const cardSet = new Map();
 
     new ShanDian(C.CARD_SUIT.SPADE, 1),
     new ShanDian(C.CARD_SUIT.HEART, 12),
-
-    new WuXieKeJi(C.CARD_SUIT.DIAMOND, 12),
-    new WuXieKeJi(C.CARD_SUIT.SPADE, 11),
-    new WuXieKeJi(C.CARD_SUIT.SPADE, 13),
-    new WuXieKeJi(C.CARD_SUIT.CLUB, 12),
-    new WuXieKeJi(C.CARD_SUIT.CLUB, 13),
-    new WuXieKeJi(C.CARD_SUIT.HEART, 1),
-    new WuXieKeJi(C.CARD_SUIT.HEART, 13),
 
     // 武器
     new QingLongYanYueDao(C.CARD_SUIT.SPADE, 5),
@@ -1042,11 +1137,13 @@ module.exports = {
     Shan,
     Tao,
 
+    TaoYuanJieYi,
     JueDou,
     GuoHeChaiQiao,
     WuZhongShengYou,
     NanManRuQin,
     WuXieKeJi,
+    TieSuoLianHuan,
 
     LeBuSiShu,
     BingLiangCunDuan,

@@ -16,6 +16,12 @@ Constants = {
         DYING: 4,
         DEAD: 5,
     },
+    USER_STATUS: {
+        ALIVE: 'smile',
+        DYING: 'heartbeat',
+        DEAD: 'skull',
+        LINKED: 'link',
+    },
     WAITING_FOR: {
         NOTHING: 0x0000,
         SOMETHING: 0x0001,
@@ -90,6 +96,7 @@ Constants = {
     POPUP_MSG_TYPE: {
         JUDGE: 'JUDGE',
         INSTEAD: 'INSTEAD',
+        TEXT: 'TEXT',
     },
     TARGET_SELECT_TYPE: {
         SINGLE: 1,

@@ -10,6 +10,9 @@
             <div class="card-body py-1 pl-1 pr-0 d-flex align-items-stretch">
                 <div class="sgs-figure flex-grow-1">
                     <span class="name text-truncate">{{#figure}}{{name}}{{/figure}}</span>
+                    {{#status}}
+                    <i class="fas fa-{{.}} text-info"></i>
+                    {{/status}}
                 </div>
                 <div class="d-flex flex-column justify-content-between text-center font-weight-bold">
                     <span class="sgs-player-hp rounded-left bg-light text-danger d-block">{{hp}}/{{maxHp}}</span>

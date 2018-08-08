@@ -92,7 +92,7 @@ class Game {
                 });
             }
         });
-        table.on('click', '#sgs-card-panel .sgs-card, #sgs-player-panel .sgs-equipment', (e) => {
+        table.on('click', '#sgs-card-panel .sgs-card, #sgs-player-panel .sgs-equipment:not(.disabled)', (e) => {
             e.stopPropagation();
             if ((WAITING_FOR.CARD + WAITING_FOR.UNCARD) & Cmd.waitingTag) {
                 let el = $(e.currentTarget);
