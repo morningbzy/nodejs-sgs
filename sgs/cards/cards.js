@@ -413,6 +413,7 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
     }
 
     * run(game, ctx) {
+        ctx.handlingCards.delete(this);
         yield game.equipUserCard(U.toSingle(ctx.i.targets), this);
         return yield Promise.resolve(R.success);
     }
