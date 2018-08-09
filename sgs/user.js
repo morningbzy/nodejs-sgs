@@ -375,10 +375,11 @@ class User extends EventListener {
             return yield Promise.resolve(result);
         }
 
-        let willDamage = ctx.i.damage.value + (ctx.i.exDamage || 0);
+        let damage = ctx.i.damage;
+        let willDamage = damage.value + (ctx.i.exDamage || 0);
         console.log(`|<U> HP - ${willDamage}`);
         this.hp -= willDamage;
-        game.message([this, '受到', willDamage, '点伤害']);
+        game.message([this, '受到', willDamage, '点', damage.getTypeStr(), '伤害']);
         game.broadcastUserInfo(this);
 
         if (this.hp <= 0) {
@@ -388,6 +389,16 @@ class User extends EventListener {
 
         if (this.state === C.USER_STATE.ALIVE) {
             yield this.figure.on('damage', game, ctx);
+        }
+
+        if (damage.type !== C.DAMAGE_TYPE.NORMAL && this.status.has(C.USER_STATUS.LINKED)) {
+            game.removeUserStatus(this, C.USER_STATUS.LINKED);
+            let nextLinkedUser = game.userRound().filter(
+                (u) => u.status.has(C.USER_STATUS.LINKED)
+            ).shift();
+            if (nextLinkedUser) {
+                yield nextLinkedUser.on('damage', game, ctx);
+            }
         }
     }
 
@@ -523,7 +534,7 @@ class User extends EventListener {
 
     * beforeSilkCardEffect(game, ctx) {
         for (let u of game.userRound()) {
-            let command = yield game.waitConfirm(u, `是否为${this.figure.name}出【无懈可击】？`);
+            let command = yield game.waitConfirm(u, `是否为${this.figure.name}出【无懈可击】？`, 2000, 'N');
             if (command.cmd === C.CONFIRM.Y) {
                 let result = yield u.on('requireWuXieKeJi', game, ctx);
                 if (result.success) {

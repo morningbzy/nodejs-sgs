@@ -366,11 +366,11 @@ class DelayedSilkBagCard extends CardBase {
         ctx.handlingCards.delete(card);
     }
 
-    * judgeEffect(u, game) {
+    * judgeEffect(u, game, ctx) {
         game.discardCards(this);
     }
 
-    * judgeFailed(u, game) {
+    * judgeFailed(u, game, ctx) {
         game.discardCards(this);
     }
 }
@@ -759,9 +759,9 @@ class LeBuSiShu extends DelayedSilkBagCard {
         return C.CARD_SUIT.HEART !== card.suit;
     }
 
-    * judgeEffect(u, game) {
+    * judgeEffect(u, game, ctx) {
         u.phases.RoundPlayPhase = 0;
-        yield super.judgeEffect(u, game);
+        yield super.judgeEffect(u, game, ctx);
     }
 }
 
@@ -778,9 +778,9 @@ class BingLiangCunDuan extends DelayedSilkBagCard {
         return C.CARD_SUIT.CLUB !== card.suit;
     }
 
-    * judgeEffect(u, game) {
+    * judgeEffect(u, game, ctx) {
         u.phases.RoundDrawCardPhase = 0;
-        yield super.judgeEffect(u, game);
+        yield super.judgeEffect(u, game, ctx);
     }
 }
 
@@ -797,15 +797,13 @@ class ShanDian extends DelayedSilkBagCard {
         return (C.CARD_SUIT.SPADE === card.suit && 2 <= card.number && card.number <= 9);
     }
 
-    * judgeEffect(u, game) {
-        let ctx = new CardContext(game, this, {
-            damage: new Damage(null, this, 3),
-        });
+    * judgeEffect(u, game, ctx) {
+        ctx.i.damage = new Damage(null, this, 3, C.DAMAGE_TYPE.LEI);
         yield u.on('damage', game, ctx);
-        yield super.judgeEffect(u, game);
+        yield super.judgeEffect(u, game, ctx);
     }
 
-    * judgeFailed(u, game) {
+    * judgeFailed(u, game, ctx) {
         yield game.removeUserJudge(u, this);
         for (let next of game.userRound(u, true)) {
             if (!next.hasJudgeType(this)) {

@@ -987,7 +987,7 @@ class SunShangXiang extends FigureBase {
     }
 
     * roundPlayPhaseStart(game, phaseCtx) {
-        ctx.i.usedWU008s01 = false;
+        phaseCtx.i.usedWU008s01 = false;
     }
 
     * roundPlayPhaseEnd(game, phaseCtx) {

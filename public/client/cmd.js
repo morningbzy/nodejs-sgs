@@ -15,6 +15,7 @@ function changeSeatStateClass(seatNum, marker, stateClass, remove = false) {
 
 const Cmd = {
     waitingTag: 0,  // 0:NOTHING, 1:SOMETHING, 2:CARD, 3:TARGET
+    confirmInterval: null,
 
     send: function (cmd, cb) {
         const params = (cmd.params || []).join(' ');
@@ -209,24 +210,45 @@ const Cmd = {
     },
 
     confirm: function (params, marker) {
+        let timeout = params.shift();
+        let defaultCmd = params.shift();
         let alertHtml = params.join(' ');
+        let time = 0;
+
         alertHtml += '<span class="sgs-confirm-action">'
             + '<a href="#" class="sgs-confirm-action-y alert-link ml-3" cmd="Y">是</a>'
             + '<a href="#" class="sgs-confirm-action-n alert-link ml-3" cmd="N">否</a>'
             + '</span>';
+        alertHtml += '<div class="progress">'
+            + '<div class="progress-bar bg-danger" role="progressbar"></div>'
+            + '</div>';
         Cmd.alert([alertHtml], marker);
+
+        if (timeout > 0) {
+            Cmd.confirmInterval = setInterval(() => {
+                time += 100;
+                let p = time * 100 / timeout;
+                $('#sgs-table .progress .progress-bar').css('width', `${p}%`);
+                if (p >= 100) {
+                    $('#sgs-table .sgs-alert').alert('close');
+                    clearInterval(Cmd.confirmInterval);
+                    Cmd.confirmInterval = null;
+                    Cmd.send({cmd: defaultCmd, params: [],});
+                }
+            }, 100);
+        }
     },
 
     alert: function (params, marker) {
         let alertClass = (marker === '*') ? 'warning' : 'info';
         let alertHtml = params.join(' ');
-        let rendered = `<div class="sgs-cl-self alert alert-${alertClass} fade mb-0 position-absolute w-100" role="alert">${alertHtml}</div>`;
+        let rendered = `<div class="sgs-alert sgs-cl-self alert alert-${alertClass} fade mb-0 position-absolute w-100" role="alert">${alertHtml}</div>`;
         $('#sgs-table .alert').alert('close');
         $(rendered).appendTo('#sgs-table');
         $('#sgs-table .alert:last').fadeIn(() => $('#sgs-table .alert:last').addClass('show'));
     },
 
-    clear_alert: function( params, marker) {
+    clear_alert: function (params, marker) {
         $('#sgs-table .alert').alert('close');
     },
 
@@ -361,7 +383,7 @@ const Cmd = {
         if (marker === '*') {
             Cmd.waitingTag = parseInt(params[1]);
             $('.sgs-action[waiting-tag]').each((i, el) => {
-                if(0 === (Cmd.waitingTag & parseInt(WAITING_FOR[$(el).attr('waiting-tag')]))) {
+                if (0 === (Cmd.waitingTag & parseInt(WAITING_FOR[$(el).attr('waiting-tag')]))) {
                     $(el).addClass('disabled').removeClass('btn-primary');
                 } else {
                     $(el).removeClass('disabled').addClass('btn-primary');

@@ -128,8 +128,8 @@ class Game {
         }
     }
 
-    waitConfirm(u, text) {
-        u.reply(`CONFIRM ${text}`, true, true);
+    waitConfirm(u, text, timeout = 10000, defaultCmd = 'N') {
+        u.reply(`CONFIRM ${timeout} ${defaultCmd} ${text}`, true, true);
         return this.wait(u, {
             validCmds: ['Y', 'N'],
             waitingTag: C.WAITING_FOR.CONFIRM,

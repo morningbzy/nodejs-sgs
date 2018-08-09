@@ -79,6 +79,8 @@ class Game {
         table.on('click', '.sgs-confirm-action a', (e) => {
             let el = $(e.currentTarget);
             let cmd = el.attr('cmd');
+            clearInterval(Cmd.confirmInterval);
+            Cmd.confirmInterval = null;
             el.parents('.alert').alert('close');
             Cmd.send({cmd: cmd, params: [],});
         });

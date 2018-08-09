@@ -33,20 +33,21 @@ class RoundJudgePhase extends Phase {
                     let result = yield game.doJudge(u, card.judge);
                     game.message([u, '判定', card, '为', result.get(), '判定', result.success ? '生效' : '未生效']);
                     yield game.removeUserJudge(u, card);
+                    phaseCtx.handlingCards.add(card);
 
                     if (result.success) {
-                        yield card.judgeEffect(u, game);
+                        yield card.judgeEffect(u, game, cardCtx);
                         // TODO: After judge effective
                         // for(let _u of game.userRound()) {
                         //     judgeCard = _u.on('afterJudgeEffect');
                         // }
                         // ---------------------------------
                     } else {
-                        yield card.judgeFailed(u, game);
+                        yield card.judgeFailed(u, game, cardCtx);
                     }
                 } else {
                     yield game.removeUserJudge(u, card);
-                    yield card.judgeFailed(u, game);
+                    yield card.judgeFailed(u, game, cardCtx);
                 }
             }
         }

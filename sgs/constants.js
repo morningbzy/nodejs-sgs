@@ -110,6 +110,11 @@ Constants = {
         SINGLE: 1,
         NONE: 0,
         ONE_OR_MORE: -1,
+    },
+    DAMAGE_TYPE: {
+        NORMAL: 0,
+        LEI: 1,
+        HUO: 2,
     }
 };
 Constants.ROLES_MAPPING = {
