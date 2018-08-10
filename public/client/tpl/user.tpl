@@ -23,9 +23,11 @@
                 {{#equipments}}
                 {{>equipments}}
                 {{/equipments}}
-                {{#judgeStack}}
-                {{>judgeStack}}
-                {{/judgeStack}}
+                <div class="sgs-judge-cards position-absolute d-flex flex-row-reverse">
+                    {{#judgeStack}}
+                    {{>judgeStack}}
+                    {{/judgeStack}}
+                </div>
             </div>
         </div>
         {{#isYou}}
@@ -37,8 +39,11 @@
         </div>
         <div id="sgs-action-panel" class="position-absolute">
             <button class="sgs-action sgs-action-ok btn btn-primary btn-sm" action="OK" waiting-tag="OK">OK</button>
-            <button class="sgs-action sgs-action-cancel btn btn-primary btn-sm" action="CANCEL" waiting-tag="CANCEL">Cancel</button>
-            <button class="sgs-action sgs-action-pass btn btn-primary btn-sm" action="PASS" waiting-tag="PASS">Pass</button>
+            <button class="sgs-action sgs-action-cancel btn btn-primary btn-sm" action="CANCEL" waiting-tag="CANCEL">
+                Cancel
+            </button>
+            <button class="sgs-action sgs-action-pass btn btn-primary btn-sm" action="PASS" waiting-tag="PASS">Pass
+            </button>
         </div>
         {{/isYou}}
     </div>

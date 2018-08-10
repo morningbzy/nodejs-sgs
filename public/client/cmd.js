@@ -15,7 +15,7 @@ function changeSeatStateClass(seatNum, marker, stateClass, remove = false) {
 
 const Cmd = {
     waitingTag: 0,  // 0:NOTHING, 1:SOMETHING, 2:CARD, 3:TARGET
-    confirmInterval: null,
+    confirmInterval: null,  // confirm countdown progress bar
 
     send: function (cmd, cb) {
         const params = (cmd.params || []).join(' ');

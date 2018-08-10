@@ -51,6 +51,8 @@ class RoundJudgePhase extends Phase {
                 }
             }
         }
+
+        game.discardCards(phaseCtx.allHandlingCards());
     }
 }
 

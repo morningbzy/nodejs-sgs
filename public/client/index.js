@@ -109,7 +109,7 @@ class Game {
             let pk = $(e.currentTarget).attr('pk');
             Cmd.send({cmd: 'SKILL', params: [pk],});
         });
-        table.on('click', '.sgs-action:not(.disabled)', (e) => {
+        table.on('click', '#sgs-action-panel .sgs-action:not(.disabled)', (e) => {
             let action = $(e.currentTarget).attr('action');
             Cmd.send({cmd: action, params: [],});
         });
@@ -117,7 +117,7 @@ class Game {
             let el = $(e.currentTarget);
             el.toggleClass(selectedCardClass);
         });
-        table.on('click', '#sgs-table-modal .sgs-table-modal-ok', (e) => {
+        table.on('click', '#sgs-table-modal .sgs-table-modal-ok:not(.disabled)', (e) => {
             let pks = [];
             $('#sgs-candidate-panel .selected').each((i, el) => pks.push($(el).attr('pk')));
             Cmd.send({

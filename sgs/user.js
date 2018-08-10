@@ -545,8 +545,9 @@ class User extends EventListener {
                         targets: new Set([this]),
                     }).linkParent(ctx);
 
-                    yield game.removeUserCards(u, card, true);
+                    yield game.removeUserCards(u, card);
                     yield card.start(game, cardCtx);
+                    game.discardCards(card);
                     break;
                 }
             }

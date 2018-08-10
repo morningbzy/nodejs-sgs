@@ -160,6 +160,7 @@ class RoundPlayPhase extends Phase {
 
             // 结算完毕
             game.discardCards(pCtx.allHandlingCards());
+            phaseCtx.popChild(pCtx);
         }
 
         yield u.on('roundPlayPhaseEnd', game, phaseCtx);

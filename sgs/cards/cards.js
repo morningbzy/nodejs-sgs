@@ -316,6 +316,8 @@ class SilkBagCard extends CardBase {
         let targetMsg = (card.targetCount < C.TARGET_SELECT_TYPE.SINGLE) ? '' : ['对', targets];
         game.message([u, targetMsg, '使用了', card]);
 
+        yield this.prepare(game, ctx);
+
         for (let target of targets) {
             ctx.i.silkCardEffect = true;
             ctx.i.currentTarget = target;
@@ -324,8 +326,24 @@ class SilkBagCard extends CardBase {
 
             if (ctx.i.silkCardEffect) {
                 yield this.run(game, ctx);
+            } else {
+                yield this.skip(game, ctx);
             }
         }
+
+        yield this.finish(game, ctx);
+    }
+
+    * run(game, ctx) {
+    }
+
+    * skip(game, ctx) {
+    }
+
+    * prepare(game, ctx) {
+    }
+
+    * finish(game, ctx) {
     }
 }
 
@@ -413,9 +431,9 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
     }
 
     * run(game, ctx) {
-        ctx.handlingCards.delete(this);
-        yield game.equipUserCard(U.toSingle(ctx.i.targets), this);
-        return yield Promise.resolve(R.success);
+        let card = U.toSingle(ctx.i.card);
+        yield game.equipUserCard(U.toSingle(ctx.i.targets), card);
+        ctx.handlingCards.delete(card);
     }
 
     * on(event, game, ctx) {
@@ -458,6 +476,7 @@ class DefenseHorseCard extends EquipmentCard {
 }
 
 
+// 基本牌
 class Sha extends NormalCard {
     constructor(suit, number) {
         super(suit, number);
@@ -597,6 +616,7 @@ class Tao extends NormalCard {
 }
 
 
+// 锦囊
 class TaoYuanJieYi extends SilkBagCard {
     constructor(suit, number) {
         super(suit, number);
@@ -749,6 +769,54 @@ class TieSuoLianHuan extends SilkBagCard {
 }
 
 
+class WuGuFengDeng extends SilkBagCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '五谷丰登';
+        this.targetCount = C.TARGET_SELECT_TYPE.ALL;
+    }
+
+    * prepare(game, ctx) {
+        console.log(ctx.i.targets.length);
+
+        let cards = game.cardManager.shiftCards(ctx.i.targets.length);
+        ctx.i.cardCandidates = [];
+        cards.map(card => {
+            ctx.handlingCards.add(card);
+            ctx.i.cardCandidates.push({card: card, show: true,});
+        });
+
+        game.broadcast(`CARD_CANDIDATE ${JSON.stringify(ctx.i.cardCandidates, U.jsonReplacer)}`, true, true);
+    }
+
+    * run(game, ctx) {
+        const u = ctx.i.currentTarget;
+
+        let command = yield game.wait(u, {
+            validCmds: ['CARD_CANDIDATE'],
+            validator: (command) => {
+                const pks = command.params;
+                return pks.length === 1;
+            },
+        });
+
+        let card = game.cardByPk(command.params);
+        ctx.handlingCards.delete(card);
+        game.message([u, '获得', card]);
+        game.addUserCards(u, card);
+
+        ctx.i.cardCandidates = ctx.i.cardCandidates.filter(cc => cc.card !== card);
+        ctx.i.targets.forEach(t => t.popRestoreCmd('CARD_CANDIDATE'));
+        game.broadcast(`CARD_CANDIDATE ${JSON.stringify(ctx.i.cardCandidates, U.jsonReplacer)}`, true, true);
+    }
+
+    * finish(game, ctx) {
+        ctx.i.targets.forEach(t => t.popRestoreCmd('CARD_CANDIDATE'));
+        game.broadcast(`CLEAR_CANDIDATE`, true, false);
+    }
+}
+
+// 延时类锦囊
 class LeBuSiShu extends DelayedSilkBagCard {
     constructor(suit, number) {
         super(suit, number);
@@ -817,6 +885,7 @@ class ShanDian extends DelayedSilkBagCard {
 }
 
 
+// 武器
 class QingLongYanYueDao extends WeaponCard {
     constructor(suit, number) {
         super(suit, number);
@@ -974,6 +1043,7 @@ class ZhuGeLianNu extends WeaponCard {
 }
 
 
+// 防具
 class BaGuaZhen extends ArmorCard {
     constructor(suit, number) {
         super(suit, number);
@@ -1006,6 +1076,7 @@ class BaGuaZhen extends ArmorCard {
 }
 
 
+// -1马
 class DiLu extends AttackHorseCard {
     constructor(suit, number) {
         super(suit, number);
@@ -1014,6 +1085,7 @@ class DiLu extends AttackHorseCard {
 }
 
 
+// +1马
 class ChiTu extends DefenseHorseCard {
     constructor(suit, number) {
         super(suit, number);
@@ -1080,6 +1152,9 @@ const cardSet = new Map();
     new TieSuoLianHuan(C.CARD_SUIT.CLUB, 11),
     new TieSuoLianHuan(C.CARD_SUIT.CLUB, 12),
     new TieSuoLianHuan(C.CARD_SUIT.CLUB, 13),
+
+    new WuGuFengDeng(C.CARD_SUIT.HEART, 3),
+    new WuGuFengDeng(C.CARD_SUIT.HEART, 4),
 
     // 延时锦囊
     new LeBuSiShu(C.CARD_SUIT.SPADE, 6),

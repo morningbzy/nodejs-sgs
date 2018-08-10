@@ -25,7 +25,13 @@ class Context extends Object {
     }
 
     popChild(ctx) {
-        return this.children.pop(ctx);
+        let child = this.children.pop();
+        if (ctx === child) {
+            child.parentCtx = null;
+        } else {
+            console.warn(`|<!> Context popped dose not match.`);
+            this.children.push(child);
+        }
     }
 
     linkParent(ctx) {
@@ -35,7 +41,7 @@ class Context extends Object {
 
     allHandlingCards() {
         let cards = U.toArray(this.handlingCards);
-        for(let child of this.children) {
+        for (let child of this.children) {
             cards = cards.concat(child.allHandlingCards());
         }
         return cards;
