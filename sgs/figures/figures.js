@@ -81,6 +81,7 @@ class FigureBase extends EventListener {
 }
 
 
+// 魏
 class CaoCao extends FigureBase {
 // 【曹操】 魏，男，4血 【奸雄】【护驾】
     constructor(game) {
@@ -160,6 +161,93 @@ class CaoCao extends FigureBase {
         let command = yield game.waitConfirm(this.owner, `是否使用技能【护驾】？`);
         if (command.cmd === C.CONFIRM.Y) {
             return yield this.triggerSkill(this.skills.WEI001s02, game, ctx);
+        }
+        return yield Promise.resolve(R.fail);
+    }
+}
+
+
+class SiMaYi extends FigureBase {
+// 【司马懿】 魏，男，3血 【反馈】【鬼才】
+    constructor(game) {
+        super();
+        this.name = '司马懿';
+        this.pk = SiMaYi.pk;
+        this.country = C.COUNTRY.WEI;
+        this.gender = C.GENDER.MALE;
+        this.hp = 3;
+        this.skills = {
+            WEI002s01: {
+                pk: 'WEI002s0',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '反馈',
+                desc: '你可以立即从对你造成伤害的来源处获得一张牌。',
+                handler: 's1',
+            },
+            WEI002s02: {
+                pk: 'WEI002s02',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '鬼才',
+                desc: '在任意角色的判定牌生效前，你可以打出一张手牌代替之。',
+                handler: 's2',
+            },
+        };
+    }
+
+    // 【反馈】
+    * s1(game, ctx) {
+        const u = this.owner;
+        if (ctx.i.sourceUser) {
+            let cardCandidates = ctx.i.sourceUser.cardCandidates({
+                includeJudgeCards: false,
+            });
+            u.reply(`CARD_CANDIDATE ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+            let command = yield game.wait(u, {
+                validCmds: ['CARD_CANDIDATE'],
+                validator: (command) => {
+                    const pks = command.params;
+                    return pks.length === 1;
+                },
+            });
+            u.reply(`CLEAR_CANDIDATE`);
+            u.popRestoreCmd('CARD_CANDIDATE');
+
+            let card = game.cardByPk(command.params);
+            yield game.removeUserCards(ctx.i.sourceUser, card);
+            game.addUserCards(u, card);
+            game.message([u, '从', ctx.i.sourceUser, '处获得1张牌']);
+        }
+        return yield Promise.resolve(R.success);
+    }
+
+    // 【鬼才】
+    * s2(game, ctx) {
+        let result = yield this.owner.requireCard(game, sgsCards.CardBase, ctx);
+        if (result.success) {
+            game.discardCards(ctx.i.judgeCard);
+            ctx.handlingCards.delete(ctx.i.judgeCard);
+
+            ctx.i.judgeCard = result.get();
+            yield game.removeUserCards(this.owner, ctx.i.judgeCard);
+            ctx.handlingCards.add(ctx.i.judgeCard);
+            game.broadcastPopup(`INSTEAD ${this.name} ${ctx.i.judgeCard.toJsonString()}`);
+            game.message([this.owner, '使用', ctx.i.judgeCard, '替换了判定牌']);
+        }
+        return yield Promise.resolve(result);
+    }
+
+    * damage(game, ctx) {
+        let command = yield game.waitConfirm(this.owner, `是否使用技能【反馈】`);
+        if (command.cmd === C.CONFIRM.Y) {
+            return yield this.triggerSkill(this.skills.WEI002s01, game, ctx);
+        }
+        return yield Promise.resolve(R.fail);
+    }
+
+    * beforeJudgeEffect(game, ctx) {
+        let command = yield game.waitConfirm(this.owner, `是否打出一张手牌代替判定牌？`);
+        if (command.cmd === C.CONFIRM.Y) {
+            return yield this.triggerSkill(this.skills.WEI002s02, game, ctx);
         }
         return yield Promise.resolve(R.fail);
     }
@@ -259,6 +347,7 @@ class ZhenJi extends FigureBase {
 }
 
 
+// 蜀
 class LiuBei extends FigureBase {
 // 【刘备】 蜀，男，4血 【仁德】【激将】
     constructor(game) {
@@ -651,97 +740,9 @@ class MaChao extends FigureBase {
 }
 
 
-class SiMaYi extends FigureBase {
-// 【司马懿】 蜀，男，3血 【反馈】【鬼才】
-    constructor(game) {
-        super();
-        this.name = '司马懿';
-        this.pk = SiMaYi.pk;
-        this.country = C.COUNTRY.WEI;
-        this.gender = C.GENDER.MALE;
-        this.hp = 3;
-        this.skills = {
-            WEI002s01: {
-                pk: 'WEI002s0',
-                style: C.SKILL_STYLE.NORMAL,
-                name: '反馈',
-                desc: '你可以立即从对你造成伤害的来源处获得一张牌。',
-                handler: 's1',
-            },
-            WEI002s02: {
-                pk: 'WEI002s02',
-                style: C.SKILL_STYLE.NORMAL,
-                name: '鬼才',
-                desc: '在任意角色的判定牌生效前，你可以打出一张手牌代替之。',
-                handler: 's2',
-            },
-        };
-    }
-
-    // 【反馈】
-    * s1(game, ctx) {
-        const u = this.owner;
-        if (ctx.i.sourceUser) {
-            let cardCandidates = ctx.i.sourceUser.cardCandidates({
-                includeJudgeCards: false,
-            });
-            u.reply(`CARD_CANDIDATE ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
-            let command = yield game.wait(u, {
-                validCmds: ['CARD_CANDIDATE'],
-                validator: (command) => {
-                    const pks = command.params;
-                    return pks.length === 1;
-                },
-            });
-            u.reply(`CLEAR_CANDIDATE`);
-            u.popRestoreCmd('CARD_CANDIDATE');
-
-            let card = game.cardByPk(command.params);
-            yield game.removeUserCards(ctx.i.sourceUser, card);
-            game.addUserCards(u, card);
-            game.message([u, '从', ctx.i.sourceUser, '处获得1张牌']);
-        }
-        return yield Promise.resolve(R.success);
-    }
-
-    // 【鬼才】
-    * s2(game, ctx) {
-        let result = yield this.owner.requireCard(game, sgsCards.CardBase, ctx);
-        if (result.success) {
-            game.discardCards(ctx.i.judgeCard);
-            ctx.handlingCards.delete(ctx.i.judgeCard);
-
-            ctx.i.judgeCard = result.get();
-            yield game.removeUserCards(this.owner, ctx.i.judgeCard);
-            ctx.handlingCards.add(ctx.i.judgeCard);
-            game.broadcastPopup(`INSTEAD ${this.name} ${ctx.i.judgeCard.toJsonString()}`);
-            game.message([this.owner, '使用', ctx.i.judgeCard, '替换了判定牌']);
-        }
-        return yield Promise.resolve(result);
-    }
-
-    * damage(game, ctx) {
-        let command = yield game.waitConfirm(this.owner, `是否使用技能【反馈】`);
-        if (command.cmd === C.CONFIRM.Y) {
-            return yield this.triggerSkill(this.skills.WEI002s01, game, ctx);
-        }
-        return yield Promise.resolve(R.fail);
-    }
-
-    * beforeJudgeEffect(game, ctx) {
-        let command = yield game.waitConfirm(this.owner, `是否打出一张手牌代替判定牌？`);
-        if (command.cmd === C.CONFIRM.Y) {
-            return yield this.triggerSkill(this.skills.WEI002s02, game, ctx);
-        }
-        return yield Promise.resolve(R.fail);
-    }
-}
-
-
+// 吴
 class DaQiao extends FigureBase {
-// 【大乔】 吴，女，3血
-// 【国色】
-// 【流离】
+// 【大乔】 吴，女，3血 【国色】【流离】
     constructor(game) {
         super();
         this.name = '大乔';
@@ -1005,6 +1006,42 @@ class SunShangXiang extends FigureBase {
 }
 
 
+class ZhouTai extends FigureBase {
+// 【周泰】 吴，男，4血 【不屈】【激愤】
+    constructor(game) {
+        super();
+        this.name = '周泰';
+        this.pk = ZhouTai.pk;
+        this.country = C.COUNTRY.WU;
+        this.gender = C.GENDER.MALE;
+        this.hp = 4;
+        this.skills = {
+            WU013s01: {
+                pk: 'WU013s01',
+                style: C.SKILL_STYLE.SUODING,
+                name: '不屈',
+                desc: '锁定技，当你处于濒死状态时，亮出牌堆顶的一张牌并' +
+                '置于你的武将牌上，若此牌的点数与你武将牌上已有的牌点数' +
+                '均不同，则你回复至1体力。若出现相同点数，将此牌置入弃牌' +
+                '堆；只要你的武将牌上有牌，你的手牌上限便与这些牌数量相等。',
+                handler: 's1',
+            },
+            WU013s02: {
+                pk: 'WU013s02',
+                style: C.SKILL_STYLE.SUODING,
+                name: '激愤',
+                desc: '当一名角色的手牌被其他角色弃置或获得时，你可以失去' +
+                '1点体力，然后其摸两张牌。',
+                handler: 's2',
+            },
+        };
+    }
+
+    * dying(game, ctx) {
+
+    }
+}
+
 CaoCao.pk = 'WEI001';
 SiMaYi.pk = 'WEI002';
 ZhenJi.pk = 'WEI007';
@@ -1017,6 +1054,7 @@ MaChao.pk = 'SHU006';
 DaQiao.pk = 'WU006';
 SunShangXiang.pk = 'WU008';
 XiaoQiao.pk = 'WU011';
+ZhouTai.pk = 'WU013';
 
 figures = {
     CaoCao,

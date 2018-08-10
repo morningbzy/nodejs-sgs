@@ -136,6 +136,7 @@ const Cmd = {
         const rendered = Mustache.render(userTpl, userInfo, {
             equipments: equipmentTpl,
             judgeStack: judgeCardsTpl,
+            userMarkers: markersTpl,
         });
         el.replaceWith(rendered);
 
@@ -156,6 +157,13 @@ const Cmd = {
         if (userInfo.role !== null) {
             Cmd.role([seatNum, userInfo.role], marker);
         }
+
+        el = getSeat(seatNum);
+        $(".sgs-player-marker", el).popover({
+            html: true,
+            placement: "right",
+            trigger: "hover"
+        });
     },
 
     start: function (params, marker) {

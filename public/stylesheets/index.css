@@ -17,7 +17,7 @@ body {
 }
 
 #msg {
-    max-height: 200px;
+    max-height: 2000px;
     overflow: auto;
     border-radius: 5px;
     border: 1px solid #ccc;
@@ -96,6 +96,12 @@ body {
     border-color: #28a745 !important;
 }
 
+.sgs-player-card .sgs-player-marker {
+    position: absolute;
+    right: -1.5rem;
+    z-index: 1;
+}
+
 .sgs-player-card .sgs-judge-cards {
     bottom: -1rem;
     right: 0;
@@ -130,9 +136,9 @@ body {
 }
 
 .figure-candidate {
-     height: 160px;
-     width: 120px;
- }
+    height: 160px;
+    width: 120px;
+}
 
 .figure-candidate > .card {
     cursor: pointer;

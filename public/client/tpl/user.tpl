@@ -6,6 +6,11 @@
             <h6 class="card-header p-1 {{#roundOwner}}bg-warning text-white{{/roundOwner}}">
                 <span class="name">{{name}}</span>
                 <span class="role badge float-right"></span>
+                {{#marker.size}}
+                <span class="sgs-player-marker badge badge-info" data-content="{{>userMarkers}}">
+                    <span>{{marker.name}}</span>
+                </span>
+                {{/marker.size}}
             </h6>
             <div class="card-body py-1 pl-1 pr-0 d-flex align-items-stretch">
                 <div class="sgs-figure flex-grow-1">

@@ -33,6 +33,7 @@ class User extends EventListener {
             defenseHorse: null,
         };
         this.judgeStack = [];
+        this.markers = [];
         this.restoreCmds = [];
 
         this.roundOwner = false;
@@ -69,6 +70,11 @@ class User extends EventListener {
             hp: this.showFigure ? this.hp : 0,
             maxHp: this.showFigure ? this.maxHp : 0,
             judgeStack: this.judgeStack,
+            marker: {
+                name: '命',
+                size: this.markers.length,
+                markers: this.markers,
+            },
 
             cardCount: this.cards.size,
             cards,
@@ -421,6 +427,9 @@ class User extends EventListener {
         game.broadcastUserInfo(this);
 
         for (let u of game.userRound()) {
+            if(u === this) {
+                yield this.figure.on('dying', game, ctx);
+            }
             while (this.state === C.USER_STATE.DYING) {
                 // 同一个人可以出多次桃救
                 let command = yield game.waitConfirm(u, `${this.figure.name}濒死，是否为其出【桃】？`);
