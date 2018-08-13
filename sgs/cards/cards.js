@@ -701,6 +701,43 @@ class GuoHeChaiQiao extends SilkBagCard {
 }
 
 
+class ShunShouQianYang extends SilkBagCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '顺手牵羊';
+        this.targetValidators = [
+            (command, info) => {
+                let target = info.game.userByPk(command.params);
+                return info.game.distanceOf(info.sourceUser, target, info.parentCtx) <= 1;
+            },
+        ];
+    }
+
+    * run(game, ctx) {
+        let u = ctx.i.sourceUser;
+        let t = ctx.i.currentTarget;
+
+        // Show all card candidates
+        let cardCandidates = t.cardCandidates();
+        u.reply(`CARD_CANDIDATE ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+        let command = yield game.wait(u, {
+            validCmds: ['CARD_CANDIDATE'],
+            validator: (command) => {
+                const pks = command.params;
+                return pks.length === 1;
+            },
+        });
+        u.reply(`CLEAR_CANDIDATE`);
+        u.popRestoreCmd('CARD_CANDIDATE');
+
+        let card = game.cardByPk(command.params);
+        game.message([u, '获得', t, '的一张牌', card]);
+        yield game.removeUserCards(t, card, true);
+        game.addUserCards(u, card);
+    }
+}
+
+
 class NanManRuQin extends SilkBagCard {
     constructor(suit, number) {
         super(suit, number);
@@ -1129,6 +1166,12 @@ const cardSet = new Map();
     new GuoHeChaiQiao(C.CARD_SUIT.CLUB, 3),
     new GuoHeChaiQiao(C.CARD_SUIT.CLUB, 4),
     new GuoHeChaiQiao(C.CARD_SUIT.HEART, 12),
+
+    new ShunShouQianYang(C.CARD_SUIT.DIAMOND, 3),
+    new ShunShouQianYang(C.CARD_SUIT.DIAMOND, 4),
+    new ShunShouQianYang(C.CARD_SUIT.SPADE, 3),
+    new ShunShouQianYang(C.CARD_SUIT.SPADE, 4),
+    new ShunShouQianYang(C.CARD_SUIT.SPADE, 11),
 
     new WuZhongShengYou(C.CARD_SUIT.HEART, 7),
     new WuZhongShengYou(C.CARD_SUIT.HEART, 8),
