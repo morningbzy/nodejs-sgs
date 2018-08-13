@@ -97,6 +97,7 @@ Constants = {
         JUDGE: 'JUDGE',
         INSTEAD: 'INSTEAD',
         TEXT: 'TEXT',
+        CARD: 'CARD',
     },
     TARGET_SELECT_TYPE: {
         SINGLE: 1,

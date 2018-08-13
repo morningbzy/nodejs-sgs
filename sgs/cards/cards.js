@@ -135,8 +135,8 @@ const initCardFSM = (game, parentCtx, opt) => {
                     info.targets.delete(game.userByPk(info.command.params));
                 }
             ));
-            m.addTransition(new FSM.Transition('TO', 'CARD', '_',
-                (game, info) => {
+            m.addTransition(new FSM.Transition('TO', 'CARD', '_', null,
+                (gamec, info) => {
                     u.reply(`UNSELECT CARD ${info.card.pk}`);
                     for (let target of info.targets) {
                         u.reply(`UNSELECT TARGET ${target.id}`);

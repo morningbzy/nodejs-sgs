@@ -299,9 +299,17 @@ class Game {
         this.broadcastUserInfo(user);
     }
 
+    * changeUserProperty(user, property, value) {
+        user[property] = value;
+        game.broadcastUserInfo(user);
+    }
+
     * userDead(user) {
         let cards = user.cards.values();
         yield this.removeUserCards(user, cards, true);
+
+        this.discardCards(user.markers);
+        user.markers = [];
 
         for (let k in C.EQUIP_TYPE) {
             let old = yield this.unequipUserCard(user, C.EQUIP_TYPE[k]);
@@ -317,6 +325,8 @@ class Game {
         if (this.usersNotInState(C.USER_STATE.DEAD).length <= 1) {
             this.state = C.GAME_STATE.ENDING;
         }
+
+        game.broadcastUserInfo(user);
     }
 
     // -----
@@ -437,6 +447,16 @@ class Game {
             }
             return yield Promise.resolve(oldCard);
         }
+    }
+
+    * pushUserMarker(user, card) {
+        user.pushMarker(card);
+        this.broadcastUserInfo(user);
+    }
+
+    * removeUserMarker(user, card) {
+        user.removeMarker(card);
+        this.broadcastUserInfo(user);
     }
 
     discardCards(cards) {

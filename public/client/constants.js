@@ -41,6 +41,7 @@ const POPUP_MSG_TYPE = {
     JUDGE: 'JUDGE',
     INSTEAD: 'INSTEAD',
     TEXT: 'TEXT',
+    CARD: 'CARD',
 };
 
 function sleep(ms) {

@@ -1037,8 +1037,30 @@ class ZhouTai extends FigureBase {
         };
     }
 
-    * dying(game, ctx) {
+    maxHandCards() {
+        return this.owner.markers.length || this.owner.hp;
+    }
 
+    * s1(game, ctx) {
+        const u = this.owner;
+        let card = U.toSingle(game.cardManager.shiftCards(1));
+        game.broadcastPopup(`CARD ${this.name} 不屈牌 ${card.toJsonString()}`);
+        game.message([u, `获得不屈牌`, card]);
+
+        if (!u.markers.map(marker => marker.number).includes(card.number)) {
+            yield game.pushUserMarker(u, card);
+            yield game.changeUserProperty(u, 'hp', 1);
+            u.state = C.USER_STATE.ALIVE;
+            game.broadcastUserInfo(u);
+            game.message([u, '新增不屈牌', card, '，并回复至1体力']);
+        } else {
+            game.message([u, '的不屈牌', card, '已有相同点数']);
+            game.discardCards(card);
+        }
+    }
+
+    * dying(game, ctx) {
+        yield this.s1(game, ctx);
     }
 }
 
@@ -1069,6 +1091,7 @@ figures = {
     DaQiao,
     XiaoQiao,
     SunShangXiang,
+    ZhouTai,
 };
 
 Object.keys(figures).map((k) => {

@@ -184,7 +184,7 @@ const Cmd = {
         let msgEl = $('#sgs-popup-msg');
 
         switch (msgType) {
-            case POPUP_MSG_TYPE.JUDGE:
+            case POPUP_MSG_TYPE.JUDGE: {
                 Cmd.clear_popup(params, marker);
                 msgEl.queue(function () {
                     let cards = [JSON.parse(params.join(' '))];
@@ -194,7 +194,8 @@ const Cmd = {
                     $(this).dequeue();
                 }).fadeIn(200).delay(1500);
                 break;
-            case POPUP_MSG_TYPE.INSTEAD:
+            }
+            case POPUP_MSG_TYPE.INSTEAD: {
                 let title = params.shift();
                 let cards = [JSON.parse(params.join(' '))];
                 let rendered = Mustache.render(cardTpl, {cards});
@@ -206,6 +207,21 @@ const Cmd = {
                 $(rendered).appendTo($('.sgs-popup-msg-body', msgEl));
                 msgEl.delay(1500);
                 break;
+            }
+            case POPUP_MSG_TYPE.CARD: {
+                Cmd.clear_popup(params, marker);
+                msgEl.queue(function () {
+                    let header = params.shift();
+                    let footer = params.shift();
+                    let cards = [JSON.parse(params.join(' '))];
+                    let rendered = Mustache.render(cardTpl, {cards});
+                    $('.sgs-popup-msg-header', msgEl).removeClass('invisible').text(header);
+                    $('.sgs-popup-msg-footer', msgEl).removeClass('invisible').text(footer);
+                    $('.sgs-popup-msg-body', msgEl).html(rendered);
+                    $(this).dequeue();
+                }).fadeIn(200).delay(1500);
+                break;
+            }
         }
     },
 

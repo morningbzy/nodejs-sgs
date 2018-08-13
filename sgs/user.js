@@ -194,6 +194,14 @@ class User extends EventListener {
         this.judgeStack = this.judgeStack.filter(c => c.pk !== card.pk);
     }
 
+    pushMarker(card) {
+        this.markers.push(card);
+    }
+
+    removeMarker(card) {
+        this.markers = this.markers.filter(marker => marker !== card);
+    }
+
     equipCard(card) {
         this.equipments[card.equipType] = {
             card,
@@ -297,6 +305,10 @@ class User extends EventListener {
         return exRange;
     }
 
+    maxHandCards() {
+        return this.figure.maxHandCards === undefined ? this.hp : this.figure.maxHandCards();
+    }
+
     // NOTE: This is NOT an event handler.
     * requireCard(game, cardClass, ctx) {
         const u = this;
@@ -384,9 +396,8 @@ class User extends EventListener {
         let damage = ctx.i.damage;
         let willDamage = damage.value + (ctx.i.exDamage || 0);
         console.log(`|<U> HP - ${willDamage}`);
-        this.hp -= willDamage;
+        yield game.changeUserProperty(this, 'hp', this.hp - willDamage);
         game.message([this, '受到', willDamage, '点', damage.getTypeStr(), '伤害']);
-        game.broadcastUserInfo(this);
 
         if (this.hp <= 0) {
             // TODO game.userDying();
@@ -411,9 +422,8 @@ class User extends EventListener {
     * heal(game, ctx) {
         let willHeal = Math.min(this.maxHp - this.hp, ctx.i.heal);
         console.log(`|<U> HP${this.hp} + ${willHeal} = ${this.hp + willHeal}`);
-        this.hp += willHeal;
+        yield game.changeUserProperty(this, 'hp', this.hp + willHeal);
         game.message([this, '恢复', willHeal, '点体力']);
-        game.broadcastUserInfo(this);
         yield this.figure.on('heal', game, ctx);
 
         if (this.state === C.USER_STATE.DYING && this.hp > 0) {
@@ -427,7 +437,7 @@ class User extends EventListener {
         game.broadcastUserInfo(this);
 
         for (let u of game.userRound()) {
-            if(u === this) {
+            if (u === this) {
                 yield this.figure.on('dying', game, ctx);
             }
             while (this.state === C.USER_STATE.DYING) {

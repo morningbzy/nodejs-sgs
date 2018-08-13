@@ -14,7 +14,7 @@ class RoundDiscardPhase extends Phase {
 
         u.reply('ALERT 请弃牌...', true, true);
 
-        let discardCount = Math.max(u.cards.size - u.hp, 0);
+        let discardCount = Math.max(u.cards.size - u.maxHandCards(), 0);
         while (discardCount > 0) {
             let command = yield game.wait(u, {
                 validCmds: ['CARD', 'CANCEL'],
@@ -33,7 +33,8 @@ class RoundDiscardPhase extends Phase {
             }
             let cards = game.cardsByPk(discardCardPks);
             yield game.removeUserCards(u, cards, true);
-            discardCount = Math.max(u.cards.size - u.hp, 0);
+
+            discardCount = Math.max(u.cards.size - u.maxHandCards(), 0);
         }
 
         u.reply('CLEAR_ALERT');
