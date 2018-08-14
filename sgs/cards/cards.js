@@ -760,6 +760,28 @@ class NanManRuQin extends SilkBagCard {
 }
 
 
+class WanJianQiFa extends SilkBagCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '万箭齐发';
+        this.targetCount = C.TARGET_SELECT_TYPE.ALL_OTHERS;
+    }
+
+    * run(game, ctx) {
+        const t = ctx.i.currentTarget;
+        ctx.i.damage = new Damage(ctx.i.sourceUser, this, 1);
+        let result = yield t.on('requireShan', game, ctx);
+        if (result.success) {
+            let card = result.get();
+            game.message([t, '打出了', card]);
+            yield game.removeUserCards(t, card, true);
+        } else {
+            yield t.on('damage', game, ctx);
+        }
+    }
+}
+
+
 class WuZhongShengYou extends SilkBagCard {
     constructor(suit, number) {
         super(suit, number);
@@ -1179,15 +1201,18 @@ const cardSet = new Map();
     new WuZhongShengYou(C.CARD_SUIT.HEART, 11),
 
     new NanManRuQin(C.CARD_SUIT.SPADE, 7),
+    new NanManRuQin(C.CARD_SUIT.SPADE, 13),
     new NanManRuQin(C.CARD_SUIT.CLUB, 7),
 
-    new WuXieKeJi(C.CARD_SUIT.DIAMOND, 12),
+    new WanJianQiFa(C.CARD_SUIT.HEART, 1),
+
     new WuXieKeJi(C.CARD_SUIT.SPADE, 11),
     new WuXieKeJi(C.CARD_SUIT.SPADE, 13),
     new WuXieKeJi(C.CARD_SUIT.CLUB, 12),
     new WuXieKeJi(C.CARD_SUIT.CLUB, 13),
     new WuXieKeJi(C.CARD_SUIT.HEART, 1),
     new WuXieKeJi(C.CARD_SUIT.HEART, 13),
+    new WuXieKeJi(C.CARD_SUIT.DIAMOND, 12),
 
     new TieSuoLianHuan(C.CARD_SUIT.SPADE, 11),
     new TieSuoLianHuan(C.CARD_SUIT.SPADE, 12),
