@@ -322,7 +322,7 @@ class SilkBagCard extends CardBase {
             ctx.i.silkCardEffect = true;
             ctx.i.currentTarget = target;
 
-            yield target.on('beforeSilkCardEffect', game, ctx);
+            yield target.on('beforeScrollCardEffect', game, ctx);
 
             if (ctx.i.silkCardEffect) {
                 yield this.run(game, ctx);
@@ -493,9 +493,9 @@ class Sha extends NormalCard {
         }
         let opt = {
             u,
-            targetValidator: (command) => {
-                let target = game.userByPk(command.params);
-                return target.id !== u.id && game.inAttackRange(u, target, ctx);
+            targetValidator: (command, info) => {
+                let target = info.game.userByPk(command.params);
+                return target.id !== u.id && info.game.inAttackRange(u, target, ctx);
             },
             targetCount: this.targetCount,
             initInfo: {
@@ -732,7 +732,7 @@ class ShunShouQianYang extends SilkBagCard {
 
         let card = game.cardByPk(command.params);
         game.message([u, '获得', t, '的一张牌', card]);
-        yield game.removeUserCards(t, card, true);
+        yield game.removeUserCards(t, card);
         game.addUserCards(u, card);
     }
 }
@@ -872,6 +872,56 @@ class WuGuFengDeng extends SilkBagCard {
     * finish(game, ctx) {
         ctx.i.targets.forEach(t => t.popRestoreCmd('CARD_CANDIDATE'));
         game.broadcast(`CLEAR_CANDIDATE`, true, false);
+    }
+}
+
+
+class JieDaoShaRen extends SilkBagCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '借刀杀人';
+        this.targetCount = 2;
+        this.targetValidators = [
+            (command, info) => {
+                let t = info.game.userByPk(command.params);
+                if (info.targets.size < 1) {
+                    return t.id !== info.sourceUser.id && t.equipments.weapon !== null;
+                } else if (info.targets.size === 1) {
+                    return info.game.inAttackRange(U.toSingle(info.targets), t, info.parentCtx);
+                } else {
+                    return false;
+                }
+            },
+        ];
+    }
+
+    * start(game, ctx) {
+        let targets = U.toArray(ctx.i.targets);
+        ctx.i.targets = new Set(targets.slice(0, 1));
+        ctx.i.secondaryTargets = new Set(targets.slice(1));
+        yield super.start(game, ctx);
+    }
+
+    * run(game, ctx) {
+        const u = ctx.i.sourceUser;
+        let target = U.toSingle(ctx.i.targets);
+        game.message([u, '借用', target, '的武器，让其对', ctx.i.secondaryTargets, '出【杀】']);
+        let result = yield target.on('requireSha', game, ctx);
+        if(result.success) {
+            let card = result.get();
+            let cardCtx = new CardContext(game, card, {
+                sourceUser: target,
+                targets: ctx.i.secondaryTargets,
+            }).linkParent(ctx);
+
+            yield game.removeUserCards(target, card);
+            cardCtx.handlingCards.add(card);
+            yield card.start(game, cardCtx);
+        } else {
+            let card = yield game.unequipUserCard(target, C.EQUIP_TYPE.WEAPON);
+            game.message([u, '获得', target, '的武器', card]);
+            game.addUserCards(u, card);
+        }
     }
 }
 
@@ -1223,6 +1273,9 @@ const cardSet = new Map();
 
     new WuGuFengDeng(C.CARD_SUIT.HEART, 3),
     new WuGuFengDeng(C.CARD_SUIT.HEART, 4),
+
+    new JieDaoShaRen(C.CARD_SUIT.CLUB, 12),
+    new JieDaoShaRen(C.CARD_SUIT.CLUB, 13),
 
     // 延时锦囊
     new LeBuSiShu(C.CARD_SUIT.SPADE, 6),

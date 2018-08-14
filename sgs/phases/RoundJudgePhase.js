@@ -27,7 +27,7 @@ class RoundJudgePhase extends Phase {
                 cardCtx.i.silkCardEffect = true;
                 cardCtx.i.currentTarget = target;
 
-                yield target.on('beforeSilkCardEffect', game, cardCtx);
+                yield target.on('beforeScrollCardEffect', game, cardCtx);
 
                 if (cardCtx.i.silkCardEffect) {
                     let result = yield game.doJudge(u, card.judge);

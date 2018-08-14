@@ -551,9 +551,9 @@ class User extends EventListener {
         return yield Promise.resolve(result);
     }
 
-    * beforeSilkCardEffect(game, ctx) {
+    * beforeScrollCardEffect(game, ctx) {
         for (let u of game.userRound()) {
-            let command = yield game.waitConfirm(u, `是否为${this.figure.name}出【无懈可击】？`, 2000, 'N');
+            let command = yield game.waitConfirm(u, `是否为${this.figure.name}出【无懈可击】？`, 1000, 'N');
             if (command.cmd === C.CONFIRM.Y) {
                 let result = yield u.on('requireWuXieKeJi', game, ctx);
                 if (result.success) {
