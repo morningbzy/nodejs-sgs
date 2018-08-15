@@ -78,6 +78,10 @@ class FigureBase extends EventListener {
     attackRange(game, ctx, info) {
         return 0;
     }
+
+    filterCard(card) {
+        return card;
+    }
 }
 
 
@@ -222,7 +226,7 @@ class SiMaYi extends FigureBase {
 
     // 【鬼才】
     * s2(game, ctx) {
-        let result = yield this.owner.requireCard(game, sgsCards.CardBase, ctx);
+        let result = yield this.owner.requireCard(game, ctx, sgsCards.CardBase);
         if (result.success) {
             game.discardCards(ctx.i.judgeCard);
             ctx.handlingCards.delete(ctx.i.judgeCard);
@@ -870,6 +874,14 @@ class XiaoQiao extends FigureBase {
         };
     }
 
+    filterCard(card) {
+        if (C.CARD_SUIT.SPADE === card.suit) {
+            return cardManager.fakeCards(card, {asSuit: C.CARD_SUIT.HEART});
+        } else {
+            return card;
+        }
+    }
+
     * s1(game, ctx) {
         const u = this.owner;
 
@@ -909,9 +921,7 @@ class XiaoQiao extends FigureBase {
     }
 
     * judge(game, ctx) {
-        if (C.CARD_SUIT.SPADE === ctx.i.judgeCard.suit) {
-            ctx.i.judgeCard = cardManager.fakeCards([ctx.i.judgeCard], {asSuit: C.CARD_SUIT.HEART});
-        }
+        ctx.i.judgeCard = this.filterCard(ctx.i.judgeCard);
     }
 }
 

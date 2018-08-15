@@ -305,18 +305,24 @@ class User extends EventListener {
         return exRange;
     }
 
+    filterCard(card) {
+        // 用于小乔的【红颜】
+        return this.figure.filterCard(card);
+    }
+
     maxHandCards() {
         return this.figure.maxHandCards === undefined ? this.hp : this.figure.maxHandCards();
     }
 
     // NOTE: This is NOT an event handler.
-    * requireCard(game, cardClass, ctx) {
+    * requireCard(game, ctx, cardClass, validators = []) {
         const u = this;
+        validators.push((command) => {
+            let card = game.cardByPk(command.params);
+            return (this.hasCard(card) && card instanceof cardClass);
+        });
         let result = yield game.waitFSM(u, FSM.get('requireSingleCard', game, ctx, {
-            cardValidator: (command) => {
-                let card = game.cardByPk(command.params);
-                return (this.hasCard(card) && card instanceof cardClass);
-            }
+            cardValidator: validators,
         }), ctx);
 
         if (result.success) {
@@ -514,14 +520,14 @@ class User extends EventListener {
     * requireTao(game, ctx) {
         let result = yield this.figure.on('requireTao', game, ctx);
         if (!result.abort && result.fail) {
-            result = yield this.requireCard(game, sgsCards.Tao, ctx);
+            result = yield this.requireCard(game, ctx, sgsCards.Tao);
         }
         yield this.on('unrequireTao', game, ctx);
         return yield Promise.resolve(result);
     }
 
     * requireWuXieKeJi(game, ctx) {
-        let result = yield this.requireCard(game, sgsCards.WuXieKeJi, ctx);
+        let result = yield this.requireCard(game, ctx, sgsCards.WuXieKeJi);
         return yield Promise.resolve(result);
     }
 

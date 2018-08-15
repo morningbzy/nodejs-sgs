@@ -907,7 +907,7 @@ class JieDaoShaRen extends SilkBagCard {
         let target = U.toSingle(ctx.i.targets);
         game.message([u, '借用', target, '的武器，让其对', ctx.i.secondaryTargets, '出【杀】']);
         let result = yield target.on('requireSha', game, ctx);
-        if(result.success) {
+        if (result.success) {
             let card = result.get();
             let cardCtx = new CardContext(game, card, {
                 sourceUser: target,
@@ -924,6 +924,62 @@ class JieDaoShaRen extends SilkBagCard {
         }
     }
 }
+
+
+class HuoGong extends SilkBagCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '火攻';
+        this.targetCount = C.TARGET_SELECT_TYPE.SINGLE;
+        this.targetValidators = [
+            (command, info) => {
+                let t = info.game.userByPk(command.params);
+                return t.cards.size > (t.id === command.uid ? 1 : 0);
+            },
+        ];
+    }
+
+    * run(game, ctx) {
+        const u = ctx.i.sourceUser;
+        let t = U.toSingle(ctx.i.targets);
+
+        t.reply('ALERT 请展示一张手牌...', true, true);
+        let result = yield t.requireCard(game, ctx, CardBase);
+        while (!result.success) {
+            result = yield t.requireCard(game, ctx, CardBase);
+        }
+        t.reply('CLEAR_ALERT');
+        t.reply('UNSELECT ALL');
+        t.popRestoreCmd('ALERT');
+        let cardA = result.get();
+        game.message([t, '展示出一张手牌', cardA]);
+        game.broadcastPopup(`CARD ${t.figure.name} 火攻-展示 ${cardA.toJsonString()}`);
+
+        u.reply('ALERT 请弃置一张同花色的手牌...', true, true);
+        result = yield u.requireCard(game, ctx, CardBase, [
+            (command, info) => {
+                let card = game.cardByPk(command.params);
+                card = u.filterCard(card);
+                return card.suit === cardA.suit;
+            }
+        ]);
+        u.reply('CLEAR_ALERT');
+        u.popRestoreCmd('ALERT');
+
+        if (result.success) {
+            let cardB = result.get();
+            game.message([u, '弃置一张手牌', cardB, '使火攻造成伤害']);
+            game.broadcastPopup(`CARD ${u.figure.name} 火攻-弃置 ${cardB.toJsonString()}`);
+            yield game.removeUserCards(u, cardB, true);
+            ctx.i.damage = new Damage(u, this, 1, C.DAMAGE_TYPE.HUO);
+            yield t.on('damage', game, ctx);
+        } else {
+            game.message([u, '未能弃置一张同花色手牌，火攻没有造成伤害']);
+        }
+        game.broadcastClearPopup();
+    }
+}
+
 
 // 延时类锦囊
 class LeBuSiShu extends DelayedSilkBagCard {
@@ -1087,7 +1143,7 @@ class CiXiongShuangGuJian extends WeaponCard {
                     if (choice === '0') {
                         let result = R.fail;
                         while (!result.success) {
-                            result = yield t.requireCard(game, CardBase, ctx);
+                            result = yield t.requireCard(game, ctx, CardBase);
                         }
                         game.message([t, '弃掉一张手牌']);
                         yield game.removeUserCards(t, result.get(), true);
@@ -1276,6 +1332,10 @@ const cardSet = new Map();
 
     new JieDaoShaRen(C.CARD_SUIT.CLUB, 12),
     new JieDaoShaRen(C.CARD_SUIT.CLUB, 13),
+
+    new HuoGong(C.CARD_SUIT.HEART, 2),
+    new HuoGong(C.CARD_SUIT.HEART, 3),
+    new HuoGong(C.CARD_SUIT.DIAMOND, 12),
 
     // 延时锦囊
     new LeBuSiShu(C.CARD_SUIT.SPADE, 6),
