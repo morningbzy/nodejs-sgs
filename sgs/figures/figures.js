@@ -205,7 +205,7 @@ class SiMaYi extends FigureBase {
             let cardCandidates = ctx.i.sourceUser.cardCandidates({
                 includeJudgeCards: false,
             });
-            u.reply(`CARD_CANDIDATE ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+            u.reply(`CARD_CANDIDATE ${'请选择一张牌'} ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
             let command = yield game.wait(u, {
                 validCmds: ['CARD_CANDIDATE'],
                 validator: (command) => {

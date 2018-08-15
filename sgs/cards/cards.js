@@ -561,6 +561,9 @@ class Sha extends NormalCard {
 
             if (ctx.i.hit) {
                 yield u.on('shaHitTarget', game, ctx);
+            }
+
+            if (ctx.i.hit) {
                 yield target.on('damage', game, ctx);
             }
         }
@@ -683,7 +686,7 @@ class GuoHeChaiQiao extends SilkBagCard {
 
         // Show all card candidates
         let cardCandidates = t.cardCandidates();
-        u.reply(`CARD_CANDIDATE ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+        u.reply(`CARD_CANDIDATE ${'请选择一张牌'} ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
         let command = yield game.wait(u, {
             validCmds: ['CARD_CANDIDATE'],
             validator: (command) => {
@@ -719,7 +722,7 @@ class ShunShouQianYang extends SilkBagCard {
 
         // Show all card candidates
         let cardCandidates = t.cardCandidates();
-        u.reply(`CARD_CANDIDATE ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+        u.reply(`CARD_CANDIDATE ${'请选择一张牌'} ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
         let command = yield game.wait(u, {
             validCmds: ['CARD_CANDIDATE'],
             validator: (command) => {
@@ -845,7 +848,7 @@ class WuGuFengDeng extends SilkBagCard {
             ctx.i.cardCandidates.push({card: card, show: true,});
         });
 
-        game.broadcast(`CARD_CANDIDATE ${JSON.stringify(ctx.i.cardCandidates, U.jsonReplacer)}`, true, true);
+        game.broadcast(`CARD_CANDIDATE ${'请选择一张牌'} ${JSON.stringify(ctx.i.cardCandidates, U.jsonReplacer)}`, true, true);
     }
 
     * run(game, ctx) {
@@ -866,7 +869,7 @@ class WuGuFengDeng extends SilkBagCard {
 
         ctx.i.cardCandidates = ctx.i.cardCandidates.filter(cc => cc.card !== card);
         ctx.i.targets.forEach(t => t.popRestoreCmd('CARD_CANDIDATE'));
-        game.broadcast(`CARD_CANDIDATE ${JSON.stringify(ctx.i.cardCandidates, U.jsonReplacer)}`, true, true);
+        game.broadcast(`CARD_CANDIDATE ${'请选择一张牌'} ${JSON.stringify(ctx.i.cardCandidates, U.jsonReplacer)}`, true, true);
     }
 
     * finish(game, ctx) {
@@ -1090,6 +1093,56 @@ class QingLongYanYueDao extends WeaponCard {
 }
 
 
+class HanBingJian extends WeaponCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '寒冰剑';
+        this.shortName = '寒';
+        this.range = 2;
+    }
+
+    * shaHitTarget(game, ctx) {
+        const u = this.equiper(game);
+        const t = ctx.i.shaTarget;
+        let cardCandidates = t.cardCandidates({includeJudgeCards: false});
+
+        const discardTargetCard = function* () {
+            let command = yield game.wait(u, {
+                validCmds: ['CARD_CANDIDATE'],
+                validator: (command) => {
+                    const pks = command.params;
+                    return pks.length === 1;
+                },
+            });
+            u.reply(`CLEAR_CANDIDATE`);
+            u.popRestoreCmd('CARD_CANDIDATE');
+
+            let card = game.cardByPk(command.params);
+            game.message([u, '弃置了', t, '的一张牌', card]);
+            yield game.removeUserCards(t, card, true);
+        };
+
+        if (cardCandidates.length > 0) {
+            let command = yield game.waitConfirm(u, `是否对${t.figure.name}使用武器【${this.name}】？`);
+            if (command.cmd === C.CONFIRM.Y) {
+                game.message([u, '对', t, '发动武器', this]);
+                ctx.i.hit = false;
+                u.reply(`CARD_CANDIDATE ${'请选择第一张牌'} ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+                yield discardTargetCard();
+
+                cardCandidates = t.cardCandidates({includeJudgeCards: false});
+                if (cardCandidates.length > 0) {
+                    u.reply(`CARD_CANDIDATE ${'请选择第二张牌'} ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+                    yield discardTargetCard();
+                }
+            }
+        } else {
+
+        }
+    }
+}
+
+
 class GuDingDao extends WeaponCard {
     constructor(suit, number) {
         super(suit, number);
@@ -1176,7 +1229,7 @@ class GuanShiFu extends WeaponCard {
         if (cardCandidates.length >= 2) {
             let command = yield game.waitConfirm(u, `是否使用武器【${this.name}】？`);
             if (command.cmd === C.CONFIRM.Y) {
-                u.reply(`CARD_CANDIDATE ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+                u.reply(`CARD_CANDIDATE ${'请选择两张牌'} ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
                 let command = yield game.wait(u, {
                     validCmds: ['CARD_CANDIDATE'],
                     validator: (command) => {
@@ -1357,7 +1410,7 @@ const cardSet = new Map();
 
     // new FangTianHuaJi(C.CARD_SUIT.DIAMOND, 12),
     new GuanShiFu(C.CARD_SUIT.DIAMOND, 5),
-    // new HanBingJian(C.CARD_SUIT.SPADE, 2),
+    new HanBingJian(C.CARD_SUIT.SPADE, 2),
     // new QiLinGong(C.CARD_SUIT.HEART, 5),
     // new QingGangJian(C.CARD_SUIT.SPADE, 6),
     // new YinYueQiang(C.CARD_SUIT.DIAMOND, 12),

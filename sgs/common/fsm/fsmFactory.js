@@ -409,7 +409,7 @@ class MachineFactory {
                 if (stateC) {
                     m.addTransition(new FSM.Transition('O', 'CARD',
                         (game, info) => {
-                            if (stateT.pk === 'CT') {
+                            if (stateT && stateT.pk === 'CT') {
                                 return 'CT';
                             }
                             if (cardCount === ST.SINGLE) {

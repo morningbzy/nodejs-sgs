@@ -297,9 +297,8 @@ const Cmd = {
 
     unmodal: function (params, marker) {
         const el = $('#sgs-table-modal');
-        el.fadeOut(() => {
-            $('.sgs-table-modal-title', el).text('');
-        });
+        el.fadeOut();
+        $('.sgs-table-modal-title', el).text('');
     },
 
     role: function (params, marker) {
@@ -365,7 +364,8 @@ const Cmd = {
     },
 
     card_candidate: function (params, marker) {
-        Cmd.modal(['请选择卡牌', true]);
+        let title = params.shift();
+        Cmd.modal([title, true]);
         const el = $('#sgs-candidate-panel');
 
         let candidates = JSON.parse(params.join(' '));
