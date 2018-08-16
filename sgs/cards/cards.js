@@ -1143,6 +1143,47 @@ class HanBingJian extends WeaponCard {
 }
 
 
+class QiLinGong extends WeaponCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '麒麟弓';
+        this.shortName = '麒';
+        this.range = 5;
+    }
+
+    * shaHitTarget(game, ctx) {
+        const u = this.equiper(game);
+        const t = ctx.i.shaTarget;
+
+        let cardCandidates = [];
+        for (let equipType of [C.EQUIP_TYPE.ATTACK_HORSE, C.EQUIP_TYPE.DEFENSE_HORSE]) {
+            if (t.equipments[equipType]) {
+                cardCandidates.push({card: t.equipments[equipType].card, show: true,});
+            }
+        }
+        if (cardCandidates.length > 0) {
+            let command = yield game.waitConfirm(u, `是否对${t.figure.name}使用武器【${this.name}】？`);
+            if (command.cmd === C.CONFIRM.Y) {
+                u.reply(`CARD_CANDIDATE ${'请选择一匹马'} ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+                let command = yield game.wait(u, {
+                    validCmds: ['CARD_CANDIDATE'],
+                    validator: (command) => {
+                        const pks = command.params;
+                        return pks.length === 1;
+                    },
+                });
+                u.reply(`CLEAR_CANDIDATE`);
+                u.popRestoreCmd('CARD_CANDIDATE');
+
+                let card = game.cardByPk(command.params);
+                game.message([u, '弃置了', t, '的一匹马', card]);
+                yield game.removeUserCards(t, card, true);
+            }
+        }
+    }
+}
+
+
 class GuDingDao extends WeaponCard {
     constructor(suit, number) {
         super(suit, number);
@@ -1403,15 +1444,12 @@ const cardSet = new Map();
 
     // 武器
     new QingLongYanYueDao(C.CARD_SUIT.SPADE, 5),
-
     new GuDingDao(C.CARD_SUIT.SPADE, 1),
-
     new CiXiongShuangGuJian(C.CARD_SUIT.SPADE, 2),
-
     // new FangTianHuaJi(C.CARD_SUIT.DIAMOND, 12),
     new GuanShiFu(C.CARD_SUIT.DIAMOND, 5),
     new HanBingJian(C.CARD_SUIT.SPADE, 2),
-    // new QiLinGong(C.CARD_SUIT.HEART, 5),
+    new QiLinGong(C.CARD_SUIT.HEART, 5),
     // new QingGangJian(C.CARD_SUIT.SPADE, 6),
     // new YinYueQiang(C.CARD_SUIT.DIAMOND, 12),
     // new ZhangBaSheMao(C.CARD_SUIT.SPADE, 12),
@@ -1422,13 +1460,15 @@ const cardSet = new Map();
     // 防具
     new BaGuaZhen(C.CARD_SUIT.SPADE, 2),
     new BaGuaZhen(C.CARD_SUIT.CLUB, 2),
+    // new RenWangDun(C.CARD_SUIT.CLUB, 2),
+    // new TengJia(C.CARD_SUIT.CLUB, 2),
+    // new BaiYinShiZi(C.CARD_SUIT.CLUB, 2),
 
     // -1马
     new DiLu(C.CARD_SUIT.CLUB, 5),
 
     // +1马
     new ChiTu(C.CARD_SUIT.HEART, 5),
-
 ].map((c) => cardSet.set(c.pk, c));
 
 module.exports = {
