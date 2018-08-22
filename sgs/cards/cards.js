@@ -1479,7 +1479,7 @@ const cardSet = new Map();
     new QingLongYanYueDao(C.CARD_SUIT.SPADE, 5),
     new GuDingDao(C.CARD_SUIT.SPADE, 1),
     new CiXiongShuangGuJian(C.CARD_SUIT.SPADE, 2),
-    // new FangTianHuaJi(C.CARD_SUIT.DIAMOND, 12),
+    new FangTianHuaJi(C.CARD_SUIT.DIAMOND, 12),
     new GuanShiFu(C.CARD_SUIT.DIAMOND, 5),
     new HanBingJian(C.CARD_SUIT.SPADE, 2),
     new QiLinGong(C.CARD_SUIT.HEART, 5),
