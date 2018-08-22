@@ -368,8 +368,11 @@ class User extends EventListener {
         }
     }
 
-    * useSha(game, ctx) {
-        yield this.figure.on('useSha', game, ctx);
+    * initSha(game, ctx) {
+        yield this.figure.on('initSha', game, ctx);
+        if (this.equipments.weapon) {
+            yield this.equipments.weapon.card.on('initSha', game, ctx);
+        }
         return yield Promise.resolve(R.success);
     }
 

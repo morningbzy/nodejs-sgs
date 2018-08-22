@@ -481,23 +481,31 @@ class Sha extends NormalCard {
     constructor(suit, number) {
         super(suit, number);
         this.name = '杀';
-        this.targetCount = 1;  // TODO: How many targets are required
     }
 
     * init(game, ctx) {
         let u = ctx.i.sourceUser;
-        yield u.on('useSha', game, ctx);
+        ctx.i.shaCard = this;
+        ctx.i.targetCount = 1;
+        ctx.i.targetValidators = [];
+        yield u.on('initSha', game, ctx);
         if (ctx.phaseCtx.i.shaCount >= u.getShaLimit()) {
             console.log(`|[i] Use too many Sha`);
             return yield Promise.resolve(R.fail);
         }
+        let targetValidators = [(command, info) => {
+            let target = info.game.userByPk(command.params);
+            return target.id !== u.id && info.game.inAttackRange(u, target, ctx);
+        }];
+
+        if (ctx.i.targetValidators.length > 1) {
+            targetValidators.push(...ctx.i.targetValidators);
+        }
+
         let opt = {
             u,
-            targetValidator: (command, info) => {
-                let target = info.game.userByPk(command.params);
-                return target.id !== u.id && info.game.inAttackRange(u, target, ctx);
-            },
-            targetCount: this.targetCount,
+            targetValidator: targetValidators,
+            targetCount: ctx.i.targetCount,
             initInfo: {
                 card: this,
             }
@@ -1252,6 +1260,31 @@ class CiXiongShuangGuJian extends WeaponCard {
 }
 
 
+class FangTianHuaJi extends WeaponCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '方天画戟';
+        this.shortName = '方';
+        this.range = 4;
+    }
+
+    effect(u, cards) {
+        return (u.cards.size > 0 && U.toArray(u.cards.values()).filter(card => !U.toArray(cards).includes(card)).length <= 0);
+    }
+
+    * initSha(game, ctx) {
+        let u = ctx.i.sourceUser;
+        let cards = game.cardManager.unfakeCard(ctx.i.shaCard);
+        if (this.effect(u, cards)) {
+            ctx.i.targetCount = C.TARGET_SELECT_TYPE.ONE_OR_MORE;
+            ctx.i.targetValidators = [
+                FSM.BASIC_VALIDATORS.buildCountExceededValidator('targets', 3)
+            ];
+        }
+    }
+}
+
+
 class GuanShiFu extends WeaponCard {
     constructor(suit, number) {
         super(suit, number);
@@ -1500,6 +1533,7 @@ module.exports = {
     QingLongYanYueDao,
     GuDingDao,
     CiXiongShuangGuJian,
+    FangTianHuaJi,
     GuanShiFu,
     ZhuGeLianNu,
 

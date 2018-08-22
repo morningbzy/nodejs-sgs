@@ -14,7 +14,7 @@ class Machine {
         };
 
         this.states = new Map();
-        this.transitions = new Set();
+        this.transitions = new Map();  // Set();
         this.validCmds = new Map();
 
         this.initState = null;
@@ -58,7 +58,8 @@ class Machine {
     }
 
     addTransition(trans) {
-        this.transitions.add(trans);
+        // this.transitions.add(trans);
+        this.transitions.set(`${trans.from}-${trans.cmd}`, trans);
         this.validCmds.get(trans.from).add(trans.cmd);
     }
 
@@ -77,7 +78,7 @@ class Machine {
     }
 
     findMatchTransition(command) {
-        for (let trans of this.transitions) {
+        for (let trans of this.transitions.values()) {
             if (trans.from !== '*' && trans.from !== this.currentState.pk) {
                 continue;
             }

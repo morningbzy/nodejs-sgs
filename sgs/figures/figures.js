@@ -514,7 +514,7 @@ class GuanYu extends FigureBase {
                 fsmOpt: {
                     cardCount: ST.SINGLE,
                     targetCount: (ctx) => {
-                        return ctx.i.requireCard ? ST.NONE : ST.SINGLE;
+                        return ctx.i.requireCard ? ST.NONE : ST.ONE_OR_MORE;
                     },
                     cardValidator: [
                         FSM.BASIC_VALIDATORS.ownCardValidator,
@@ -522,6 +522,16 @@ class GuanYu extends FigureBase {
                     ],
                     targetValidator: [
                         FSM.BASIC_VALIDATORS.notMeTargetValidator,
+                        (command, info) => {
+                            let u = info.sourceUser;
+                            let targetCount = 1;
+                            let weapon = u.getEquipCard('weapon');
+                            // 方天画戟
+                            if (weapon instanceof sgsCards.FangTianHuaJi && weapon.effect(u, info.cards)) {
+                                targetCount = 3;
+                            }
+                            return info.targets.size < targetCount;
+                        },
                         (command, info) => {
                             let u = info.sourceUser;
                             let target = info.game.userByPk(command.params);
@@ -609,7 +619,7 @@ class ZhaoYun extends FigureBase {
                 fsmOpt: {
                     cardCount: ST.SINGLE,
                     targetCount: (ctx) => {
-                        return ctx.i.requireCard ? ST.NONE : ST.SINGLE;
+                        return ctx.i.requireCard ? ST.NONE : ST.ONE_OR_MORE;
                     },
                     cardValidator: (command, info) => {
                         const skill = (info.parentCtx instanceof SkillContext)
@@ -619,6 +629,19 @@ class ZhaoYun extends FigureBase {
                         let card = game.cardByPk(command.params);
                         return (this.owner.hasCard(card) && card instanceof originClass);
                     },
+                    targetValidator: [
+                        FSM.BASIC_VALIDATORS.notMeTargetValidator,
+                        (command, info) => {
+                            let u = info.sourceUser;
+                            let targetCount = 1;
+                            let weapon = u.getEquipCard('weapon');
+                            // 方天画戟
+                            if (weapon instanceof sgsCards.FangTianHuaJi && weapon.effect(u, info.cards)) {
+                                targetCount = 3;
+                            }
+                            return info.targets.size < targetCount;
+                        },
+                    ],
                 },
             }),
         };
