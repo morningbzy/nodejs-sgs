@@ -376,6 +376,14 @@ class User extends EventListener {
         return yield Promise.resolve(R.success);
     }
 
+    * startSha(game, ctx) {
+        yield this.figure.on('startSha', game, ctx);
+        if (this.equipments.weapon) {
+            yield this.equipments.weapon.card.on('startSha', game, ctx);
+        }
+        return yield Promise.resolve(R.success);
+    }
+
     * shaHitTarget(game, ctx) {
         yield this.figure.on('shaHitTarget', game, ctx);
         if (this.equipments.weapon) {
@@ -502,7 +510,7 @@ class User extends EventListener {
 
     * requireShan(game, ctx) {
         let result = yield this.figure.on('requireShan', game, ctx);
-        if (result.fail && this.equipments.armor) {
+        if (!ctx.i.ignoreArmor && result.fail && this.equipments.armor) {
             result = yield this.equipments.armor.card.on('requireShan', game, ctx);
         }
         if (result.fail) {
@@ -543,7 +551,7 @@ class User extends EventListener {
 
     * unrequireShan(game, ctx) {
         yield this.figure.on('unrequireShan', game, ctx);
-        if (this.equipments.armor) {
+        if (!ctx.i.ignoreArmor && this.equipments.armor) {
             yield this.equipments.armor.card.on('unrequireShan', game, ctx);
         }
     }
@@ -597,9 +605,6 @@ class User extends EventListener {
 
     * beShaTarget(game, ctx) {
         let result = yield this.figure.on('beShaTarget', game, ctx);
-        if (!result.abort && result.fail && this.equipments.armor) {
-            result = yield this.equipments.armor.card.on('beShaTarget', game, ctx);
-        }
         return yield Promise.resolve(result);
     }
 
@@ -613,9 +618,6 @@ class User extends EventListener {
 
     * afterBeShaTarget(game, ctx) {
         let result = yield this.figure.on('afterBeShaTarget', game, ctx);
-        if (!result.abort && result.fail && this.equipments.armor) {
-            result = yield this.equipments.armor.card.on('afterBeShaTarget', game, ctx);
-        }
         return yield Promise.resolve(result);
     }
 

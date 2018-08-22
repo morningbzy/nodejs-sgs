@@ -534,18 +534,21 @@ class Sha extends NormalCard {
     }
 
     * run(game, ctx) {
+        const u = ctx.i.sourceUser;
+        ctx.i.ignoreArmor = false;
         ctx.i.shanAble = new Map();
+
         if (!ctx.i.skipShaInitStage) {
             yield this.targetEvents(game, ctx);
         }
 
-        const u = ctx.i.sourceUser;
         const card = ctx.i.card;
         const targets = ctx.i.targets;
         ctx.i.damage = new Damage(u, card, 1);
 
         yield game.removeUserCards(ctx.i.sourceUser, card);
         game.message([ctx.i.sourceUser, '对', ctx.i.targets, '使用', card]);
+        yield u.on('startSha', game, ctx);
 
         for (let target of targets) {
             ctx.i.hit = true;  // 命中
@@ -1325,6 +1328,22 @@ class GuanShiFu extends WeaponCard {
 }
 
 
+class QingGangJian extends WeaponCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '青釭剑';
+        this.shortName = '釭';
+        this.range = 2;
+    }
+
+    * startSha(game, ctx) {
+        let u = this.equiper(game);
+        game.message([u, '装备了【', this.name, '】，将无视目标防具']);
+        ctx.i.ignoreArmor = true;
+    }
+}
+
+
 class ZhuGeLianNu extends WeaponCard {
     constructor(suit, number) {
         super(suit, number);
@@ -1483,7 +1502,7 @@ const cardSet = new Map();
     new GuanShiFu(C.CARD_SUIT.DIAMOND, 5),
     new HanBingJian(C.CARD_SUIT.SPADE, 2),
     new QiLinGong(C.CARD_SUIT.HEART, 5),
-    // new QingGangJian(C.CARD_SUIT.SPADE, 6),
+    new QingGangJian(C.CARD_SUIT.SPADE, 6),
     // new YinYueQiang(C.CARD_SUIT.DIAMOND, 12),
     // new ZhangBaSheMao(C.CARD_SUIT.SPADE, 12),
     // new ZhuQueYuShan(C.CARD_SUIT.DIAMOND, 1),
