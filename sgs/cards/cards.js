@@ -554,6 +554,13 @@ class Sha extends NormalCard {
             ctx.i.hit = true;  // 命中
             ctx.i.shaTarget = target;
             ctx.i.exDamage = 0;
+            ctx.i.shaEffect = true;
+
+            yield target.on('beSha', game, ctx);
+
+            if (!ctx.i.shaEffect) {
+                continue;
+            }
 
             if (!ctx.i.shanAble.has(target) || ctx.i.shanAble.get(target)) {
                 let result = yield target.on('requireShan', game, ctx);
@@ -1387,6 +1394,23 @@ class BaGuaZhen extends ArmorCard {
 }
 
 
+class RenWangDun extends ArmorCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '仁王盾';
+        this.shortName = '仁';
+    }
+
+    * beSha(game, ctx) {
+        if ([C.CARD_SUIT.SPADE, C.CARD_SUIT.CLUB].includes(ctx.i.card.suit)) {
+            let u = this.equiper(game);
+            game.message([u, '装备了【', this.name, '】，', ctx.i.card, '无效']);
+            ctx.i.shaEffect = false;
+        }
+    }
+}
+
+
 // -1马
 class DiLu extends AttackHorseCard {
     constructor(suit, number) {
@@ -1512,7 +1536,7 @@ const cardSet = new Map();
     // 防具
     new BaGuaZhen(C.CARD_SUIT.SPADE, 2),
     new BaGuaZhen(C.CARD_SUIT.CLUB, 2),
-    // new RenWangDun(C.CARD_SUIT.CLUB, 2),
+    new RenWangDun(C.CARD_SUIT.CLUB, 2),
     // new TengJia(C.CARD_SUIT.CLUB, 2),
     // new BaiYinShiZi(C.CARD_SUIT.CLUB, 2),
 
@@ -1522,6 +1546,7 @@ const cardSet = new Map();
     // +1马
     new ChiTu(C.CARD_SUIT.HEART, 5),
 ].map((c) => cardSet.set(c.pk, c));
+
 
 module.exports = {
     cardSet,
@@ -1544,6 +1569,7 @@ module.exports = {
     NanManRuQin,
     WuXieKeJi,
     TieSuoLianHuan,
+    QingGangJian,
 
     LeBuSiShu,
     BingLiangCunDuan,
@@ -1554,7 +1580,13 @@ module.exports = {
     CiXiongShuangGuJian,
     FangTianHuaJi,
     GuanShiFu,
+    HanBingJian,
+    QiLinGong,
+    QingGangJian,
     ZhuGeLianNu,
+
+    BaGuaZhen,
+    RenWangDun,
 
     DiLu,
     ChiTu,

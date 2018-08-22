@@ -384,6 +384,14 @@ class User extends EventListener {
         return yield Promise.resolve(R.success);
     }
 
+    * beSha(game, ctx) {
+        yield this.figure.on('beSha', game, ctx);
+        if (!ctx.i.ignoreArmor && this.equipments.armor) {
+            yield this.equipments.armor.card.on('beSha', game, ctx);
+        }
+        return yield Promise.resolve(R.success);
+    }
+
     * shaHitTarget(game, ctx) {
         yield this.figure.on('shaHitTarget', game, ctx);
         if (this.equipments.weapon) {
