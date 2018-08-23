@@ -937,10 +937,9 @@ class XiaoQiao extends FigureBase {
         if (command.cmd === C.CONFIRM.Y) {
             let result = yield this.triggerSkill(this.skills.WU011s01, game, ctx);
             if (result.success) {
-                return yield Promise.resolve(R.abort);
+                ctx.i.ignoreDamage = true;
             }
         }
-        return yield Promise.resolve(R.fail);
     }
 
     * judge(game, ctx) {

@@ -478,9 +478,19 @@ class DefenseHorseCard extends EquipmentCard {
 
 // 基本牌
 class Sha extends NormalCard {
-    constructor(suit, number) {
+    constructor(suit, number, damageType = C.DAMAGE_TYPE.NORMAL) {
         super(suit, number);
-        this.name = '杀';
+        this.damageType = damageType;
+        let damageTypeStr = '';
+        switch (damageType) {
+            case C.DAMAGE_TYPE.LEI:
+                damageTypeStr = '(雷)';
+                break;
+            case C.DAMAGE_TYPE.HUO:
+                damageTypeStr = '(火)';
+                break;
+        }
+        this.name = `杀${damageTypeStr}`;
     }
 
     * init(game, ctx) {
@@ -1411,6 +1421,41 @@ class RenWangDun extends ArmorCard {
 }
 
 
+class TengJia extends ArmorCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '藤甲';
+        this.shortName = '藤';
+    }
+
+    * beSha(game, ctx) {
+        if (ctx.i.card.damageType === C.DAMAGE_TYPE.NORMAL) {
+            let u = this.equiper(game);
+            game.message([u, '装备了【', this.name, '】，', ctx.i.card, '无效']);
+            ctx.i.shaEffect = false;
+        }
+    }
+
+    * beforeScrollCardEffect(game, ctx) {
+        let card = ctx.i.card;
+        if (card instanceof NanManRuQin || card instanceof WanJianQiFa) {
+            let u = this.equiper(game);
+            game.message([u, '装备了【', this.name, '】，', card, '无效']);
+            ctx.i.silkCardEffect = false;
+        }
+    }
+
+    * damage(game, ctx) {
+        let damage = ctx.i.damage;
+        if (damage.type === C.DAMAGE_TYPE.HUO) {
+            let u = this.equiper(game);
+            game.message([u, '装备了【', this.name, '】，收到的火属性伤害+1']);
+            ctx.i.exDamage = (ctx.i.exDamage || 0) + 1
+        }
+    }
+}
+
+
 // -1马
 class DiLu extends AttackHorseCard {
     constructor(suit, number) {
@@ -1430,6 +1475,7 @@ class ChiTu extends DefenseHorseCard {
 
 
 const cardSet = new Map();
+
 
 [
     // 基本牌
@@ -1527,7 +1573,6 @@ const cardSet = new Map();
     new HanBingJian(C.CARD_SUIT.SPADE, 2),
     new QiLinGong(C.CARD_SUIT.HEART, 5),
     new QingGangJian(C.CARD_SUIT.SPADE, 6),
-    // new YinYueQiang(C.CARD_SUIT.DIAMOND, 12),
     // new ZhangBaSheMao(C.CARD_SUIT.SPADE, 12),
     // new ZhuQueYuShan(C.CARD_SUIT.DIAMOND, 1),
     new ZhuGeLianNu(C.CARD_SUIT.DIAMOND, 1),
@@ -1537,7 +1582,7 @@ const cardSet = new Map();
     new BaGuaZhen(C.CARD_SUIT.SPADE, 2),
     new BaGuaZhen(C.CARD_SUIT.CLUB, 2),
     new RenWangDun(C.CARD_SUIT.CLUB, 2),
-    // new TengJia(C.CARD_SUIT.CLUB, 2),
+    new TengJia(C.CARD_SUIT.CLUB, 2),
     // new BaiYinShiZi(C.CARD_SUIT.CLUB, 2),
 
     // -1马
@@ -1565,11 +1610,15 @@ module.exports = {
     TaoYuanJieYi,
     JueDou,
     GuoHeChaiQiao,
-    WuZhongShengYou,
+    ShunShouQianYang,
     NanManRuQin,
+    WanJianQiFa,
+    WuZhongShengYou,
     WuXieKeJi,
     TieSuoLianHuan,
-    QingGangJian,
+    WuGuFengDeng,
+    JieDaoShaRen,
+    HuoGong,
 
     LeBuSiShu,
     BingLiangCunDuan,
@@ -1587,6 +1636,7 @@ module.exports = {
 
     BaGuaZhen,
     RenWangDun,
+    TengJia,
 
     DiLu,
     ChiTu,

@@ -1,10 +1,11 @@
 const C = require('./constants');
 const R = require('./common/results');
 const U = require('./utils');
-const {Context, CardContext} = require('./context');
+const {SimpleContext, CardContext} = require('./context');
 const FSM = require('./common/fsm');
 const sgsCards = require('./cards/cards');
 const EventListener = require('./common/eventListener');
+const Damage = require('./common/damage');
 
 
 class User extends EventListener {
@@ -337,7 +338,7 @@ class User extends EventListener {
 
     * on(event, game, ctx) {
         if (!ctx) {
-            ctx = new Context();
+            ctx = new SimpleContext();
         }
         console.log(`|<U> ON ${this.name}(${this.figure.name}) ${event}`);
         return yield super.on(event, game, ctx);
@@ -413,9 +414,16 @@ class User extends EventListener {
     }
 
     * damage(game, ctx) {
-        let result = yield this.figure.on('beforeDamage', game, ctx);
-        if (result.abort) {
-            return yield Promise.resolve(result);
+        ctx.i.ignoreDamage = false;
+
+        yield this.figure.on('beforeDamage', game, ctx);
+        if (ctx.i.ignoreDamage) {
+            return yield Promise.resolve(R.success);
+        }
+
+        let equipCard = this.getEquipCard('armor');
+        if (!ctx.i.ignoreArmor && equipCard) {
+            yield equipCard.on('damage', game, ctx);
         }
 
         let damage = ctx.i.damage;
@@ -433,13 +441,27 @@ class User extends EventListener {
             yield this.figure.on('damage', game, ctx);
         }
 
-        if (damage.type !== C.DAMAGE_TYPE.NORMAL && this.status.has(C.USER_STATUS.LINKED)) {
+        // 处理铁索连环
+        if (!ctx.i.handlingLinkDamage
+            && damage.type !== C.DAMAGE_TYPE.NORMAL
+            && this.status.has(C.USER_STATUS.LINKED)) {
+            let linkDamage = new Damage(
+                damage.srcUser,
+                damage.srcCard,
+                willDamage,
+                damage.type
+            );
+            let linkCtx = new SimpleContext().linkParent(ctx);
+            linkCtx.i.handlingLinkDamage = true;
+            linkCtx.i.damage = linkDamage;
+
             game.removeUserStatus(this, C.USER_STATUS.LINKED);
-            let nextLinkedUser = game.userRound().filter(
+            let linkedUsers = game.userRound().filter(
                 (u) => u.status.has(C.USER_STATUS.LINKED)
-            ).shift();
-            if (nextLinkedUser) {
-                yield nextLinkedUser.on('damage', game, ctx);
+            );
+            for (let next of linkedUsers) {
+                yield next.on('damage', game, linkCtx);
+                game.removeUserStatus(next, C.USER_STATUS.LINKED);
             }
         }
     }
@@ -595,6 +617,10 @@ class User extends EventListener {
                     break;
                 }
             }
+        }
+
+        if (ctx.i.silkCardEffect && this.equipments.armor) {
+            yield this.equipments.armor.card.on('beforeScrollCardEffect', game, ctx);
         }
     }
 
