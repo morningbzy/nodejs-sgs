@@ -554,7 +554,7 @@ class Sha extends NormalCard {
 
         const card = ctx.i.card;
         const targets = ctx.i.targets;
-        ctx.i.damage = new Damage(u, card, 1);
+        ctx.i.damage = new Damage(u, card, 1, card.damageType);
 
         yield game.removeUserCards(ctx.i.sourceUser, card);
         game.message([ctx.i.sourceUser, '对', ctx.i.targets, '使用', card]);
@@ -1487,6 +1487,22 @@ const cardSet = new Map();
     new Sha(C.CARD_SUIT.CLUB, 9),
     new Sha(C.CARD_SUIT.CLUB, 10),
     new Sha(C.CARD_SUIT.DIAMOND, 9),
+
+    new Sha(C.CARD_SUIT.HEART, 4, C.DAMAGE_TYPE.HUO),
+    new Sha(C.CARD_SUIT.HEART, 7, C.DAMAGE_TYPE.HUO),
+    new Sha(C.CARD_SUIT.HEART, 10, C.DAMAGE_TYPE.HUO),
+    new Sha(C.CARD_SUIT.DIAMOND, 4, C.DAMAGE_TYPE.HUO),
+    new Sha(C.CARD_SUIT.DIAMOND, 5, C.DAMAGE_TYPE.HUO),
+
+    new Sha(C.CARD_SUIT.SPADE, 4, C.DAMAGE_TYPE.LEI),
+    new Sha(C.CARD_SUIT.SPADE, 5, C.DAMAGE_TYPE.LEI),
+    new Sha(C.CARD_SUIT.SPADE, 6, C.DAMAGE_TYPE.LEI),
+    new Sha(C.CARD_SUIT.SPADE, 7, C.DAMAGE_TYPE.LEI),
+    new Sha(C.CARD_SUIT.SPADE, 8, C.DAMAGE_TYPE.LEI),
+    new Sha(C.CARD_SUIT.CLUB, 5, C.DAMAGE_TYPE.LEI),
+    new Sha(C.CARD_SUIT.CLUB, 6, C.DAMAGE_TYPE.LEI),
+    new Sha(C.CARD_SUIT.CLUB, 7, C.DAMAGE_TYPE.LEI),
+    new Sha(C.CARD_SUIT.CLUB, 8, C.DAMAGE_TYPE.LEI),
 
     new Shan(C.CARD_SUIT.DIAMOND, 2),
     new Shan(C.CARD_SUIT.DIAMOND, 4),
