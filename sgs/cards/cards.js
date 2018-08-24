@@ -414,10 +414,6 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
         let u = ctx.i.sourceUser;
         let opt = {
             u,
-            targetValidator: (command) => {
-                let target = game.userByPk(command.params);
-                return target.id !== u.id;
-            },
             targetCount: this.targetCount,
             initInfo: {
                 card: this,
@@ -431,8 +427,9 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
     }
 
     * run(game, ctx) {
+        let u = ctx.i.sourceUser;
         let card = U.toSingle(ctx.i.card);
-        yield game.equipUserCard(U.toSingle(ctx.i.targets), card);
+        yield game.equipUserCard(u, card);
         ctx.handlingCards.delete(card);
     }
 
@@ -1477,12 +1474,36 @@ class TengJia extends ArmorCard {
         let damage = ctx.i.damage;
         if (damage.type === C.DAMAGE_TYPE.HUO) {
             let u = this.equiper(game);
-            game.message([u, '装备了【', this.name, '】，收到的火属性伤害+1']);
+            game.message([u, '装备了【', this.name, '】，受到的火属性伤害+1']);
             ctx.i.exDamage = (ctx.i.exDamage || 0) + 1;
         }
     }
 }
 
+
+class BaiYinShiZi extends ArmorCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '白银狮子';
+        this.shortName = '狮';
+    }
+
+    * damage(game, ctx) {
+        let damage = ctx.i.damage;
+        if (damage.value > 1) {
+            let u = this.equiper(game);
+            game.message([u, '装备了【', this.name, '】，受到伤害为1']);
+            ctx.i.exDamage = 1 - (damage.value);
+        }
+    }
+
+    * unequip(game, ctx) {
+        let u = ctx.i.sourceUser;
+        game.message([u, '失去了【', this.name, '】，应回复1点体力']);
+        ctx.i.heal = 1;
+        yield u.on('heal', game, ctx);
+    }
+}
 
 // -1马
 class DiLu extends AttackHorseCard {
@@ -1630,7 +1651,7 @@ const cardSet = new Map();
     new BaGuaZhen(C.CARD_SUIT.CLUB, 2),
     new RenWangDun(C.CARD_SUIT.CLUB, 2),
     new TengJia(C.CARD_SUIT.CLUB, 2),
-    // new BaiYinShiZi(C.CARD_SUIT.CLUB, 2),
+    new BaiYinShiZi(C.CARD_SUIT.CLUB, 2),
 
     // -1马
     new DiLu(C.CARD_SUIT.CLUB, 5),
@@ -1685,6 +1706,7 @@ module.exports = {
     BaGuaZhen,
     RenWangDun,
     TengJia,
+    BaiYinShiZi,
 
     DiLu,
     ChiTu,

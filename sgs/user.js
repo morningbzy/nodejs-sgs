@@ -470,7 +470,7 @@ class User extends EventListener {
         let willHeal = Math.min(this.maxHp - this.hp, ctx.i.heal);
         console.log(`|<U> HP${this.hp} + ${willHeal} = ${this.hp + willHeal}`);
         yield game.changeUserProperty(this, 'hp', this.hp + willHeal);
-        game.message([this, '恢复', willHeal, '点体力']);
+        game.message([this, '回复', willHeal, '点体力']);
         yield this.figure.on('heal', game, ctx);
 
         if (this.state === C.USER_STATE.DYING && this.hp > 0) {
@@ -673,20 +673,10 @@ class User extends EventListener {
         return yield Promise.resolve(result);
     }
 
-    * beforeUnequip(game, ctx) {
-        yield this.figure.on('beforeUnequip', game, ctx);
-        let equipCard = this.getEquipCard(ctx.equipType);
-        if (equipCard) {
-            yield equipCard.on('beforeUnequip', game, ctx);
-        }
-    }
-
     * unequip(game, ctx) {
+        game.message([this, '失去了装备', ctx.i.equipCard]);
         yield this.figure.on('unequip', game, ctx);
-        let equipCard = this.getEquipCard(ctx.equipType);
-        if (equipCard) {
-            yield equipCard.on('unequip', game, ctx);
-        }
+        yield ctx.i.equipCard.on('unequip', game, ctx);
     }
 }
 

@@ -3,7 +3,7 @@ let co = require('co');
 const C = require('./constants');
 const R = require('./common/results');
 const U = require('./utils');
-const {JudgeContext} = require('./context');
+const {SimpleContext, JudgeContext} = require('./context');
 const User = require('./user');
 const cmdHandler = require('./cmd');
 const cardManager = require('./cards');
@@ -434,12 +434,15 @@ class Game {
     }
 
     * unequipUserCard(user, equipType, discard = false) {
-        yield user.on('beforeUnequip', game, {equipType});
-        let oldCard = user.unequipCard(equipType);
+        let oldCard = user.getEquipCard(equipType);
         if (oldCard) {
+            user.unequipCard(equipType);
             if (user.state === C.USER_STATE.ALIVE) {
-                this.message([user, '失去了装备', oldCard]);
-                yield user.on('unequip', game, {equipType});
+                let ctx = new SimpleContext(this, {
+                    sourceUser: user,
+                    equipCard: oldCard,
+                });
+                yield user.on('unequip', game, ctx);
             }
             this.broadcastUserInfo(user);
             if (discard) {
