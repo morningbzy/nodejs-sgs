@@ -42,7 +42,7 @@ const initCardFSM = (game, parentCtx, opt) => {
             ));
             m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
                 (game, info) => {
-                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    game.unselectUserCards(u, info.card);
                     let card = game.cardByPk(info.command.params);
                     info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
                 }
@@ -61,7 +61,7 @@ const initCardFSM = (game, parentCtx, opt) => {
             ));
             m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
                 (game, info) => {
-                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    game.unselectUserCards(u, info.card);
                     let card = game.cardByPk(info.command.params);
                     info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
                 }
@@ -83,7 +83,7 @@ const initCardFSM = (game, parentCtx, opt) => {
             ));
             m.addTransition(new FSM.Transition('O', 'CARD', '_', null,
                 (game, info) => {
-                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    game.unselectUserCards(u, info.card);
                     u.reply(`UNSELECT TARGET ${info.target.id}`);
                     let card = game.cardByPk(info.command.params);
                     info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
@@ -109,7 +109,7 @@ const initCardFSM = (game, parentCtx, opt) => {
             ));
             m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
                 (game, info) => {
-                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    game.unselectUserCards(u, info.card);
                     for (let target of info.targets) {
                         u.reply(`UNSELECT TARGET ${target.id}`);
                     }
@@ -137,7 +137,7 @@ const initCardFSM = (game, parentCtx, opt) => {
             ));
             m.addTransition(new FSM.Transition('TO', 'CARD', '_', null,
                 (gamec, info) => {
-                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    game.unselectUserCards(u, info.card);
                     for (let target of info.targets) {
                         u.reply(`UNSELECT TARGET ${target.id}`);
                     }
@@ -173,7 +173,7 @@ const initCardFSM = (game, parentCtx, opt) => {
             ));
             m.addTransition(new FSM.Transition('T', 'CARD', '_', null,
                 (game, info) => {
-                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    game.unselectUserCards(u, info.card);
                     for (let target of info.targets) {
                         u.reply(`UNSELECT TARGET ${target.id}`);
                     }
@@ -191,7 +191,7 @@ const initCardFSM = (game, parentCtx, opt) => {
             ));
             m.addTransition(new FSM.Transition('O', 'CARD', '_',
                 (game, info) => {
-                    u.reply(`UNSELECT CARD ${info.card.pk}`);
+                    game.unselectUserCards(u, info.card);
                     for (let target of info.targets) {
                         u.reply(`UNSELECT TARGET ${target.id}`);
                     }
@@ -1394,12 +1394,86 @@ class QingGangJian extends WeaponCard {
 }
 
 
+class ZhangBaSheMao extends WeaponCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '丈八蛇矛';
+        this.shortName = '丈';
+        this.range = 3;
+    }
+
+    * init(game, ctx) {
+        let u = this.equiper(game);
+        if (!u) {
+            return yield super.init(game, ctx);
+        }
+
+        let m = new FSM.Machine(game, ctx);
+        m.setInfo({
+            cards: new Set(),
+        });
+        m.addState(new FSM.State('C1'), true);
+        m.addState(new FSM.State('C2'));
+        m.addState(new FSM.State('O'));
+
+        m.addTransition(new FSM.Transition('C1', 'CARD', 'C2',
+            [FSM.BASIC_VALIDATORS.handCardValidator,],
+            (game, info) => {
+                let card = info.game.cardByPk(info.command.params);
+                info.cards.add(card);
+            }
+        ));
+        m.addTransition(new FSM.Transition('C1', 'CANCEL', '_'));
+
+        m.addTransition(new FSM.Transition('C2', 'CARD',
+            (game, info) => {
+                return ctx.i.requireCard ? 'O' : '_';
+            },
+            [FSM.BASIC_VALIDATORS.handCardValidator,],
+            (game, info) => {
+                let card = game.cardByPk(info.command.params);
+                info.cards.add(card);
+                if (!ctx.i.requireCard) {
+                    game.delayMessage([u, '发动【丈八蛇矛】，把', info.cards, '当【杀】使用']);
+                    let fakeCard = game.cardManager.fakeCards(info.cards, {asClass: Sha,});
+                    info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(fakeCard);
+                }
+            }
+        ));
+        m.addTransition(new FSM.Transition('C2', 'UNCARD', 'C1', null,
+            (game, info) => {
+                let card = game.cardByPk(info.command.params);
+                info.cards.delete(card);
+            }
+        ));
+        m.addTransition(new FSM.Transition('C2', 'CANCEL', '_'));
+
+        m.addTransition(new FSM.Transition('O', 'UNCARD', 'C2', null,
+            (game, info) => {
+                let card = game.cardByPk(info.command.params);
+                info.cards.delete(card);
+            }
+        ));
+        m.addTransition(new FSM.Transition('O', 'OK', '_', null,
+            (game, info) => {
+                game.message([u, '发动【丈八蛇矛】，把', info.cards, '当【杀】使用']);
+                let fakeCard = game.cardManager.fakeCards(info.cards, {asClass: Sha,});
+                info.result = new R.CardResult().set(fakeCard);
+            }
+        ));
+        m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
+
+        return yield game.waitFSM(u, m, ctx);
+    }
+}
+
+
 class ZhuQueYuShan extends WeaponCard {
     constructor(suit, number) {
         super(suit, number);
         this.name = '朱雀羽扇';
         this.shortName = '朱';
-        this.range = 5;
+        this.range = 4;
     }
 
     * useSha(game, ctx) {
@@ -1674,7 +1748,7 @@ const cardSet = new Map();
     new HanBingJian(C.CARD_SUIT.SPADE, 2),
     new QiLinGong(C.CARD_SUIT.HEART, 5),
     new QingGangJian(C.CARD_SUIT.SPADE, 6),
-    // new ZhangBaSheMao(C.CARD_SUIT.SPADE, 12),
+    new ZhangBaSheMao(C.CARD_SUIT.SPADE, 12),
     new ZhuQueYuShan(C.CARD_SUIT.DIAMOND, 1),
     new ZhuGeLianNu(C.CARD_SUIT.DIAMOND, 1),
     new ZhuGeLianNu(C.CARD_SUIT.CLUB, 1),

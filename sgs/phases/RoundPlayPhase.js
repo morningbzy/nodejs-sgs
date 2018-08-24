@@ -37,6 +37,7 @@ class RoundPlayPhase extends Phase {
                         nextCmd = 'OK';
                         info.card = result.get().card;
                         info.targets = U.toArray(result.get().target);
+                        game.sendDelayMessages();
                     } else if (result.abort && result instanceof R.CardResult) {
                         nextCmd = 'CARD';
                         nextParams = U.toArray(result.get().pk);
@@ -131,7 +132,11 @@ class RoundPlayPhase extends Phase {
 
                 m.addTransition(new FSM.Transition('IC', 'CARD', 'IC',
                     FSM.BASIC_VALIDATORS.ownCardValidator,
-                    FSM.BASIC_ACTIONS.cardToContext
+                    (game, info) => {
+                        u.reply('UNSELECT ALL');
+                        info.card = game.cardByPk(info.command.params);
+                        game.selectUserCards(u, info.card);
+                    }
                 ));
                 m.addTransition(new FSM.Transition('IC', 'OK', 'EC'));
                 m.addTransition(new FSM.Transition('IC', 'CANCEL', 'CSP'));

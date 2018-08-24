@@ -562,10 +562,10 @@ class GuanYu extends FigureBase {
         let targets = ctx.i.targets;
         if (targets.length > 0) {
             result = new R.CardTargetResult().set(fakeCard, targets);
-            game.message([u, '使用技能【武圣】把', cards, '当作', fakeCard, '对', targets, '使用']);
+            game.message([u, '使用技能【武圣】把', cards, '当作【杀】对', targets, '使用']);
         } else {
             result = new R.CardResult().set(fakeCard);
-            game.message([u, '使用技能【武圣】把', cards, '当作', fakeCard, '使用']);
+            game.message([u, '使用技能【武圣】把', cards, '当作【杀】使用']);
         }
 
         // yield game.removeUserCards(u, cards);

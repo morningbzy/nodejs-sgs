@@ -465,25 +465,25 @@ const Cmd = {
     },
 
     select: function (params, marker) {
-        let category = params[0];
-        let pk = params[1];
+        let category = params.shift();
 
         switch (category.toLowerCase()) {
             case 'card':
-                $(`#sgs-player-panel [pk=${pk}]`).addClass(selectedCardClass);
+                for (let pk of params) {
+                    $(`#sgs-player-panel [pk=${pk}]`).addClass(selectedCardClass);
+                }
                 break;
             case 'target':
-                $(`.sgs-player[pk=${pk}] .sgs-player-card`).addClass(selectedPlayerClass);
+                $(`.sgs-player[pk=${params[0]}] .sgs-player-card`).addClass(selectedPlayerClass);
                 break;
             case 'skill':
-                $(`#sgs-skill-panel .sgs-skill[pk=${pk}]`).addClass(selectedSkillClass);
+                $(`#sgs-skill-panel .sgs-skill[pk=${params[0]}]`).addClass(selectedSkillClass);
                 break;
         }
     },
 
     unselect: function (params, marker) {
-        let category = params[0];
-        let pk = params[1];
+        let category = params.shift();
 
         switch (category.toLowerCase()) {
             case 'all':
@@ -492,13 +492,15 @@ const Cmd = {
                 $('.sgs-skill.selected').removeClass(selectedSkillClass);
                 break;
             case 'card':
-                $(`#sgs-player-panel [pk=${pk}]`).removeClass(selectedCardClass);
+                for (let pk of params) {
+                    $(`#sgs-player-panel [pk=${pk}]`).removeClass(selectedCardClass);
+                }
                 break;
             case 'target':
-                $(`.sgs-player[pk=${pk}] .sgs-player-card`).removeClass(selectedPlayerClass);
+                $(`.sgs-player[pk=${params[0]}] .sgs-player-card`).removeClass(selectedPlayerClass);
                 break;
             case 'skill':
-                $(`#sgs-skill-panel .sgs-skill[pk=${pk}]`).removeClass(selectedSkillClass);
+                $(`#sgs-skill-panel .sgs-skill[pk=${params[0]}]`).removeClass(selectedSkillClass);
                 break;
         }
     },

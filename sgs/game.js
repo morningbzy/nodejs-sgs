@@ -28,6 +28,7 @@ class Game {
         this.sortedUsers = [];  // List of User, sorted by seatNum
         this.waitingStack = [];
         this.lastPopupMsg = null;
+        this.delayMessages = [];
 
         this.zhugong = null;  // User
         this.roundOwner = null;  //  Whose round it is, now.
@@ -223,12 +224,35 @@ class Game {
         this.broadcast(`MSG ${buildMessage(elements)}`);
     }
 
+    delayMessage(elements) {
+        // TODO: Support only one delay message for now
+        this.delayMessages = [];
+        this.delayMessages.push(elements);
+    }
+
+    sendDelayMessages() {
+        this.delayMessages.forEach((elements) => this.broadcast(`MSG ${buildMessage(elements)}`));
+        this.delayMessages = [];
+    }
+
+    cancelDelayMessages() {
+        this.delayMessages = [];
+    }
+
     resendUserInfo(user) {
         // Send ALL user info to one user, especially for the user's reconnecting
         for (let k in this.users) {
             let u = this.users[k];
             user.reply(`USER_INFO ${u.seatNum} ${u.toJsonString(user)}`, user.id === u.id);
         }
+    }
+
+    selectUserCards(user, cards) {
+        user.reply(`SELECT CARD ${this.cardManager.unfakeCards(U.toArray(cards)).map(card => card.pk).join(' ')}`);
+    }
+
+    unselectUserCards(user, cards) {
+        user.reply(`UNSELECT CARD ${this.cardManager.unfakeCards(U.toArray(cards)).map(card => card.pk).join(' ')}`);
     }
 
     startIfReady() {

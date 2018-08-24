@@ -174,7 +174,8 @@ module.exports.BASIC_VALIDATORS = {
 
     ownCardValidator: (command, info) => {
         let card = info.game.cardByPk(command.params);
-        return info.sourceUser.hasCard(card) || info.sourceUser.hasEquipedCard(card);
+        let cards = U.toArray(card.getOriginCards());
+        return cards.length === cards.filter(card => info.sourceUser.hasCard(card) || info.sourceUser.hasEquipedCard(card)).length;
     },
 
     buildCardSuitValidator: (suit) => {

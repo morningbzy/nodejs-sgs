@@ -24,7 +24,7 @@ class MachineFactory {
             opt.cardValidator,
             (game, info) => {
                 let u = game.userByPk(info.command.uid);
-                u.reply(`UNSELECT CARD ${info.card.pk}`);
+                game.unselectUserCards(u, info.card);
                 info.card = game.cardByPk(info.command.params);
             }
         ));
@@ -107,7 +107,7 @@ class MachineFactory {
             opt.cardValidator,
             (game, info) => {
                 let u = game.userByPk(info.command.uid);
-                u.reply(`UNSELECT CARD ${info.card.pk}`);
+                game.unselectUserCards(u, info.card);
                 info.card = game.cardByPk(info.command.params);
             }
         ));
@@ -135,7 +135,7 @@ class MachineFactory {
             opt.cardValidator,
             (game, info) => {
                 let u = game.userByPk(info.command.uid);
-                u.reply(`UNSELECT CARD ${info.card.pk}`);
+                game.unselectUserCards(u, info.card);
                 u.reply(`UNSELECT TARGET ${info.target.id}`);
                 info.card = game.cardByPk(info.command.params);
                 info.target = null;
@@ -187,10 +187,32 @@ class MachineFactory {
                 params: [],
             });
         }));
+        m.addState(new FSM.State('E', function* (info) {
+            let equipCard = info.card;
+            info.parentCtx.i.requireCard = true;
+            let result = yield equipCard.init(info.game, info.parentCtx);
+            if (result instanceof R.CardResult) {
+                info.result = result;
+                return yield Promise.resolve({
+                    cmd: 'OK',
+                    params: U.toArray(result.get().pk),
+                });
+            } else {
+                info.card = null;
+                info.result = R.fail;
+                return yield Promise.resolve({
+                    cmd: 'CANCEL',
+                });
+            }
+        }));
 
-        m.addTransition(new FSM.Transition('CSE', 'CARD', 'O',
+        m.addTransition(new FSM.Transition('CSE', 'CARD',
+            (game, info) => u.hasEquipedCard(info.card) ? 'E' : 'O',
             (command) => {
                 let card = game.cardByPk(command.params);
+                if (u.hasEquipedCard(card)) {
+                    return true;
+                }
                 return (u.hasCard(card) && card instanceof cardClass);
             },
             (game, info) => {
@@ -204,7 +226,8 @@ class MachineFactory {
             }
         ));
         m.addTransition(new FSM.Transition('CSE', 'CANCEL', '_'));
-        m.addTransition(new FSM.Transition('O', 'UNCARD', 'CSE', null,
+        m.addTransition(new FSM.Transition('O', 'UNCARD', 'CSE',
+            (command, info) => !info.card.faked,  // fakeCard不可UNCARD，如丈八蛇矛
             (game, info) => {
                 info.card = null;
             }
@@ -217,6 +240,12 @@ class MachineFactory {
         m.addTransition(new FSM.Transition('O', 'CANCEL', '_'));
         m.addTransition(new FSM.Transition('S', 'OK', '_'));
         m.addTransition(new FSM.Transition('S', 'CANCEL', 'CSE'));
+        m.addTransition(new FSM.Transition('E', 'OK', '_'));
+        m.addTransition(new FSM.Transition('E', 'CANCEL', 'CSE', null,
+            (game, info) => {
+                u.reply('UNSELECT ALL');
+            }
+        ));
 
         return m;
     }
@@ -288,7 +317,7 @@ class MachineFactory {
                 (game, info) => {
                     let u = game.userByPk(info.command.uid);
                     if (cardCount === ST.SINGLE && info.cards.size > 0) {
-                        info.cards.forEach((card) => u.reply(`UNSELECT CARD ${card.pk}`));
+                        info.cards.forEach((card) => game.unselectUserCards(u, card));
                         info.cards.clear();
                     }
                     let card = game.cardByPk(info.command.params);
@@ -334,7 +363,7 @@ class MachineFactory {
                         let u = game.userByPk(info.command.uid);
                         let card = game.cardByPk(info.command.params);
                         if (cardCount === ST.SINGLE) {
-                            info.cards.forEach((c) => u.reply(`UNSELECT CARD ${c.pk}`));
+                            info.cards.forEach((card) => game.unselectUserCards(u, card));
                             info.cards.clear();
                         }
                         info.targets.forEach((t) => u.reply(`UNSELECT TARGET ${t.id}`));
@@ -422,7 +451,7 @@ class MachineFactory {
                             let u = game.userByPk(info.command.uid);
                             let card = game.cardByPk(info.command.params);
                             if (cardCount === ST.SINGLE) {
-                                info.cards.forEach((c) => u.reply(`UNSELECT CARD ${c.pk}`));
+                                info.cards.forEach((card) => game.unselectUserCards(u, card));
                                 info.cards.clear();
                             }
                             info.targets.forEach((t) => u.reply(`UNSELECT TARGET ${t.id}`));
@@ -473,7 +502,7 @@ class MachineFactory {
                         (game, info) => {
                             let u = game.userByPk(info.command.uid);
                             if (cardCount === ST.SINGLE) {
-                                info.cards.forEach((card) => u.reply(`UNSELECT CARD ${card.pk}`));
+                                info.cards.forEach((card) => game.unselectUserCards(u, card));
                                 info.cards.clear();
                             }
                             info.targets.forEach((target) => u.reply(`UNSELECT TARGET ${target.id}`));
