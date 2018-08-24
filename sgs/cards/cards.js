@@ -554,7 +554,9 @@ class Sha extends NormalCard {
 
         const card = ctx.i.card;
         const targets = ctx.i.targets;
-        ctx.i.damage = new Damage(u, card, 1, card.damageType);
+        let damage = u.status.has(C.USER_STATUS.DRUNK) ? 2 : 1;  // 酒杀
+        game.removeUserStatus(u, C.USER_STATUS.DRUNK);
+        ctx.i.damage = new Damage(u, card, damage, card.damageType);
 
         yield game.removeUserCards(ctx.i.sourceUser, card);
         game.message([ctx.i.sourceUser, '对', ctx.i.targets, '使用', card]);
@@ -627,10 +629,6 @@ class Tao extends NormalCard {
         }
         let opt = {
             u,
-            targetValidator: (command) => {
-                let target = game.userByPk(command.params);
-                return target.id !== u.id;
-            },
             targetCount: this.targetCount,
             initInfo: {
                 card: this,
@@ -646,6 +644,36 @@ class Tao extends NormalCard {
     }
 }
 
+
+class Jiu extends NormalCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '酒';
+        this.targetCount = C.TARGET_SELECT_TYPE.SELF;
+    }
+
+    * init(game, ctx) {
+        let u = ctx.i.sourceUser;
+        if (ctx.phaseCtx.i.jiuCount >= 1) {
+            return yield Promise.resolve(R.fail);
+        }
+        let opt = {
+            u,
+            targetCount: this.targetCount,
+            initInfo: {
+                card: this,
+            }
+        };
+        return yield game.waitFSM(u, initCardFSM(game, ctx, opt), ctx);
+    }
+
+    * run(game, ctx) {
+        let u = ctx.i.sourceUser;
+        game.message([u, '使用了', ctx.i.card]);
+        game.addUserStatus(u, C.USER_STATUS.DRUNK);
+        ctx.phaseCtx.i.jiuCount++;
+    }
+}
 
 // 锦囊
 class TaoYuanJieYi extends SilkBagCard {
@@ -1450,7 +1478,7 @@ class TengJia extends ArmorCard {
         if (damage.type === C.DAMAGE_TYPE.HUO) {
             let u = this.equiper(game);
             game.message([u, '装备了【', this.name, '】，收到的火属性伤害+1']);
-            ctx.i.exDamage = (ctx.i.exDamage || 0) + 1
+            ctx.i.exDamage = (ctx.i.exDamage || 0) + 1;
         }
     }
 }
@@ -1512,6 +1540,9 @@ const cardSet = new Map();
     new Tao(C.CARD_SUIT.HEART, 5),
     new Tao(C.CARD_SUIT.HEART, 7),
     new Tao(C.CARD_SUIT.DIAMOND, 2),
+
+    new Jiu(C.CARD_SUIT.SPADE, 3),
+    new Jiu(C.CARD_SUIT.SPADE, 9),
 
     // 非延时锦囊
     new TaoYuanJieYi(C.CARD_SUIT.HEART, 1),
@@ -1622,6 +1653,7 @@ module.exports = {
     Sha,
     Shan,
     Tao,
+    Jiu,
 
     TaoYuanJieYi,
     JueDou,

@@ -21,6 +21,7 @@ Constants = {
         DYING: 'heartbeat',
         DEAD: 'skull',
         LINKED: 'link',
+        DRUNK: 'beer',
     },
     WAITING_FOR: {
         NOTHING: 0x0000,

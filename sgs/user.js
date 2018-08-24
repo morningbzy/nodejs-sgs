@@ -316,12 +316,10 @@ class User extends EventListener {
     }
 
     // NOTE: This is NOT an event handler.
-    * requireCard(game, ctx, cardClass, validators = []) {
+    * requireCard(game, ctx, cardClasses, validators = []) {
         const u = this;
-        validators.push((command) => {
-            let card = game.cardByPk(command.params);
-            return (this.hasCard(card) && card instanceof cardClass);
-        });
+        validators.push(FSM.BASIC_VALIDATORS.handCardValidator);
+        validators.push(FSM.BASIC_VALIDATORS.buildCardClassValidator(cardClasses));
         let result = yield game.waitFSM(u, FSM.get('requireSingleCard', game, ctx, {
             cardValidator: validators,
         }), ctx);
@@ -353,10 +351,12 @@ class User extends EventListener {
 
     * roundPlayPhaseStart(game, phaseCtx) {
         phaseCtx.i.shaCount = 0;
+        phaseCtx.i.jiuCount = 0;
         return yield this.figure.on('roundPlayPhaseStart', game, phaseCtx);
     }
 
     * roundPlayPhaseEnd(game, phaseCtx) {
+        game.removeUserStatus(game.roundOwner, C.USER_STATUS.DRUNK);  // 移除酒状态
         return yield this.figure.on('roundPlayPhaseEnd', game, phaseCtx);
     }
 
@@ -487,11 +487,11 @@ class User extends EventListener {
             if (u === this) {
                 yield this.figure.on('dying', game, ctx);
             }
-            while (this.state === C.USER_STATE.DYING) {
-                // 同一个人可以出多次桃救
-                let command = yield game.waitConfirm(u, `${this.figure.name}濒死，是否为其出【桃】？`);
+            while (this.state === C.USER_STATE.DYING) { // 同一个人可以出多次桃救
+                const self = u === this;  // 自己可以对自己使用酒
+                let command = yield game.waitConfirm(u, `${this.figure.name}濒死，是否为其出【桃】${self ? '或【酒】' : ''}？`);
                 if (command.cmd === C.CONFIRM.Y) {
-                    let result = yield u.on('requireTao', game, ctx);
+                    let result = self ? yield u.on('requireTaoOrJiu', game, ctx) : yield u.on('requireTao', game, ctx);
                     if (result.success) {
                         let cards = result.get();
                         yield game.removeUserCards(u, cards, true);
@@ -567,6 +567,15 @@ class User extends EventListener {
         return yield Promise.resolve(result);
     }
 
+    * requireTaoOrJiu(game, ctx) {
+        let result = yield this.figure.on('requireTaoOrJiu', game, ctx);
+        if (!result.abort && result.fail) {
+            result = yield this.requireCard(game, ctx, [sgsCards.Tao, sgsCards.Jiu]);
+        }
+        yield this.on('unrequireTaoOrJiu', game, ctx);
+        return yield Promise.resolve(result);
+    }
+
     * requireWuXieKeJi(game, ctx) {
         let result = yield this.requireCard(game, ctx, sgsCards.WuXieKeJi);
         return yield Promise.resolve(result);
@@ -588,9 +597,10 @@ class User extends EventListener {
 
     * unrequireTao(game, ctx) {
         yield this.figure.on('unrequireTao', game, ctx);
-        if (this.equipments.weapon) {
-            yield this.equipments.weapon.card.on('unrequireTao', game, ctx);
-        }
+    }
+
+    * unrequireTaoOrJiu(game, ctx) {
+        yield this.figure.on('unrequireTaoOrJiu', game, ctx);
     }
 
     * beforeJudgeEffect(game, ctx) {

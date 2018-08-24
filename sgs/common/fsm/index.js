@@ -195,6 +195,13 @@ module.exports.BASIC_VALIDATORS = {
         };
     },
 
+    buildCardClassValidator: (cardClasses) => {
+        return (command, info) => {
+            let card = info.game.cardByPk(command.params);
+            return U.toArray(cardClasses).filter(cls => card instanceof cls).length > 0;
+        }
+    },
+
     notMeTargetValidator: (command, info) => {
         return U.toSingle(command.params) !== info.sourceUser.id;
     },
