@@ -477,6 +477,11 @@ class DefenseHorseCard extends EquipmentCard {
 class Sha extends NormalCard {
     constructor(suit, number, damageType = C.DAMAGE_TYPE.NORMAL) {
         super(suit, number);
+        this.name = '杀';
+        this.setDamageType(damageType);
+    }
+
+    setDamageType(damageType) {
         this.damageType = damageType;
         let damageTypeStr = '';
         switch (damageType) {
@@ -542,6 +547,9 @@ class Sha extends NormalCard {
 
     * run(game, ctx) {
         const u = ctx.i.sourceUser;
+
+        yield u.on('useSha', game, ctx);
+
         ctx.i.ignoreArmor = false;
         ctx.i.shanAble = new Map();
 
@@ -1386,6 +1394,30 @@ class QingGangJian extends WeaponCard {
 }
 
 
+class ZhuQueYuShan extends WeaponCard {
+    constructor(suit, number) {
+        super(suit, number);
+        this.name = '朱雀羽扇';
+        this.shortName = '朱';
+        this.range = 5;
+    }
+
+    * useSha(game, ctx) {
+        const u = ctx.i.sourceUser;
+        const card = ctx.i.card;
+        if (card instanceof Sha && card.damageType === C.DAMAGE_TYPE.NORMAL) {
+            let command = yield game.waitConfirm(u, `是否使用武器【${this.name}】？`);
+            if (command.cmd === C.CONFIRM.Y) {
+                game.message([u, '发动了【', this.name, '】，将', card, '当做具有火焰伤害的【杀】']);
+                let fakeCard = game.cardManager.fakeCards(card);
+                fakeCard.setDamageType(C.DAMAGE_TYPE.HUO);
+                ctx.i.card = fakeCard;
+            }
+        }
+    }
+}
+
+
 class ZhuGeLianNu extends WeaponCard {
     constructor(suit, number) {
         super(suit, number);
@@ -1504,6 +1536,7 @@ class BaiYinShiZi extends ArmorCard {
         yield u.on('heal', game, ctx);
     }
 }
+
 
 // -1马
 class DiLu extends AttackHorseCard {
@@ -1642,7 +1675,7 @@ const cardSet = new Map();
     new QiLinGong(C.CARD_SUIT.HEART, 5),
     new QingGangJian(C.CARD_SUIT.SPADE, 6),
     // new ZhangBaSheMao(C.CARD_SUIT.SPADE, 12),
-    // new ZhuQueYuShan(C.CARD_SUIT.DIAMOND, 1),
+    new ZhuQueYuShan(C.CARD_SUIT.DIAMOND, 1),
     new ZhuGeLianNu(C.CARD_SUIT.DIAMOND, 1),
     new ZhuGeLianNu(C.CARD_SUIT.CLUB, 1),
 
