@@ -16,7 +16,7 @@ module.exports = {
         if (x === undefined || x === null) {
             return [];
         } else if (Array.isArray(x)) {
-            return x;
+            return Array.from(x);
         } else if (iterable(x)) {
             return Array.from(x);
         }

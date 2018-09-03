@@ -900,8 +900,6 @@ class WuGuFengDeng extends SilkBagCard {
     }
 
     * prepare(game, ctx) {
-        console.log(ctx.i.targets.length);
-
         let cards = game.cardManager.shiftCards(ctx.i.targets.length);
         ctx.i.cardCandidates = [];
         cards.map(card => {

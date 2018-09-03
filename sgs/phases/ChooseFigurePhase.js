@@ -1,4 +1,5 @@
 const C = require('../constants');
+const U = require('../utils');
 const Phase = require('./phase');
 let Figures = require('../figures/figures');
 
@@ -11,21 +12,18 @@ module.exports = class extends Phase {
     static* start(game) {
         game.state = C.GAME_STATE.CHOOSING_FIGURE;
         const zhugong = game.zhugong;
-        let figures = [
-            new (Figures.CaoCao)(game),
-            new (Figures.LiuBei)(game)
-        ];
-        zhugong.reply(`FIGURE_CANDIDATE ${JSON.stringify(figures.map((f) => f.toJson()))}`, true, true);
+        let figures = ['WEI001', 'SHU001'];
+
+        zhugong.reply(`FIGURE_CANDIDATE ${JSON.stringify(figures.map(
+            (f) => new (Figures[f])(game).toJson())
+        )}`, true, true);
         game.broadcast('MSG 等待主公选择武将');
 
         let command = yield game.wait(zhugong, {
             validCmds: ['FIGURE'],
             validator: (command) => {
                 const pk = command.params[0];
-                if (figures.map((f) => f.pk).indexOf(pk) === -1) {
-                    return false;
-                }
-                return true;
+                return figures.includes(pk);
             },
         });
         let figurePk = command.params[0];
@@ -37,26 +35,20 @@ module.exports = class extends Phase {
         game.message(['主公选择了武将', zhugong]);
         game.broadcastUserInfo(zhugong);
 
+        figures = U.toArray(Figures.figurePks).filter(pk => pk !== figurePk);
+
+
         for (let u of game.userRound(zhugong, true)) {
-            figures = [
-                new (Figures.CaoCao)(game),
-                new (Figures.LiuBei)(game),
-                new (Figures.SiMaYi)(game),
-                new (Figures.GuanYu)(game),
-                new (Figures.ZhaoYun)(game),
-                new (Figures.MaChao)(game),
-                new (Figures.DaQiao)(game),
-                new (Figures.XiaoQiao)(game),
-                new (Figures.SunShangXiang)(game),
-                new (Figures.ZhenJi)(game),
-                new (Figures.ZhouTai)(game),
-            ];
-            u.reply(`FIGURE_CANDIDATE ${JSON.stringify(figures.map((f) => f.toJson()))}`, true, true);
+            let figureCandidates = U.shuffle(figures).slice(0, 3);
+
+            u.reply(`FIGURE_CANDIDATE ${JSON.stringify(figureCandidates.map(
+                (f) => new (Figures[f])(game).toJson())
+            )}`, true, true);
             command = yield game.wait(u, {
                 validCmds: ['FIGURE'],
                 validator: (command) => {
                     const pk = command.params[0];
-                    return figures.map((f) => f.pk).includes(pk);
+                    return figureCandidates.includes(pk);
                 },
             });
             figurePk = command.params[0];
@@ -64,6 +56,8 @@ module.exports = class extends Phase {
             u.reply(`CLEAR_CANDIDATE`);
             u.popRestoreCmd(`FIGURE_CANDIDATE`);
             u.reply(`USER_INFO ${u.seatNum} ${u.toJsonString(u)}`, true);
+
+            figures = figures.filter(pk => pk !== figurePk);
         }
 
         for (let u of game.userRound(zhugong, true)) {

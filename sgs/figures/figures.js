@@ -1110,7 +1110,7 @@ SunShangXiang.pk = 'WU008';
 XiaoQiao.pk = 'WU011';
 ZhouTai.pk = 'WU013';
 
-figures = {
+let figures = {
     CaoCao,
     SiMaYi,
     ZhenJi,
@@ -1126,7 +1126,15 @@ figures = {
     ZhouTai,
 };
 
+let figureNames = new Set();
+let figurePks = new Set();
+
 Object.keys(figures).map((k) => {
+    figureNames.add(k);
+    figurePks.add(figures[k].pk);
     exports[k] = figures[k];
     exports[figures[k].pk] = figures[k];
 });
+
+exports.figureNames = figureNames;
+exports.figurePks = figurePks;
