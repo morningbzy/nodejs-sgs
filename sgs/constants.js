@@ -104,9 +104,10 @@ Constants = {
         SINGLE: 1,
         NONE: 0,
         ONE_OR_MORE: -1,
-        SELF: -2,
-        ALL_OTHERS: -3,
-        ALL: -4,
+        NONE_OR_MORE: -2,
+        SELF: -3,
+        ALL_OTHERS: -4,
+        ALL: -5,
     },
     SELECT_TYPE: {
         SINGLE: 1,

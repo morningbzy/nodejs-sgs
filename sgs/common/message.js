@@ -13,7 +13,7 @@ function buildMessage(elements) {
         } else if (e instanceof Set || e instanceof Map) {
             strings.push(buildMessage(Array.from(e.values())));
         } else if (e instanceof User) {
-            strings.push(`<b>${e.figure.name}</b>`);
+            strings.push(`<b style="margin-right: 0.25rem">${e.figure.name}</b>`);
         } else if (e instanceof sgsCards.CardBase) {
             let suitClass = [C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND].includes(e.suit) ? 'text-danger' : 'text-dark';
             strings.push(`【<b>${e.name}</b>`);

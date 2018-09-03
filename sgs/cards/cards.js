@@ -153,6 +153,38 @@ const initCardFSM = (game, parentCtx, opt) => {
             m.addTransition(new FSM.Transition('TO', 'UNCARD', '_'));
             m.addTransition(new FSM.Transition('TO', 'CANCEL', '_'));
             break;
+        case C.TARGET_SELECT_TYPE.NONE_OR_MORE:
+            m.setInfo({targets: new Set()});
+            m.addState(new FSM.State('TO'), true);
+            m.addTransition(new FSM.Transition('TO', 'TARGET', 'TO',
+                targetValidator,
+                (game, info) => {
+                    info.targets.add(game.userByPk(info.command.params));
+                }
+            ));
+            m.addTransition(new FSM.Transition('TO', 'UNTARGET', 'TO', null,
+                (game, info) => {
+                    info.targets.delete(game.userByPk(info.command.params));
+                }
+            ));
+            m.addTransition(new FSM.Transition('TO', 'CARD', '_', null,
+                (gamec, info) => {
+                    game.unselectUserCards(u, info.card);
+                    for (let target of info.targets) {
+                        u.reply(`UNSELECT TARGET ${target.id}`);
+                    }
+                    let card = game.cardByPk(info.command.params);
+                    info.result = new R.CardResult(R.RESULT_STATE.ABORT).set(card);
+                }
+            ));
+            m.addTransition(new FSM.Transition('TO', 'OK', '_', null,
+                (game, info) => {
+                    info.result = new R.CardTargetResult().set(info.card, U.toArray(info.targets));
+                }
+            ));
+            m.addTransition(new FSM.Transition('TO', 'UNCARD', '_'));
+            m.addTransition(new FSM.Transition('TO', 'CANCEL', '_'));
+            break;
         default:
             m.setInfo({targets: new Set()});
             m.addState(new FSM.State('T'), true);
@@ -313,7 +345,11 @@ class SilkBagCard extends CardBase {
         let u = ctx.i.sourceUser;
         let card = U.toSingle(ctx.i.card);
         let targets = ctx.i.targets;
-        let targetMsg = (card.targetCount < C.TARGET_SELECT_TYPE.SINGLE) ? '' : ['对', targets];
+        let targetMsg = [
+            C.TARGET_SELECT_TYPE.SELF,
+            C.TARGET_SELECT_TYPE.ALL_OTHERS,
+            C.TARGET_SELECT_TYPE.ALL,
+        ].includes(card.targetCount) ? '' : ['对', targets];
         game.message([u, targetMsg, '使用了', card]);
 
         yield this.prepare(game, ctx);
@@ -879,10 +915,20 @@ class TieSuoLianHuan extends SilkBagCard {
     constructor(suit, number) {
         super(suit, number);
         this.name = '铁索连环';
-        this.targetCount = C.TARGET_SELECT_TYPE.ONE_OR_MORE;
+        this.targetCount = C.TARGET_SELECT_TYPE.NONE_OR_MORE;
         this.targetValidators = [
             FSM.BASIC_VALIDATORS.buildCountExceededValidator('targets', 2)
         ];
+    }
+
+    * start(game, ctx) {
+        if(ctx.i.targets.length < 1) {  // 重铸
+            const u = ctx.i.sourceUser;
+            game.dispatchCards(u, 1);
+            game.message([u, '重铸了', this, '换取一张牌']);
+        } else {
+            yield super.start(game, ctx);
+        }
     }
 
     * run(game, ctx) {
