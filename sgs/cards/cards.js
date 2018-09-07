@@ -1324,7 +1324,7 @@ class CiXiongShuangGuJian extends WeaponCard {
                 let command = yield game.waitConfirm(u, `是否对${t.figure.name}使用武器【${this.name}】？`);
                 if (command.cmd === C.CONFIRM.Y) {
                     game.message([u, '对', t, '发动武器', this]);
-                    let choice = '1';
+                    let choice = '1';  // Default
                     let choices = [
                         `弃一张手牌`,
                         `让${u.figure.name}摸一张牌`,

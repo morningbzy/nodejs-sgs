@@ -6,7 +6,8 @@ const cardManager = require('../cards');
 const Skill = require('../skills');
 const sgsCards = require('../cards/cards');
 const EventListener = require('../common/eventListener');
-const {SkillContext} = require('../context');
+const {SimpleContext, SkillContext} = require('../context');
+const Damage = require('../common/damage');
 
 const ST = C.SELECT_TYPE;
 
@@ -86,8 +87,8 @@ class FigureBase extends EventListener {
 
 
 // 魏
+// WEI001【曹操】 魏，男，4血 【奸雄】【护驾】
 class CaoCao extends FigureBase {
-// 【曹操】 魏，男，4血 【奸雄】【护驾】
     constructor(game) {
         super();
         this.name = '曹操';
@@ -171,8 +172,8 @@ class CaoCao extends FigureBase {
 }
 
 
+// WEI002【司马懿】 魏，男，3血 【反馈】【鬼才】
 class SiMaYi extends FigureBase {
-// 【司马懿】 魏，男，3血 【反馈】【鬼才】
     constructor(game) {
         super();
         this.name = '司马懿';
@@ -201,8 +202,9 @@ class SiMaYi extends FigureBase {
     // 【反馈】
     * s1(game, ctx) {
         const u = this.owner;
-        if (ctx.i.sourceUser) {
-            let cardCandidates = ctx.i.sourceUser.cardCandidates({
+        const t = ctx.i.damage.srcUser;
+        if (t) {
+            let cardCandidates = t.cardCandidates({
                 includeJudgeCards: false,
             });
             u.reply(`CARD_CANDIDATE ${'请选择一张牌'} ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
@@ -217,9 +219,9 @@ class SiMaYi extends FigureBase {
             u.popRestoreCmd('CARD_CANDIDATE');
 
             let card = game.cardByPk(command.params);
-            yield game.removeUserCards(ctx.i.sourceUser, card);
+            yield game.removeUserCards(t, card);
             game.addUserCards(u, card);
-            game.message([u, '从', ctx.i.sourceUser, '处获得1张牌']);
+            game.message([u, '从', t, '处获得1张牌']);
         }
         return yield Promise.resolve(R.success);
     }
@@ -241,11 +243,12 @@ class SiMaYi extends FigureBase {
     }
 
     * damage(game, ctx) {
-        let command = yield game.waitConfirm(this.owner, `是否使用技能【反馈】`);
-        if (command.cmd === C.CONFIRM.Y) {
-            return yield this.triggerSkill(this.skills.WEI002s01, game, ctx);
+        if (ctx.i.damage.srcUser) {
+            let command = yield game.waitConfirm(this.owner, `是否使用技能【反馈】`);
+            if (command.cmd === C.CONFIRM.Y) {
+                return yield this.triggerSkill(this.skills.WEI002s01, game, ctx);
+            }
         }
-        return yield Promise.resolve(R.fail);
     }
 
     * beforeJudgeEffect(game, ctx) {
@@ -258,8 +261,91 @@ class SiMaYi extends FigureBase {
 }
 
 
+// WEI003【夏侯惇】 魏，男，4血 【刚烈】
+class XiaHouDun extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '夏侯惇';
+        this.country = C.COUNTRY.WEI;
+        this.gender = C.GENDER.MALE;
+        this.hp = 4;
+        this.skills = {
+            WEI003s01: new Skill(this, {
+                pk: 'WEI001s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '刚烈',
+                desc: '当你收到1点伤害后，你可以判定，若结果不为红桃，来源选择一项：' +
+                '1、弃置两张手牌；2、收到你造成的1点伤害。',
+                handler: 's1',
+            }),
+        };
+    }
+
+    * s1(game, ctx) {
+        const u = this.owner;
+        const t = ctx.i.damage.srcUser;
+        let result = yield game.doJudge(u, card => C.CARD_SUIT.HEART !== card.suit);
+        game.message([u, '判定【刚烈】为', result.get(), '判定', result.success ? '生效' : '未生效']);
+        if (result.success) {
+            let choice = '1';  // Default
+            let choices = [
+                `弃置两张手牌`,
+                `受到来自${this.name}的1点伤害`,
+            ];
+
+            // 有2张以上的手牌，才可以选择，否则直接选2
+            if (t.cards.size >= 2) {
+                let command = yield game.waitChoice(t, `请选择`, choices);
+                t.reply(`CLEAR_CANDIDATE`);
+                choice = command.params[0];
+            }
+
+            game.message([t, '选择: ', choices[parseInt(choice)]]);
+
+            if (choice === '0') {
+                let cardCandidates = t.cardCandidates({
+                    includeJudgeCards: false,
+                    includeEquipments: false,
+                    showHandCards: true,
+                });
+
+                t.reply(`CARD_CANDIDATE ${'请选择2张牌'} ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+                let command = yield game.wait(t, {
+                    validCmds: ['CARD_CANDIDATE'],
+                    validator: (command) => {
+                        const pks = command.params;
+                        return pks.length === 2;
+                    },
+                });
+                t.reply(`CLEAR_CANDIDATE`);
+                t.popRestoreCmd('CARD_CANDIDATE');
+
+                let cards = game.cardsByPk(command.params);
+                game.message([t, '弃置了2张手牌', cards]);
+                yield game.removeUserCards(t, cards, true);
+            } else {
+                let damage = new Damage(u, null, 1, C.DAMAGE_TYPE.NORMAL);
+                let simpleCtx = new SimpleContext(game, {damage}).linkParent(ctx);
+                game.message([t, '因', u, '的【刚烈】受到1点伤害']);
+                yield t.on('damage', game, simpleCtx);
+            }
+        }
+    }
+
+    * damage(game, ctx) {
+        const t = ctx.i.damage.srcUser;
+        if (t) {
+            let command = yield game.waitConfirm(this.owner, `是否对 ${t.figure.name} 使用技能【刚烈】`);
+            if (command.cmd === C.CONFIRM.Y) {
+                return yield this.triggerSkill(this.skills.WEI003s01, game, ctx);
+            }
+        }
+    }
+}
+
+
+// WEI007【甄姬】 魏，女，3血 【倾国】【洛神】
 class ZhenJi extends FigureBase {
-// 【甄姬】 魏，女，3血 【倾国】【洛神】
     constructor(game) {
         super();
         this.name = '甄姬';
@@ -866,10 +952,8 @@ class DaQiao extends FigureBase {
 }
 
 
+// WU011【小乔】 吴，女，3血 【天香】【红颜】
 class XiaoQiao extends FigureBase {
-// 【小乔】 吴，女，3血
-// 【天香】
-// 【红颜】
     constructor(game) {
         super();
         this.name = '小乔';
@@ -1098,6 +1182,7 @@ class ZhouTai extends FigureBase {
 
 CaoCao.pk = 'WEI001';
 SiMaYi.pk = 'WEI002';
+XiaHouDun.pk = 'WEI003';
 ZhenJi.pk = 'WEI007';
 
 LiuBei.pk = 'SHU001';
@@ -1113,6 +1198,7 @@ ZhouTai.pk = 'WU013';
 let figures = {
     CaoCao,
     SiMaYi,
+    XiaHouDun,
     ZhenJi,
 
     LiuBei,

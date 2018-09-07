@@ -51,6 +51,9 @@ class Context extends Object {
 
 class SimpleContext extends Context {
 
+    constructor(game, initValue = {}) {
+        super(game, initValue);
+    }
 }
 
 

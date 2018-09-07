@@ -467,6 +467,7 @@ class User extends EventListener {
                 (u) => u.status.has(C.USER_STATUS.LINKED)
             );
             for (let next of linkedUsers) {
+                game.message([next, '收到铁索连环影响，收到伤害传递']);
                 yield next.on('damage', game, linkCtx);
                 game.removeUserStatus(next, C.USER_STATUS.LINKED);
             }

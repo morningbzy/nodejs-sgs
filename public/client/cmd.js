@@ -284,6 +284,9 @@ const Cmd = {
 
     modal: function (params, marker) {
         const el = $('#sgs-table-modal');
+        if(el.css('display') !== 'none') {
+            Cmd.unmodal();
+        }
         let title = params[0];
         let withFooter = params[1];
         $('.sgs-table-modal-title', el).text(title);
@@ -336,11 +339,11 @@ const Cmd = {
 
         el.off('click');
         el.on('click', '.sgs-choice', (e) => {
+            Cmd.unmodal();
             Cmd.send({
                 cmd: 'CHOICE',
                 params: [$(e.currentTarget).attr('pk')],
             }, (resp) => {
-                Cmd.unmodal();
             });
         });
     },
