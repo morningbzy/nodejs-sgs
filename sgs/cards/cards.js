@@ -765,7 +765,12 @@ class JueDou extends SilkBagCard {
             }
         }
 
-        ctx.i.damage = new Damage(ctx.i.sourceUser, ctx.i.card, 1);
+        let damage = 1;
+        if (u.figure.pk === 'WEI005' && ctx.roundCtx.i.s1_param) {  // 许褚的【裸衣】
+            game.message([u, '的技能【裸衣】生效，【决斗】伤害+1']);
+            damage += 1;
+        }
+        ctx.i.damage = new Damage(ctx.i.sourceUser, ctx.i.card, damage);
         yield loser.on('damage', game, ctx);
     }
 }
@@ -922,7 +927,7 @@ class TieSuoLianHuan extends SilkBagCard {
     }
 
     * start(game, ctx) {
-        if(ctx.i.targets.length < 1) {  // 重铸
+        if (ctx.i.targets.length < 1) {  // 重铸
             const u = ctx.i.sourceUser;
             game.dispatchCards(u, 1);
             game.message([u, '重铸了', this, '换取一张牌']);

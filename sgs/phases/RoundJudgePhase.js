@@ -8,10 +8,10 @@ class RoundJudgePhase extends Phase {
         super(game);
     }
 
-    static* start(game) {
+    static* start(game, roundCtx) {
         console.log('ROUND-JUDGE-PHASE');
         const u = game.roundOwner;
-        const phaseCtx = new PhaseContext(game);
+        const phaseCtx = new PhaseContext(game).linkParent(roundCtx);
 
         for (let card of u.getJudgeStack()) {
             game.broadcast(`JUDGING ${card.pk}`, u);

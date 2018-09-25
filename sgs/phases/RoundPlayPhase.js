@@ -11,9 +11,9 @@ class RoundPlayPhase extends Phase {
         super(game);
     }
 
-    static* start(game) {
+    static* start(game, roundCtx) {
         const u = game.roundOwner;  // 当前回合玩家
-        const phaseCtx = new PhaseContext(game);
+        const phaseCtx = new PhaseContext(game).linkParent(roundCtx);
         let pass = false;  // 结束出牌
 
         yield u.on('roundPlayPhaseStart', game, phaseCtx);

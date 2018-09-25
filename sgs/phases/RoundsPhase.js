@@ -1,5 +1,6 @@
 const C = require('../constants');
 const Phase = require('./phase');
+const {RoundContext} = require('../context');
 
 const subPhases = [
     'RoundStartPhase',
@@ -19,12 +20,13 @@ module.exports = class extends Phase {
     static roundPhases(game) {
         let u = game.roundOwner;
         return function* gen() {
+            const roundCtx = new RoundContext(game);
             for (let p of subPhases) {
                 console.log(p.name);
                 while (u.phases[p.name]) {
                     if (u.state === C.USER_STATE.DEAD || game.state === C.GAME_STATE.ENDING)
                         return;
-                    yield p.start(game);
+                    yield p.start(game, roundCtx);
                     u.phases[p.name]--;
                 }
             }
@@ -42,7 +44,6 @@ module.exports = class extends Phase {
                     continue;
                 }
                 console.log(`|<G> ${u.name}(${u.figure.name})'s ROUND BEGIN`);
-
                 game.initRound(u);
                 yield this.roundPhases(game);
                 game.uninitRound(u);

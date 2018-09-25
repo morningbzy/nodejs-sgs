@@ -71,6 +71,12 @@ class PhaseContext extends Context {
         super(game, initValue);
         this.phaseCtx = this;
     }
+
+    linkParent(ctx) {
+        super.linkParent(ctx);
+        this.phaseCtx = this;
+        return this;
+    }
 }
 
 

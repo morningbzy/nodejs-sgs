@@ -408,6 +408,45 @@ class ZhangLiao extends FigureBase {
     }
 }
 
+// WEI005【许褚】 魏，男，4血 【裸衣】
+class XuChu extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '许褚';
+        this.country = C.COUNTRY.WEI;
+        this.gender = C.GENDER.MALE;
+        this.hp = 4;
+        this.skills = {
+            WEI005s01: new Skill(this, {
+                pk: 'WEI005s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '裸衣',
+                desc: '摸牌阶段，你可以少摸一张牌。若如此做，直到回合结束，当你使用【杀】或【决斗】' +
+                '对目标造成伤害时，此伤害+1.',
+                handler: 's1',
+            }),
+        };
+    }
+
+    * roundDrawCardPhaseStart(game, phaseCtx) {
+        const u = this.owner;
+        let command = yield game.waitConfirm(u, `是否发动技能【裸衣】？`);
+        phaseCtx.roundCtx.i.s1_param = false;
+        if (command.cmd === C.CONFIRM.Y) {
+            phaseCtx.i.drawCardCount -= 1;
+            phaseCtx.roundCtx.i.s1_param = true;
+        }
+    }
+
+    * shaHitTarget(game, ctx) {
+        const u = this.owner;
+        if(ctx.roundCtx.i.s1_param) {
+            game.message([u, '的技能【裸衣】生效，【杀】伤害+1']);
+            ctx.i.exDamage += 1;
+        }
+    }
+}
+
 // WEI007【甄姬】 魏，女，3血 【倾国】【洛神】
 class ZhenJi extends FigureBase {
     constructor(game) {
@@ -1248,6 +1287,7 @@ CaoCao.pk = 'WEI001';
 SiMaYi.pk = 'WEI002';
 XiaHouDun.pk = 'WEI003';
 ZhangLiao.pk = 'WEI004';
+XuChu.pk = 'WEI005';
 ZhenJi.pk = 'WEI007';
 
 LiuBei.pk = 'SHU001';
@@ -1264,6 +1304,8 @@ let figures = {
     CaoCao,
     SiMaYi,
     XiaHouDun,
+    ZhangLiao,
+    XuChu,
     ZhenJi,
 
     LiuBei,

@@ -8,9 +8,9 @@ class RoundPreparePhase extends Phase {
         super(game);
     }
 
-    static* start(game) {
+    static* start(game, roundCtx) {
         const u = game.roundOwner;
-        const phaseCtx = new PhaseContext(game);
+        const phaseCtx = new PhaseContext(game).linkParent(roundCtx);
         yield u.on('roundPreparePhaseStart', game, phaseCtx);
         game.discardCards(phaseCtx.allHandlingCards());
     }
