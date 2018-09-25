@@ -85,7 +85,6 @@ class FigureBase extends EventListener {
     }
 }
 
-
 // 魏
 // WEI001【曹操】 魏，男，4血 【奸雄】【护驾】
 class CaoCao extends FigureBase {
@@ -170,7 +169,6 @@ class CaoCao extends FigureBase {
         return yield Promise.resolve(R.fail);
     }
 }
-
 
 // WEI002【司马懿】 魏，男，3血 【反馈】【鬼才】
 class SiMaYi extends FigureBase {
@@ -260,7 +258,6 @@ class SiMaYi extends FigureBase {
     }
 }
 
-
 // WEI003【夏侯惇】 魏，男，4血 【刚烈】
 class XiaHouDun extends FigureBase {
     constructor(game) {
@@ -343,6 +340,73 @@ class XiaHouDun extends FigureBase {
     }
 }
 
+// WEI004【张辽】 魏，男，4血 【突袭】
+class ZhangLiao extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '张辽';
+        this.country = C.COUNTRY.WEI;
+        this.gender = C.GENDER.MALE;
+        this.hp = 4;
+        this.skills = {
+            WEI004s01: new Skill(this, {
+                pk: 'WEI004s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '突袭',
+                desc: '摸牌阶段开始时，你可以放弃摸牌并选择至多两名有手牌的其他角色。' +
+                '若如此做，你获得这些角色的各一张手牌。',
+                handler: 's1',
+                fsmOpt: {
+                    cardCount: ST.NONE,
+                    targetCount: ST.ONE_OR_MORE,
+                    targetValidator: [
+                        FSM.BASIC_VALIDATORS.notMeTargetValidator,
+                        FSM.BASIC_VALIDATORS.buildCountExceededValidator('targets', 2),
+                    ]
+                }
+            }),
+        };
+    }
+
+    * s1(game, ctx) {
+        const u = this.owner;
+        let result = yield this.skills.WEI004s01.init(game, ctx);
+        if (result.success) {
+            let targets = result.get().target;
+            for (let t of targets) {
+                let cardCandidates = t.cardCandidates({
+                    includeEquipments: false,
+                    includeJudgeCards: false,
+                });
+                u.reply(`CARD_CANDIDATE 请选择${t.figure.name}一张手牌 ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+                let command = yield game.wait(u, {
+                    validCmds: ['CARD_CANDIDATE'],
+                    validator: (command) => {
+                        const pks = command.params;
+                        return pks.length === 1;
+                    },
+                });
+                u.reply(`CLEAR_CANDIDATE`);
+                u.popRestoreCmd('CARD_CANDIDATE');
+
+                let card = game.cardByPk(command.params);
+                game.message([u, '获得', t, '的一张牌']);
+                yield game.removeUserCards(t, card, true);
+                game.addUserCards(u, card);
+            }
+
+            ctx.phaseCtx.skipPhase = true;
+        }
+    }
+
+    * roundDrawCardPhaseStart(game, phaseCtx) {
+        const u = this.owner;
+        let command = yield game.waitConfirm(u, `是否发动技能【突袭】？`);
+        if (command.cmd === C.CONFIRM.Y) {
+            yield this.triggerSkill(this.skills.WEI004s01, game, phaseCtx);
+        }
+    }
+}
 
 // WEI007【甄姬】 魏，女，3血 【倾国】【洛神】
 class ZhenJi extends FigureBase {
@@ -1183,6 +1247,7 @@ class ZhouTai extends FigureBase {
 CaoCao.pk = 'WEI001';
 SiMaYi.pk = 'WEI002';
 XiaHouDun.pk = 'WEI003';
+ZhangLiao.pk = 'WEI004';
 ZhenJi.pk = 'WEI007';
 
 LiuBei.pk = 'SHU001';

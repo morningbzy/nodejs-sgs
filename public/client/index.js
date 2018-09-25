@@ -120,7 +120,6 @@ class Game {
         table.on('click', '#sgs-table-modal .sgs-table-modal-ok:not(.disabled)', (e) => {
             let pks = [];
             $('#sgs-candidate-panel .selected').each((i, el) => pks.push($(el).attr('pk')));
-            Cmd.clear_candidate();
             Cmd.send({
                 cmd: 'CARD_CANDIDATE',
                 params: pks,

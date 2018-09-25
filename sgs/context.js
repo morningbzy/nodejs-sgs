@@ -1,6 +1,7 @@
 const U = require('./utils');
 
 
+// 结算上下文
 class Context extends Object {
     constructor(game, initValue = {}) {
         super();

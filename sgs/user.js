@@ -349,6 +349,10 @@ class User extends EventListener {
         return yield this.figure.on('roundPreparePhaseStart', game, phaseCtx);
     }
 
+    * roundDrawCardPhaseStart(game, phaseCtx) {
+        return yield this.figure.on('roundDrawCardPhaseStart', game, phaseCtx);
+    }
+
     * roundPlayPhaseStart(game, phaseCtx) {
         phaseCtx.i.shaCount = 0;
         phaseCtx.i.jiuCount = 0;
