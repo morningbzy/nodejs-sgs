@@ -521,7 +521,7 @@ class Game {
             yield _u.on('beforeJudgeEffect', game, context);
         }
 
-        yield u.on('judge', game, context);  // 目前仅用于小乔的【红颜】
+        yield u.on('judge', game, context);  // 目前仅用于小乔【红颜】，郭嘉【天妒】
         game.discardCards(context.allHandlingCards());
         game.broadcastClearPopup(u);
 

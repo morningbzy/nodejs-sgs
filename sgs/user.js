@@ -439,9 +439,10 @@ class User extends EventListener {
 
         let damage = ctx.i.damage;
         let willDamage = damage.value + (ctx.i.exDamage || 0);
+        ctx.i.actualDamage = willDamage;
         console.log(`|<U> HP - ${willDamage}`);
-        yield game.changeUserProperty(this, 'hp', this.hp - willDamage);
         game.message([this, '受到', willDamage, '点', damage.getTypeStr(), '伤害']);
+        yield game.changeUserProperty(this, 'hp', this.hp - willDamage);
 
         if (this.hp <= 0) {
             // TODO game.userDying();

@@ -766,7 +766,7 @@ class JueDou extends SilkBagCard {
         }
 
         let damage = 1;
-        if (u.figure.pk === 'WEI005' && ctx.roundCtx.i.s1_param) {  // 许褚的【裸衣】
+        if (ctx.i.sourceUser.figure.pk === 'WEI005' && ctx.roundCtx.i.s1_param) {  // 许褚的【裸衣】
             game.message([u, '的技能【裸衣】生效，【决斗】伤害+1']);
             damage += 1;
         }

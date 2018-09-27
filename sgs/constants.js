@@ -113,6 +113,7 @@ Constants = {
         SINGLE: 1,
         NONE: 0,
         ONE_OR_MORE: -1,
+        NONE_OR_MORE: -2,
     },
     DAMAGE_TYPE: {
         NORMAL: 0,

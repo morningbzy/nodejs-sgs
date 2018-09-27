@@ -271,8 +271,8 @@ class XiaHouDun extends FigureBase {
                 pk: 'WEI001s01',
                 style: C.SKILL_STYLE.NORMAL,
                 name: '刚烈',
-                desc: '当你收到1点伤害后，你可以判定，若结果不为红桃，来源选择一项：' +
-                '1、弃置两张手牌；2、收到你造成的1点伤害。',
+                desc: '当你受到伤害后，你可以判定，若结果不为红桃，来源选择一项：' +
+                '1、弃置两张手牌；2、受到你造成的1点伤害。',
                 handler: 's1',
             }),
         };
@@ -422,7 +422,7 @@ class XuChu extends FigureBase {
                 style: C.SKILL_STYLE.NORMAL,
                 name: '裸衣',
                 desc: '摸牌阶段，你可以少摸一张牌。若如此做，直到回合结束，当你使用【杀】或【决斗】' +
-                '对目标造成伤害时，此伤害+1.',
+                '对目标造成伤害时，此伤害+1。',
                 handler: 's1',
             }),
         };
@@ -440,9 +440,105 @@ class XuChu extends FigureBase {
 
     * shaHitTarget(game, ctx) {
         const u = this.owner;
-        if(ctx.roundCtx.i.s1_param) {
+        if (ctx.roundCtx.i.s1_param) {
             game.message([u, '的技能【裸衣】生效，【杀】伤害+1']);
             ctx.i.exDamage += 1;
+        }
+    }
+}
+
+// WEI006【郭嘉】 魏，男，3血 【天妒】【遗计】
+class GuoJia extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '郭嘉';
+        this.country = C.COUNTRY.WEI;
+        this.gender = C.GENDER.MALE;
+        this.hp = 3;
+        this.skills = {
+            WEI006s01: new Skill(this, {
+                pk: 'WEI006s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '天妒',
+                desc: '每当你的判定牌生效后，你可以获得此牌。',
+                handler: 's1',
+            }),
+            WEI006s02: new Skill(this, {
+                pk: 'WEI006s02',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '遗计',
+                desc: '每当你受到1点伤害后，你可以观看牌顶的两张牌，然后将其中一张牌' +
+                '交给一名角色，再将另一张牌交给一名角色。',
+                handler: 's2',
+            }),
+        };
+    }
+
+    * s2(game, ctx) {
+        const u = this.owner;
+        let cards = game.cardManager.shiftCards(2);
+        let cardCandidates = game.cardManager.asCandidates(cards);
+
+        u.reply(`CARD_CANDIDATE ${'请选择一张牌交给一名角色'} ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+        let command = yield game.wait(u, {
+            validCmds: ['CARD_CANDIDATE'],
+            validator: (command) => {
+                const pks = command.params;
+                return pks.length === 1;
+            },
+        });
+        u.reply(`CLEAR_CANDIDATE`);
+        u.popRestoreCmd('CARD_CANDIDATE');
+
+        let card = game.cardByPk(command.params);
+
+        u.reply(`ALERT 请选择目标，将【${card.name}】分给他...`, true, true);
+        let fsmOpt = {
+            targetValidator: FSM.BASIC_VALIDATORS.buildCountExceededValidator('targets', 1),
+        };
+        let result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, ctx, fsmOpt), ctx);
+        u.reply('CLEAR_ALERT');
+        u.popRestoreCmd('ALERT');
+
+        let t = result.get();
+        game.message([u, '分给了', t, '一张牌']);
+        game.addUserCards(t, card);
+
+        card = cards[0].pk === card.pk ? cards[1] : cards[0];
+
+        u.reply(`ALERT 请选择目标，将另一张【${card.name}】分给他...`, true, true);
+        fsmOpt = {
+            targetValidator: FSM.BASIC_VALIDATORS.buildCountExceededValidator('targets', 1),
+        };
+        result = yield game.waitFSM(u, FSM.get('requireSingleTarget', game, ctx, fsmOpt), ctx);
+        u.reply('CLEAR_ALERT');
+        u.popRestoreCmd('ALERT');
+
+        t = result.get();
+        game.message([u, '分给了', t, '一张牌']);
+        game.addUserCards(t, card);
+    }
+
+    * judge(game, ctx) {
+        const u = this.owner;
+        let command = yield game.waitConfirm(u, `是否发动技能【天妒】？`);
+        if (command.cmd === C.CONFIRM.Y) {
+            const card = ctx.i.judgeCard;
+            game.message([u, '发动技能【天妒】，获得了判定牌', card]);
+            game.addUserCards(u, card);
+        }
+    }
+
+    * damage(game, ctx) {
+        let count = ctx.i.actualDamage;
+        while (count > 0) {
+            console.log('|[DEBUG] ===== ', count);
+            let command = yield game.waitConfirm(this.owner, `是否使用技能【遗计】`);
+            if(command.cmd !== C.CONFIRM.Y) {
+                break;
+            }
+            yield this.triggerSkill(this.skills.WEI006s02, game, ctx);
+            count--;
         }
     }
 }
@@ -1288,6 +1384,7 @@ SiMaYi.pk = 'WEI002';
 XiaHouDun.pk = 'WEI003';
 ZhangLiao.pk = 'WEI004';
 XuChu.pk = 'WEI005';
+GuoJia.pk = 'WEI006';
 ZhenJi.pk = 'WEI007';
 
 LiuBei.pk = 'SHU001';
@@ -1306,6 +1403,7 @@ let figures = {
     XiaHouDun,
     ZhangLiao,
     XuChu,
+    GuoJia,
     ZhenJi,
 
     LiuBei,

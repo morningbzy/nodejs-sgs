@@ -53,7 +53,7 @@ class CardManager {
     }
 
     discardCards(cards) {
-        for(let card of this.unfakeCards(cards)) {
+        for (let card of this.unfakeCards(cards)) {
             console.log(`|[i] Discard ${card}`);
             this.used.add(card);
         }
@@ -95,6 +95,17 @@ class CardManager {
         return U.toArray(cards).reduce((r, c) => {
             return r.concat(this.unfakeCard(c));
         }, []);
+    }
+
+    asCandidates(cards) {
+        let candidates = [];
+        cards.forEach(card => {
+            candidates.push({
+                card: card,
+                show: true,
+            });
+        });
+        return candidates;
     }
 }
 
