@@ -85,7 +85,8 @@ class FigureBase extends EventListener {
     }
 }
 
-// 魏
+// 魏 -----
+
 // WEI001【曹操】 魏，男，4血 【奸雄】【护驾】
 class CaoCao extends FigureBase {
     constructor(game) {
@@ -534,7 +535,7 @@ class GuoJia extends FigureBase {
         while (count > 0) {
             console.log('|[DEBUG] ===== ', count);
             let command = yield game.waitConfirm(this.owner, `是否使用技能【遗计】`);
-            if(command.cmd !== C.CONFIRM.Y) {
+            if (command.cmd !== C.CONFIRM.Y) {
                 break;
             }
             yield this.triggerSkill(this.skills.WEI006s02, game, ctx);
@@ -636,9 +637,10 @@ class ZhenJi extends FigureBase {
 }
 
 
-// 蜀
+// 蜀 -----
+
+// SHU001【刘备】 蜀，男，4血 【仁德】【激将】
 class LiuBei extends FigureBase {
-// 【刘备】 蜀，男，4血 【仁德】【激将】
     constructor(game) {
         super();
         this.name = '刘备';
@@ -778,10 +780,8 @@ class LiuBei extends FigureBase {
     }
 }
 
-
+// SHU002【关羽】 蜀，男，4血 【武圣】
 class GuanYu extends FigureBase {
-// 【关羽】 蜀，男，4血
-// 【武圣】
     constructor(game) {
         super();
         this.name = '关羽';
@@ -883,10 +883,35 @@ class GuanYu extends FigureBase {
     }
 }
 
+// SHU003【张飞】 蜀，男，4血 【咆哮】
+class ZhangFei extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '张飞';
+        this.pk = ZhangFei.pk;
+        this.country = C.COUNTRY.SHU;
+        this.gender = C.GENDER.MALE;
+        this.hp = 4;
+        this.skills = {
+            SHU003s01: new Skill(this, {
+                pk: 'SHU003s01',
+                style: C.SKILL_STYLE.SUODING,
+                name: '咆哮',
+                desc: '锁定技，你使用【杀】无次数限制。',
+                handler: 's1',
+            }),
+        };
+    }
 
+    * useSha(game, ctx) {
+        if (ctx.phaseCtx.i.shaCount > 0) {
+            game.message([this.owner, '发动技能【咆哮】使用【杀】']);
+        }
+    }
+}
+
+// SHU005【赵云】 蜀，男，4血 【龙胆】
 class ZhaoYun extends FigureBase {
-// 【赵云】 蜀，男，4血
-// 【龙胆】
     constructor(game) {
         super();
         this.name = '赵云';
@@ -995,11 +1020,8 @@ class ZhaoYun extends FigureBase {
     }
 }
 
-
+// SHU006【马超】 蜀，男，4血 【马术】【铁骑】
 class MaChao extends FigureBase {
-// 【马超】 蜀，男，4血
-// 【马术】
-// 【铁骑】
     constructor(game) {
         super();
         this.name = '马超';
@@ -1052,9 +1074,10 @@ class MaChao extends FigureBase {
 }
 
 
-// 吴
+// 吴 -----
+
+// WU006【大乔】 吴，女，3血 【国色】【流离】
 class DaQiao extends FigureBase {
-// 【大乔】 吴，女，3血 【国色】【流离】
     constructor(game) {
         super();
         this.name = '大乔';
@@ -1150,7 +1173,6 @@ class DaQiao extends FigureBase {
     }
 }
 
-
 // WU011【小乔】 吴，女，3血 【天香】【红颜】
 class XiaoQiao extends FigureBase {
     constructor(game) {
@@ -1230,11 +1252,8 @@ class XiaoQiao extends FigureBase {
     }
 }
 
-
+// WU008【孙尚香】 吴，女，3血 【结姻】【枭姬】
 class SunShangXiang extends FigureBase {
-// 【孙尚香】 吴，女，3血
-// 【结姻】
-// 【枭姬】
     constructor(game) {
         super();
         this.name = '孙尚香';
@@ -1320,9 +1339,8 @@ class SunShangXiang extends FigureBase {
     }
 }
 
-
+// WU013【周泰】 吴，男，4血 【不屈】【激愤】
 class ZhouTai extends FigureBase {
-// 【周泰】 吴，男，4血 【不屈】【激愤】
     constructor(game) {
         super();
         this.name = '周泰';
@@ -1389,6 +1407,7 @@ ZhenJi.pk = 'WEI007';
 
 LiuBei.pk = 'SHU001';
 GuanYu.pk = 'SHU002';
+ZhangFei.pk = 'SHU003';
 ZhaoYun.pk = 'SHU005';
 MaChao.pk = 'SHU006';
 
@@ -1408,6 +1427,7 @@ let figures = {
 
     LiuBei,
     GuanYu,
+    ZhangFei,
     ZhaoYun,
     MaChao,
 

@@ -620,7 +620,6 @@ class Sha extends NormalCard {
                 if (result.success) {
                     if (result instanceof R.CardResult) {
                         let cards = result.get();
-                        game.message([target, '使用了', cards]);
                         yield game.removeUserCards(target, cards, true);
                     }
 
@@ -756,7 +755,6 @@ class JueDou extends SilkBagCard {
                     ctx.i.card = result.get();
                     yield game.removeUserCards(_u, ctx.i.card);
                     ctx.handlingCards.add(ctx.i.card);
-                    game.message([_u, '打出了', ctx.i.card]);
                 } else {
                     done = true;
                     loser = _u;
@@ -856,7 +854,6 @@ class NanManRuQin extends SilkBagCard {
         let result = yield t.on('requireSha', game, ctx);
         if (result.success) {
             let card = result.get();
-            game.message([t, '打出了', card]);
             yield game.removeUserCards(t, card, true);
         } else {
             yield t.on('damage', game, ctx);

@@ -279,7 +279,10 @@ class User extends EventListener {
 
     getShaLimit() {
         // 计算可用杀的数量
-        if (this.getEquipCard('weapon') instanceof sgsCards.ZhuGeLianNu) {
+        if (
+            this.getEquipCard('weapon') instanceof sgsCards.ZhuGeLianNu  // 诸葛连弩
+            || this.figure.pk === 'SHU003'  // 张飞
+        ) {
             return Infinity;
         }
         return 1;  // DEFAULT_SHA_LIMIT
@@ -547,6 +550,11 @@ class User extends EventListener {
             this.popRestoreCmd('ALERT');
         }
 
+        if(result.success) {
+            let sha = result instanceof R.CardResult? result.get(): '【杀】';
+            game.message([this, '打出了', sha]);
+        }
+
         yield this.on('unrequireSha', game, ctx);
         return yield Promise.resolve(result);
     }
@@ -568,6 +576,11 @@ class User extends EventListener {
         }
 
         yield this.on('unrequireShan', game, ctx);
+
+        if(result.success) {
+            let shan = result instanceof R.CardResult? result.get(): '【闪】';
+            game.message([this, '打出了', shan]);
+        }
         return yield Promise.resolve(result);
     }
 
