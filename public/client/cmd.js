@@ -284,7 +284,7 @@ const Cmd = {
 
     modal: function (params, marker) {
         const el = $('#sgs-table-modal');
-        if(el.css('display') !== 'none') {
+        if (el.css('display') !== 'none') {
             Cmd.unmodal();
         }
         let title = params[0];
@@ -367,6 +367,17 @@ const Cmd = {
     },
 
     card_candidate: function (params, marker) {
+        const refresh = () => {
+            $('#sgs-candidate-panel .sgs-card').each((i, el) => {
+                let idx = $(el).attr('data-sort-index');
+                $(el).css({
+                    position: 'absolute',
+                    top: 0,
+                    left: idx * span,
+                });
+            });
+        };
+
         let title = params.shift();
         Cmd.modal([title, true]);
         const el = $('#sgs-candidate-panel');
@@ -386,15 +397,45 @@ const Cmd = {
 
         let cardEl = $('#sgs-candidate-panel .sgs-card');
         let span = Math.min(60, (630 - 90) / cardEl.length);
-        cardEl.css({
-            position: 'absolute',
-            top: 0,
-        });
-        cardEl.each((i, el) => $(el).css({left: i * span,}));
+        cardEl.each((i, el) => $(el).attr('data-sort-index', i));
+        refresh();
+
         $('.sgs-faked-card', el).popover({
             html: true,
             placement: 'top',
             trigger: 'hover'
+        });
+        $('.sgs-card', el).draggable({
+            axis: 'x',
+            containment: 'parent',
+            zIndex: 1,
+            opacity: 0.5,
+            start: function () {
+                el.addClass('ui-draggable-dragging-parent');
+            },
+            drag: function (event, ui) {
+                let pos = Math.min(Math.round(ui.position.left / span), $('.sgs-card', el).length - 1);
+                let originPos = parseInt(ui.helper.attr('data-sort-index'));
+                $('.sgs-card', el).each((i, c) => {
+                    let idx = parseInt($(c).attr('data-sort-index'));
+                    if (originPos < idx && idx <= pos) {
+                        $(c).attr('data-sort-index', idx - 1);
+                    } else if (pos <= i && i < originPos) {
+                        $(c).attr('data-sort-index', idx + 1);
+                    }
+                });
+                ui.helper.attr('data-sort-index', pos);
+                if (pos === 0) {
+                    ui.helper.insertBefore($('.sgs-card[data-sort-index=1]', el));
+                } else {
+                    ui.helper.insertAfter($(`.sgs-card[data-sort-index=${pos - 1}]`, el));
+                }
+                refresh();
+            },
+            stop: function (event, ui) {
+                el.removeClass('ui-draggable-dragging-parent');
+                refresh();
+            },
         });
     },
 

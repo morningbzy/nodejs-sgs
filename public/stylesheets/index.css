@@ -157,7 +157,7 @@ body {
     cursor: pointer;
 }
 
-#sgs-table-modal .sgs-card:hover,
+#sgs-table-modal #sgs-candidate-panel:not(.ui-draggable-dragging-parent) .sgs-card:not(.ui-draggable-dragging):hover,
 .sgs-player:not(.sgs-dead) #sgs-card-panel .sgs-card:hover {
     margin-top: -20px;
     box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);

@@ -470,7 +470,7 @@ class EquipmentCard extends aggregation(CardBase, EventListener) {
     }
 
     * on(event, game, ctx) {
-        console.log(`|<C> ON ${this.name} ${event}`);
+        console.log(`|[C] ON ${this.name} ${event}`);
         return yield super.on(event, game, ctx);
     }
 }

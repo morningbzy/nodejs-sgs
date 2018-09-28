@@ -13,7 +13,7 @@ class GameStartPhase extends Phase {
         game.broadcast('START', null, true);
         game.broadcast('MSG 游戏开始，分配身份...');
 
-        let playerCount = game.usersInState([C.USER_STATE.READY]).length;
+        let playerCount = game.usersInState(C.USER_STATE.READY).length;
         let roles = utils.shuffle(C.ROLES_MAPPING[playerCount]);
 
         for (let uid in game.users) {

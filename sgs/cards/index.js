@@ -43,6 +43,13 @@ class CardManager {
         this._status();
     }
 
+    pushCards(cards) {
+        // 将牌放到摸牌堆底
+        this.unused.push(...U.toArray(cards));
+        this._status();
+
+    }
+
     getCard(pk) {
         pk = U.toSingle(pk);
         return cardSet.has(pk) ? cardSet.get(pk) : this.faked.get(pk);

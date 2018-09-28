@@ -22,7 +22,7 @@ module.exports = class extends Phase {
         return function* gen() {
             const roundCtx = new RoundContext(game);
             for (let p of subPhases) {
-                console.log(p.name);
+                console.log(`|[G] ${p.name}`);
                 while (u.phases[p.name]) {
                     if (u.state === C.USER_STATE.DEAD || game.state === C.GAME_STATE.ENDING)
                         return;
@@ -35,7 +35,7 @@ module.exports = class extends Phase {
 
     static* start(game) {
         game.state = C.GAME_STATE.ROUNDS;
-        console.log('ROUND-PHASE');
+        console.log('|[G] ROUND-PHASE');
 
         while (game.state !== C.GAME_STATE.ENDING) {
             let userRound = game.userRound(game.zhugong);
@@ -43,11 +43,11 @@ module.exports = class extends Phase {
                 if ([C.USER_STATE.DEAD].includes(u.state)) {
                     continue;
                 }
-                console.log(`|<G> ${u.name}(${u.figure.name})'s ROUND BEGIN`);
+                console.log(`|[G] ${u.name}(${u.figure.name})'s ROUND BEGIN`);
                 game.initRound(u);
                 yield this.roundPhases(game);
                 game.uninitRound(u);
-                console.log(`|<G> ${u.name}(${u.figure.name})'s ROUND END`);
+                console.log(`|[G] ${u.name}(${u.figure.name})'s ROUND END`);
             }
         }
 

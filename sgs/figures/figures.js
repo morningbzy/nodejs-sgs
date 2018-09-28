@@ -64,7 +64,7 @@ class FigureBase extends EventListener {
     }
 
     * on(event, game, ctx) {
-        console.log(`|<F> ON ${this.name} ${event}`);
+        console.log(`|[F] ON ${this.name} ${event}`);
         return yield super.on(event, game, ctx);
     }
 
@@ -910,6 +910,80 @@ class ZhangFei extends FigureBase {
     }
 }
 
+// SHU004【诸葛亮】 蜀，男，3血 【观星】【空城】
+class ZhuGeLiang extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '诸葛亮';
+        this.pk = ZhuGeLiang.pk;
+        this.country = C.COUNTRY.SHU;
+        this.gender = C.GENDER.MALE;
+        this.hp = 3;
+        this.skills = {
+            SHU004s01: new Skill(this, {
+                pk: 'SHU004s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '观星',
+                desc: '准备阶段开始时，你可以观看牌堆顶的X张牌（X为全场角色' +
+                '数且至多为5）并改变其中任意数量的牌的顺序置于牌堆顶并将其余' +
+                '牌置于牌堆底。',
+                handler: 's1',
+            }),
+            SHU004s02: new Skill(this, {
+                pk: 'SHU004s02',
+                style: C.SKILL_STYLE.SUODING,
+                name: '空城',
+                desc: '锁定技，若你没有手牌，你不是【杀】和【决斗】的合法目标。',
+                handler: 's2',
+            }),
+        };
+    }
+
+    distanceTo(game, ctx, info) {
+        if(this.owner.cards.size === 0) {
+            return Infinity;
+        } else {
+            return super.distanceTo(game, ctx, info);
+        }
+    }
+
+    * s1(game, ctx) {
+        const u = this.owner;
+        let cardCount = Math.min(5, game.usersInState(C.USER_STATE.ALIVE).length);
+        let cards = game.cardManager.shiftCards(cardCount);
+        let cardCandidates = game.cardManager.asCandidates(cards);
+
+        u.reply(`CARD_CANDIDATE ${'请先拖动排序，然后选中放在牌堆顶部的牌（第一张选中将放在最顶部），不选的牌放在牌堆底部。'} ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+        let command = yield game.wait(u, {
+            validCmds: ['CARD_CANDIDATE'],
+            validator: (command) => {
+                const pks = command.params;
+                return pks.length <= cardCount;
+            },
+        });
+        u.reply(`CLEAR_CANDIDATE`);
+        u.popRestoreCmd('CARD_CANDIDATE');
+
+        // 置入牌堆顶
+        command.params.reverse().forEach(pk =>
+            game.cardManager.unshiftCards(game.cardByPk(pk))
+        );
+
+        // 置入牌堆底
+        cards.forEach(card =>
+            !command.params.includes(card.pk) && game.cardManager.pushCards(card)
+        );
+    }
+
+    * roundPreparePhaseStart(game, phaseCtx) {
+        const u = this.owner;
+        let command = yield game.waitConfirm(u, `是否发动技能【观星】？`);
+        if (command.cmd === C.CONFIRM.Y) {
+            return yield this.triggerSkill(this.skills.SHU004s01, game, phaseCtx);
+        }
+    }
+}
+
 // SHU005【赵云】 蜀，男，4血 【龙胆】
 class ZhaoYun extends FigureBase {
     constructor(game) {
@@ -1408,6 +1482,7 @@ ZhenJi.pk = 'WEI007';
 LiuBei.pk = 'SHU001';
 GuanYu.pk = 'SHU002';
 ZhangFei.pk = 'SHU003';
+ZhuGeLiang.pk = 'SHU004';
 ZhaoYun.pk = 'SHU005';
 MaChao.pk = 'SHU006';
 
@@ -1428,6 +1503,7 @@ let figures = {
     LiuBei,
     GuanYu,
     ZhangFei,
+    ZhuGeLiang,
     ZhaoYun,
     MaChao,
 

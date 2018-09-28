@@ -51,7 +51,7 @@ class Game {
     executeCmd(uid, cmd, ...params) {
         let u = this.users[uid];
         console.log(`+----- [${u.seatNum === null ? '?' : u.seatNum}] ${u.name || uid} -----`);
-        console.log(`| CMD: ${cmd}`);
+        console.log(`| Cmd: ${cmd}`);
         console.log(`| Params: ${params}`);
 
         let command = new Command(uid, cmd, params);
@@ -278,15 +278,13 @@ class Game {
         return new Set(Array.from(pks, (pk) => this.users[pk]));
     }
 
-    usersNotInState(states) {
-        states = U.toArray(states);
+    usersNotInState(...states) {
         return Object.keys(this.users).filter(
             (k) => !states.includes(this.users[k].state)
         );
     }
 
-    usersInState(states) {
-        states = U.toArray(states);
+    usersInState(...states) {
         return Object.keys(this.users).filter(
             (k) => states.includes(this.users[k].state)
         );

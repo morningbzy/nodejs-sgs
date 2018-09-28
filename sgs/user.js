@@ -341,7 +341,7 @@ class User extends EventListener {
         if (!ctx) {
             ctx = new SimpleContext();
         }
-        console.log(`|<U> ON ${this.name}(${this.figure.name}) ${event}`);
+        console.log(`|[U] ON ${this.name}(${this.figure.name}) ${event}`);
         return yield super.on(event, game, ctx);
     }
 
@@ -550,8 +550,8 @@ class User extends EventListener {
             this.popRestoreCmd('ALERT');
         }
 
-        if(result.success) {
-            let sha = result instanceof R.CardResult? result.get(): '【杀】';
+        if (result.success) {
+            let sha = result instanceof R.CardResult ? result.get() : '【杀】';
             game.message([this, '打出了', sha]);
         }
 
@@ -577,8 +577,8 @@ class User extends EventListener {
 
         yield this.on('unrequireShan', game, ctx);
 
-        if(result.success) {
-            let shan = result instanceof R.CardResult? result.get(): '【闪】';
+        if (result.success) {
+            let shan = result instanceof R.CardResult ? result.get() : '【闪】';
             game.message([this, '打出了', shan]);
         }
         return yield Promise.resolve(result);
