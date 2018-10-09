@@ -1,6 +1,7 @@
 const C = require('./constants');
 const R = require('./common/results');
 const U = require('./utils');
+const F = require('./figures/figures');
 const {SimpleContext, CardContext} = require('./context');
 const FSM = require('./common/fsm');
 const sgsCards = require('./cards/cards');
@@ -281,7 +282,7 @@ class User extends EventListener {
         // 计算可用杀的数量
         if (
             this.getEquipCard('weapon') instanceof sgsCards.ZhuGeLianNu  // 诸葛连弩
-            || this.figure.pk === 'SHU003'  // 张飞
+            || this.figure.pk === F.ZhangFei.pk  // 张飞
         ) {
             return Infinity;
         }
@@ -425,6 +426,10 @@ class User extends EventListener {
     * useTao(game, ctx) {
         yield this.on('heal', game, ctx);
         yield game.removeUserCards(ctx.i.sourceUser, ctx.i.card, true);
+    }
+
+    * useScrollCard(game, ctx) {
+        yield this.figure.on('useScrollCard', game, ctx);
     }
 
     * damage(game, ctx) {

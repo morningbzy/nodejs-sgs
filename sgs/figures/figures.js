@@ -1147,6 +1147,47 @@ class MaChao extends FigureBase {
     }
 }
 
+// SHU007【黄月英】 蜀，女，3血 【集智】【奇才】
+class HuangYueYing extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '黄月英';
+        this.pk = HuangYueYing.pk;
+        this.country = C.COUNTRY.SHU;
+        this.gender = C.GENDER.FEMALE;
+        this.hp = 3;
+        this.skills = {
+            SHU007s01: new Skill(this, {
+                pk: 'SHU007s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '集智',
+                desc: '每当你使用非延时类锦囊牌时，你可以摸一张牌。',
+                handler: 's1',
+            }),
+            SHU007s02: new Skill(this, {
+                pk: 'SHU007s02',
+                style: C.SKILL_STYLE.SUODING,
+                name: '奇才',
+                desc: '锁定技，你使用锦囊牌无距离限制。',
+                handler: 's2',
+            }),
+        };
+    }
+
+    * s1(game, ctx) {
+        const u = this.owner;
+        game.dispatchCards(u, 1);
+        game.message([u, '发动【集智】，获得一张牌']);
+    }
+
+    * useScrollCard(game, ctx) {
+        const u = this.owner;
+        let command = yield game.waitConfirm(u, `是否发动技能【集智】？`);
+        if (command.cmd === C.CONFIRM.Y) {
+            return yield this.triggerSkill(this.skills.SHU007s01, game, ctx);
+        }
+    }
+}
 
 // 吴 -----
 
@@ -1485,6 +1526,7 @@ ZhangFei.pk = 'SHU003';
 ZhuGeLiang.pk = 'SHU004';
 ZhaoYun.pk = 'SHU005';
 MaChao.pk = 'SHU006';
+HuangYueYing.pk = 'SHU007';
 
 DaQiao.pk = 'WU006';
 SunShangXiang.pk = 'WU008';
@@ -1506,6 +1548,7 @@ let figures = {
     ZhuGeLiang,
     ZhaoYun,
     MaChao,
+    HuangYueYing,
 
     DaQiao,
     XiaoQiao,

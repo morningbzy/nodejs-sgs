@@ -3,6 +3,7 @@ const uuid = require('uuid/v4');
 const C = require('../constants');
 const R = require('../common/results');
 const U = require('../utils');
+const F = require('../figures/figures');
 const {CardContext} = require('../context');
 const FSM = require('../common/fsm');
 const EventListener = require('../common/eventListener');
@@ -352,6 +353,8 @@ class SilkBagCard extends CardBase {
         ].includes(card.targetCount) ? '' : ['对', targets];
         game.message([u, targetMsg, '使用了', card]);
 
+        yield this.onUse(game, ctx);
+
         yield this.prepare(game, ctx);
 
         for (let target of targets) {
@@ -368,6 +371,11 @@ class SilkBagCard extends CardBase {
         }
 
         yield this.finish(game, ctx);
+    }
+
+    * onUse(game, ctx) {
+        let u = ctx.i.sourceUser;
+        yield u.on('useScrollCard', game, ctx);
     }
 
     * run(game, ctx) {
@@ -394,7 +402,7 @@ class DelayedSilkBagCard extends CardBase {
 
     * init(game, ctx) {
         let u = ctx.i.sourceUser;
-        let distance = this.distance;
+        let distance = u.figure.pk === F.HuangYueYing.pk ? Infinity : this.distance;
         let opt = {
             u,
             targetValidator: (command) => {
@@ -808,10 +816,12 @@ class ShunShouQianYang extends SilkBagCard {
     constructor(suit, number) {
         super(suit, number);
         this.name = '顺手牵羊';
+        this.distance = 1;
         this.targetValidators = [
             (command, info) => {
                 let target = info.game.userByPk(command.params);
-                return info.game.distanceOf(info.sourceUser, target, info.parentCtx) <= 1;
+                return info.game.distanceOf(info.sourceUser, target, info.parentCtx) <=
+                    (info.sourceUser.figure.pk === F.HuangYueYing.pk ? Infinity : this.distance);
             },
         ];
     }
