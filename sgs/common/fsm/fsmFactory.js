@@ -297,7 +297,7 @@ class MachineFactory {
 
         if (targetCount === ST.ONE_OR_MORE) {
             stateO = new FSM.State('TO');
-        } else if (cardCount === ST.ONE_OR_MORE && targetCount === ST.None) {
+        } else if (cardCount === ST.ONE_OR_MORE && targetCount === ST.NONE) {
             stateO = new FSM.State('CO');
         } else {
             stateO = new FSM.State('O');

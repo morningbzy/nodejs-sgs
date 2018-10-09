@@ -12,7 +12,7 @@ module.exports = class extends Phase {
     static* start(game) {
         game.state = C.GAME_STATE.CHOOSING_FIGURE;
         const zhugong = game.zhugong;
-        let figures = ['WEI001', 'SHU001'];
+        let figures = ['WEI001', 'SHU001', 'WU001'];
 
         zhugong.reply(`FIGURE_CANDIDATE ${JSON.stringify(figures.map(
             (f) => new (Figures[f])(game).toJson())

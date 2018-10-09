@@ -40,6 +40,7 @@ class FigureBase extends EventListener {
 
     changeSkillState(skill, state) {
         skill.state = state;
+        console.log(`|[F] CHANGE SKILL STATE ${skill.name}: ${state}`);
         this.owner.reply(`USER_INFO ${this.owner.seatNum} ${this.owner.toJsonString(this.owner)}`, true);
     }
 
@@ -940,7 +941,7 @@ class ZhuGeLiang extends FigureBase {
     }
 
     distanceTo(game, ctx, info) {
-        if(this.owner.cards.size === 0) {
+        if (this.owner.cards.size === 0) {
             return Infinity;
         } else {
             return super.distanceTo(game, ctx, info);
@@ -1190,6 +1191,65 @@ class HuangYueYing extends FigureBase {
 }
 
 // 吴 -----
+
+// WU001【孙权】 吴，男，4血 【制衡】【救援】
+class SunQuan extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '孙权';
+        this.pk = SunQuan.pk;
+        this.country = C.COUNTRY.WU;
+        this.gender = C.GENDER.MALE;
+        this.hp = 4;
+        this.skills = {
+            WU001s01: new Skill(this, {
+                pk: 'WU001s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '制衡',
+                desc: '出牌阶段限一次，你可以弃置任意张牌，摸等量的牌。',
+                handler: 's1',
+                fsmOpt: {
+                    cardCount: ST.ONE_OR_MORE,
+                    targetCount: ST.NONE,
+                }
+            }),
+            WU001s02: new Skill(this, {
+                pk: 'WU001s02',
+                style: C.SKILL_STYLE.ZHUGONG,
+                name: '救援',
+                desc: '主公技，锁定技，其他吴势力角色对处于濒死状态的你使用桃回复的体力+1。',
+                handler: 's2',
+            }),
+        };
+    }
+
+    * s1(game, ctx) {
+        const u = this.owner;
+        let cards = ctx.i.cards;
+        let count = cards.length;
+
+        game.message([u, `使用技能【制衡】，换掉了${count} 张牌`]);
+
+        yield game.removeUserCards(u, cards);
+        game.addUserCards(u, game.cardManager.shiftCards(count));
+
+        ctx.phaseCtx.i.s1_param = false;  // 出牌阶段限一次【制衡】
+        return yield Promise.resolve(R.success);
+    }
+
+    * roundPlayPhaseStart(game, phaseCtx) {
+        phaseCtx.i.s1_param = true;  // 是否可用【制衡】
+    }
+
+    * play(game, ctx) {
+        this.changeSkillState(this.skills.WU001s01, ctx.phaseCtx.i.s1_param ? C.SKILL_STATE.ENABLED : C.SKILL_STATE.DISABLED);
+    }
+
+    * roundPlayPhaseEnd(game, phaseCtx) {
+        phaseCtx.i.s1_param = false;  // 是否可用【制衡】
+        this.changeSkillState(this.skills.WU001s01, C.SKILL_STATE.DISABLED);
+    }
+}
 
 // WU006【大乔】 吴，女，3血 【国色】【流离】
 class DaQiao extends FigureBase {
@@ -1528,6 +1588,7 @@ ZhaoYun.pk = 'SHU005';
 MaChao.pk = 'SHU006';
 HuangYueYing.pk = 'SHU007';
 
+SunQuan.pk = 'WU001';
 DaQiao.pk = 'WU006';
 SunShangXiang.pk = 'WU008';
 XiaoQiao.pk = 'WU011';
@@ -1550,6 +1611,7 @@ let figures = {
     MaChao,
     HuangYueYing,
 
+    SunQuan,
     DaQiao,
     XiaoQiao,
     SunShangXiang,
