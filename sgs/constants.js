@@ -77,6 +77,8 @@ Constants = {
         CLUB: 'club',
         DIAMOND: 'diamond',
         NONE: 'none',  // Sometimes, there's no suit
+        RED: 'RED',
+        BLACK: 'BLACK',
     },
     CARD_CATEGORY: {
         NORMAL: 0,

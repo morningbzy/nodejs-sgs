@@ -181,10 +181,10 @@ module.exports.BASIC_VALIDATORS = {
     buildCardSuitValidator: (suit) => {
         let validSuits;
         switch(suit) {
-            case 'RED':
+            case C.CARD_SUIT.RED:
                 validSuits = [C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND];
                 break;
-            case 'BLACK':
+            case C.CARD_SUIT.BLACK:
                 validSuits = [C.CARD_SUIT.SPADE, C.CARD_SUIT.CLUB];
                 break;
             default:

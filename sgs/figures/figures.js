@@ -637,7 +637,6 @@ class ZhenJi extends FigureBase {
     }
 }
 
-
 // 蜀 -----
 
 // SHU001【刘备】 蜀，男，4血 【仁德】【激将】
@@ -804,7 +803,7 @@ class GuanYu extends FigureBase {
                     },
                     cardValidator: [
                         FSM.BASIC_VALIDATORS.ownCardValidator,
-                        FSM.BASIC_VALIDATORS.buildCardSuitValidator('RED'),
+                        FSM.BASIC_VALIDATORS.buildCardSuitValidator(C.CARD_SUIT.RED),
                     ],
                     targetValidator: [
                         FSM.BASIC_VALIDATORS.notMeTargetValidator,
@@ -1251,6 +1250,52 @@ class SunQuan extends FigureBase {
     }
 }
 
+// WU002【甘宁】 吴，男，4血 【奇袭】
+class GanNing extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '甘宁';
+        this.pk = GanNing.pk;
+        this.country = C.COUNTRY.WU;
+        this.gender = C.GENDER.MALE;
+        this.hp = 4;
+        this.skills = {
+            WU002s01: new Skill(this, {
+                pk: 'WU002s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '奇袭',
+                desc: '你可以将一张黑色牌当【过河拆桥】使用。',
+                handler: 's1',
+                fsmOpt: {
+                    cardCount: ST.SINGLE,
+                    targetCount: ST.SINGLE,
+                    cardValidator: [
+                        FSM.BASIC_VALIDATORS.ownCardValidator,
+                        FSM.BASIC_VALIDATORS.buildCardSuitValidator(C.CARD_SUIT.BLACK),
+                    ],
+                },
+            }),
+        };
+    }
+
+    * s1(game, ctx) {
+        const u = this.owner;
+        let cards = ctx.i.cards;
+        let targets = ctx.i.targets;
+        let fakeCard = cardManager.fakeCards(cards, {asClass: sgsCards.GuoHeChaiQiao});
+        game.message([u, '把', cards, '当作', fakeCard, '使用']);
+        return yield Promise.resolve(new R.CardTargetResult().set(fakeCard, targets));
+    }
+
+    * roundPlayPhaseStart(game, phaseCtx) {
+        this.changeSkillState(this.skills.WU002s01, C.SKILL_STATE.ENABLED);
+    }
+
+    * roundPlayPhaseEnd(game, phaseCtx) {
+        this.changeSkillState(this.skills.WU002s01, C.SKILL_STATE.DISABLED);
+    }
+}
+
 // WU006【大乔】 吴，女，3血 【国色】【流离】
 class DaQiao extends FigureBase {
     constructor(game) {
@@ -1589,6 +1634,7 @@ MaChao.pk = 'SHU006';
 HuangYueYing.pk = 'SHU007';
 
 SunQuan.pk = 'WU001';
+GanNing.pk = 'WU002';
 DaQiao.pk = 'WU006';
 SunShangXiang.pk = 'WU008';
 XiaoQiao.pk = 'WU011';
@@ -1612,6 +1658,7 @@ let figures = {
     HuangYueYing,
 
     SunQuan,
+    GanNing,
     DaQiao,
     XiaoQiao,
     SunShangXiang,
