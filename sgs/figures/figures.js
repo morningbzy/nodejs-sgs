@@ -1384,6 +1384,124 @@ class HuangGai extends FigureBase {
     }
 }
 
+// WU005【周瑜】 吴，男，3血 【英姿】【反间】
+class ZhouYu extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '周瑜';
+        this.pk = ZhouYu.pk;
+        this.country = C.COUNTRY.WU;
+        this.gender = C.GENDER.MALE;
+        this.hp = 3;
+        this.skills = {
+            WU005s01: new Skill(this, {
+                pk: 'WU005s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '英姿',
+                desc: '摸牌阶段，你可以额外摸一张牌。',
+                handler: 's1',
+            }),
+            WU005s02: new Skill(this, {
+                pk: 'WU005s02',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '反间',
+                desc: '出牌阶段，你可以令一名其他角色选择一种花色后获得你的一张手牌并展示' +
+                '之，若此牌的花色与其所选的不同，你对其造成1点伤害。每阶段限一次。',
+                handler: 's2',
+                fsmOpt: {
+                    cardCount: ST.NONE,
+                    targetCount: ST.SINGLE,
+                    targetValidator: [FSM.BASIC_VALIDATORS.notMeTargetValidator,],
+                }
+            }),
+        };
+    }
+
+    * s1(game, ctx) {
+        ctx.phaseCtx.i.drawCardCount += 1;
+    }
+
+    * s2(game, ctx) {
+        const u = this.owner;
+        let t = U.toSingle(ctx.i.targets);
+
+        game.message([u, '对', t, '发动技能【反间】']);
+        let choice = '0';  // Default
+        let choices = [
+            `黑桃`,
+            `红桃`,
+            `梅花`,
+            `方块`,
+        ];
+
+        let command = yield game.waitChoice(t, `请选择`, choices);
+        t.reply(`CLEAR_CANDIDATE`);
+        choice = command.params[0];
+        game.message([t, '选择: ', choices[parseInt(choice)]]);
+
+        let cardCandidates = u.cardCandidates({
+            includeEquipments: false,
+            includeJudgeCards: false,
+        });
+        t.reply(`CARD_CANDIDATE ${'请选择一张牌'} ${JSON.stringify(cardCandidates, U.jsonReplacer)}`, true, true);
+        command = yield game.wait(t, {
+            validCmds: ['CARD_CANDIDATE'],
+            validator: (command) => {
+                const pks = command.params;
+                return pks.length === 1;
+            },
+        });
+        t.reply(`CLEAR_CANDIDATE`);
+        t.popRestoreCmd('CARD_CANDIDATE');
+
+        let card = game.cardByPk(command.params);
+        game.message([t, '获得', u, '的一张牌', card]);
+        yield game.removeUserCards(u, card, true);
+        game.broadcastPopup(`CARD ${t.figure.name} 反间-展示 ${card.toJsonString()}`);
+
+        if (card.suit === C.CARD_SUIT.SPADE && parseInt(choice) === 0
+            || card.suit === C.CARD_SUIT.HEART && parseInt(choice) === 1
+            || card.suit === C.CARD_SUIT.CLUB && parseInt(choice) === 2
+            || card.suit === C.CARD_SUIT.DIAMOND && parseInt(choice) === 3) {
+            game.message([t, '所选花色', choices[parseInt(choice)], '与得到的牌', card, '花色相同']);
+        } else {
+            game.message([t, '所选花色', choices[parseInt(choice)], '与得到的牌', card, '花色不同']);
+            let damage = new Damage(u, null, 1, C.DAMAGE_TYPE.NORMAL);
+            let simpleCtx = new SimpleContext(game, {damage}).linkParent(ctx);
+            game.message([u, '因【反间】对', t, '造成1点伤害']);
+            yield t.on('damage', game, simpleCtx);
+        }
+
+        ctx.phaseCtx.i.s2_param = false;  // 是否可用【反间】
+        return yield Promise.resolve(R.success);
+    }
+
+    * roundDrawCardPhaseStart(game, phaseCtx) {
+        const u = this.owner;
+        let command = yield game.waitConfirm(u, `是否发动技能【英姿】？`);
+        if (command.cmd === C.CONFIRM.Y) {
+            yield this.triggerSkill(this.skills.WU005s01, game, phaseCtx);
+        }
+    }
+
+    * roundPlayPhaseStart(game, phaseCtx) {
+        phaseCtx.i.s2_param = true;  // 是否可用【反间】
+    }
+
+    * play(game, ctx) {
+        const u = this.owner;
+        if (ctx.phaseCtx.i.s2_param && u.cards.size >= 1) {
+            this.changeSkillState(this.skills.WU005s02, C.SKILL_STATE.ENABLED);
+        } else {
+            this.changeSkillState(this.skills.WU005s02, C.SKILL_STATE.DISABLED);
+        }
+    }
+
+    * roundPlayPhaseEnd(game, phaseCtx) {
+        this.changeSkillState(this.skills.WU005s02, C.SKILL_STATE.DISABLED);
+    }
+}
+
 // WU006【大乔】 吴，女，3血 【国色】【流离】
 class DaQiao extends FigureBase {
     constructor(game) {
@@ -1725,6 +1843,7 @@ SunQuan.pk = 'WU001';
 GanNing.pk = 'WU002';
 LvMeng.pk = 'WU003';
 HuangGai.pk = 'WU004';
+ZhouYu.pk = 'WU005';
 DaQiao.pk = 'WU006';
 SunShangXiang.pk = 'WU008';
 XiaoQiao.pk = 'WU011';
@@ -1751,6 +1870,7 @@ let figures = {
     GanNing,
     LvMeng,
     HuangGai,
+    ZhouYu,
     DaQiao,
     XiaoQiao,
     SunShangXiang,

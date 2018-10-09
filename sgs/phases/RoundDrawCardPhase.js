@@ -17,7 +17,7 @@ class RoundDrawCardPhase extends Phase {
         let pass = phaseCtx.skipPhase === true;
 
         if (!pass && u.state !== C.USER_STATE.DEAD && game.state !== C.GAME_STATE.ENDING) {
-            game.message([u, '从牌堆里摸了两张卡牌']);
+            game.message([u, `从牌堆里摸了${phaseCtx.i.drawCardCount}张牌`]);
             game.dispatchCards(u, phaseCtx.i.drawCardCount);
         }
 
