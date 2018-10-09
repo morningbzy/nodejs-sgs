@@ -37,7 +37,6 @@ module.exports = class extends Phase {
 
         figures = U.toArray(Figures.figurePks).filter(pk => pk !== figurePk);
 
-
         for (let u of game.userRound(zhugong, true)) {
             let figureCandidates = U.shuffle(figures).slice(0, 3);
 

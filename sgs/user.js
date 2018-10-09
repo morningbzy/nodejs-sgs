@@ -421,6 +421,11 @@ class User extends EventListener {
         } else {
             ctx.phaseCtx.i.shaCount++;
         }
+        yield this.on('playedSha', game, ctx);
+    }
+
+    * playedSha(game, ctx) {  // 使用或打出【杀】
+        yield this.figure.on('playedSha', game, ctx);
     }
 
     * useTao(game, ctx) {
@@ -558,6 +563,7 @@ class User extends EventListener {
         if (result.success) {
             let sha = result instanceof R.CardResult ? result.get() : '【杀】';
             game.message([this, '打出了', sha]);
+            this.on('playedSha', game, ctx);
         }
 
         yield this.on('unrequireSha', game, ctx);

@@ -1296,6 +1296,49 @@ class GanNing extends FigureBase {
     }
 }
 
+// WU003【吕蒙】 吴，男，4血 【克己】
+class LvMeng extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '吕蒙';
+        this.pk = LvMeng.pk;
+        this.country = C.COUNTRY.WU;
+        this.gender = C.GENDER.MALE;
+        this.hp = 4;
+        this.skills = {
+            WU003s01: {
+                pk: 'WU003s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '吕蒙',
+                desc: '若你未于出牌阶段内使用或打出过【杀】，你可以跳过弃牌阶段。',
+                handler: 's1',
+            },
+        };
+    }
+
+    * s1(game, ctx) {
+        const u = this.owner;
+        u.phases.RoundDiscardPhase = 0;
+    }
+
+    * playedSha(game, ctx) {
+        ctx.phaseCtx.i.playedSha = true;
+    }
+
+    * roundPlayPhaseStart(game, phaseCtx) {
+        phaseCtx.i.playedSha = false;  // 出牌阶段是否使用或打出过【杀】
+    }
+
+    * roundPlayPhaseEnd(game, phaseCtx) {
+        if (!phaseCtx.i.playedSha) {
+            let command = yield game.waitConfirm(this.owner, `是否使用技能【克己】`);
+            if (command.cmd === C.CONFIRM.Y) {
+                return yield this.triggerSkill(this.skills.WU003s01, game, phaseCtx);
+            }
+        }
+    }
+}
+
 // WU006【大乔】 吴，女，3血 【国色】【流离】
 class DaQiao extends FigureBase {
     constructor(game) {
@@ -1635,6 +1678,7 @@ HuangYueYing.pk = 'SHU007';
 
 SunQuan.pk = 'WU001';
 GanNing.pk = 'WU002';
+LvMeng.pk = 'WU003';
 DaQiao.pk = 'WU006';
 SunShangXiang.pk = 'WU008';
 XiaoQiao.pk = 'WU011';
@@ -1659,6 +1703,7 @@ let figures = {
 
     SunQuan,
     GanNing,
+    LvMeng,
     DaQiao,
     XiaoQiao,
     SunShangXiang,
