@@ -492,6 +492,17 @@ class User extends EventListener {
         }
     }
 
+    * looseHp(game, ctx) {
+        let willDamage = ctx.i.looseHp;
+        game.message([this, '失去', willDamage, '点体力']);
+        yield game.changeUserProperty(this, 'hp', this.hp - willDamage);
+
+        if (this.hp <= 0) {
+            // TODO game.userDying();
+            yield this.on('dying', game, ctx);
+        }
+    }
+
     * heal(game, ctx) {
         let willHeal = Math.min(this.maxHp - this.hp, ctx.i.heal);
         console.log(`|<U> HP${this.hp} + ${willHeal} = ${this.hp + willHeal}`);
@@ -520,6 +531,7 @@ class User extends EventListener {
                     let result = self ? yield u.on('requireTaoOrJiu', game, ctx) : yield u.on('requireTao', game, ctx);
                     if (result.success) {
                         let cards = result.get();
+                        game.message([u, '为', this, '使用了', cards]);
                         yield game.removeUserCards(u, cards, true);
                         ctx.i.heal = 1;
                         yield this.on('heal', game, ctx);

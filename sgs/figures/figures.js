@@ -1339,6 +1339,51 @@ class LvMeng extends FigureBase {
     }
 }
 
+// WU004【黄盖】 吴，男，4血 【苦肉】
+class HuangGai extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '黄盖';
+        this.pk = HuangGai.pk;
+        this.country = C.COUNTRY.WU;
+        this.gender = C.GENDER.MALE;
+        this.hp = 4;
+        this.skills = {
+            WU004s01: new Skill(this, {
+                pk: 'WU004s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '苦肉',
+                desc: '出牌阶段，你可以失去1点体力，然后摸两张牌。',
+                handler: 's1',
+                fsmOpt: {
+                    cardCount: ST.NONE,
+                    targetCount: ST.NONE,
+                }
+            }),
+        };
+    }
+
+    * s1(game, ctx) {
+        const u = this.owner;
+        game.message([u, '发动技能【苦肉】']);
+        ctx.i.looseHp = 1;
+        yield u.on('looseHp', game, ctx);
+        if (u.state === C.USER_STATE.ALIVE) {
+            game.message([u, '通过技能【苦肉】获得两张牌']);
+            game.addUserCards(u, game.cardManager.shiftCards(2));
+        }
+        return yield Promise.resolve(R.success);
+    }
+
+    * roundPlayPhaseStart(game, phaseCtx) {
+        this.changeSkillState(this.skills.WU004s01, C.SKILL_STATE.ENABLED);
+    }
+
+    * roundPlayPhaseEnd(game, phaseCtx) {
+        this.changeSkillState(this.skills.WU004s01, C.SKILL_STATE.DISABLED);
+    }
+}
+
 // WU006【大乔】 吴，女，3血 【国色】【流离】
 class DaQiao extends FigureBase {
     constructor(game) {
@@ -1679,6 +1724,7 @@ HuangYueYing.pk = 'SHU007';
 SunQuan.pk = 'WU001';
 GanNing.pk = 'WU002';
 LvMeng.pk = 'WU003';
+HuangGai.pk = 'WU004';
 DaQiao.pk = 'WU006';
 SunShangXiang.pk = 'WU008';
 XiaoQiao.pk = 'WU011';
@@ -1704,6 +1750,7 @@ let figures = {
     SunQuan,
     GanNing,
     LvMeng,
+    HuangGai,
     DaQiao,
     XiaoQiao,
     SunShangXiang,
