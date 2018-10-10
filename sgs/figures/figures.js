@@ -1883,6 +1883,114 @@ class ZhouTai extends FigureBase {
 
 // 群 -----
 
+// QUN001【华佗】 群，男，3血 【急救】【青囊】
+class HuaTuo extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '华佗';
+        this.pk = HuaTuo.pk;
+        this.country = C.COUNTRY.QUN;
+        this.gender = C.GENDER.MALE;
+        this.hp = 3;
+        this.skills = {
+            QUN001s01: new Skill(this, {
+                pk: 'QUN001s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '急救',
+                desc: '你的回合外，你可以将一张红色牌当【桃】使用。',
+                handler: 's1',
+                fsmOpt: {
+                    cardCount: ST.SINGLE,
+                    targetCount: ST.NONE,
+                    cardValidator: [
+                        FSM.BASIC_VALIDATORS.ownCardValidator,
+                        FSM.BASIC_VALIDATORS.buildCardSuitValidator(C.CARD_SUIT.RED),
+                    ],
+                },
+            }),
+            QUN001s02: new Skill(this, {
+                pk: 'QUN001s02',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '青囊',
+                desc: '出牌阶段，你可以弃置一张手牌并选择一名已受伤的角色，令其回复' +
+                '1点体力。每阶段限一次。',
+                handler: 's2',
+                fsmOpt: {
+                    cardCount: ST.SINGLE,
+                    targetCount: ST.SINGLE,
+                    cardValidator: [
+                        FSM.BASIC_VALIDATORS.handCardValidator,
+                    ],
+                    targetValidator: [
+                        (command) => {
+                            const t = game.userByPk(command.params);
+                            return t.hp < t.maxHp;
+                        },
+                    ],
+                },
+            }),
+        };
+    }
+
+    * s1(game, ctx) {
+        const u = this.owner;
+        let cards;
+        let result = yield this.skills.QUN001s01.init(game, ctx);
+        if (result.success) {
+            cards = result.get().card;
+        } else {
+            return yield Promise.resolve(R.fail);
+        }
+
+        let fakeCard = cardManager.fakeCards(cards, {asClass: sgsCards.Tao});
+        game.message([u, '使用技能【急救】把', cards, '当作', fakeCard, '使用']);
+        return yield Promise.resolve(new R.CardResult().set(fakeCard));
+    }
+
+    * s2(game, ctx) {
+        const u = this.owner;
+        let cards = ctx.i.cards;
+        let target = U.toSingle(ctx.i.targets);
+        ctx.i.heal = 1;
+
+        yield game.removeUserCards(u, cards, true);
+        game.message([u, '使用技能【青囊】，弃置手牌', cards, '令', target, '回复1点体力']);
+        yield target.on('heal', game, ctx);
+
+        ctx.phaseCtx.i.usedQUN001s02 = true;
+        return yield Promise.resolve(R.success);
+    }
+
+    * play(game, ctx) {
+        this.changeSkillState(this.skills.QUN001s02, C.SKILL_STATE.DISABLED);
+
+        if (!ctx.phaseCtx.i.usedQUN001s02) {
+            for (let u of game.userRound()) {
+                if (u.hp < u.maxHp) {
+                    this.changeSkillState(this.skills.QUN001s02, C.SKILL_STATE.ENABLED);
+                    break;
+                }
+            }
+        }
+    }
+
+    * roundPlayPhaseStart(game, phaseCtx) {
+        phaseCtx.i.usedQUN001s02 = false;
+    }
+
+    * roundPlayPhaseEnd(game, phaseCtx) {
+        this.changeSkillState(this.skills.QUN001s02, C.SKILL_STATE.DISABLED);
+    }
+
+    * requireTao(game, ctx) {
+        this.changeSkillState(this.skills.QUN001s01, C.SKILL_STATE.ENABLED);
+    }
+
+    * unrequireTao(game, ctx) {
+        this.changeSkillState(this.skills.QUN001s01, C.SKILL_STATE.DISABLED);
+    }
+}
+
 // QUN002【吕布】 群，男，4血 【无双】
 class LvBu extends FigureBase {
     constructor(game) {
@@ -1943,6 +2051,7 @@ SunShangXiang.pk = 'WU008';
 XiaoQiao.pk = 'WU011';
 ZhouTai.pk = 'WU013';
 
+HuaTuo.pk = 'QUN001';
 LvBu.pk = 'QUN002';
 
 let figures = {
@@ -1973,6 +2082,7 @@ let figures = {
     SunShangXiang,
     ZhouTai,
 
+    HuaTuo,
     LvBu,
 };
 

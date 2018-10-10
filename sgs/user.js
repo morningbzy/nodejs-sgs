@@ -618,9 +618,23 @@ class User extends EventListener {
 
     * requireTao(game, ctx) {
         let result = yield this.figure.on('requireTao', game, ctx);
-        if (!result.abort && result.fail) {
-            result = yield this.requireCard(game, ctx, sgsCards.Tao);
+        if (result.fail) {
+            let opt = {
+                u: this,
+                cardClass: sgsCards.Tao,
+            };
+            this.reply('ALERT 请出桃...', true, true);
+            result = yield game.waitFSM(this, FSM.get('requireSpecCard', game, ctx, opt), ctx);
+            this.reply('CLEAR_ALERT');
+            this.popRestoreCmd('ALERT');
         }
+
+        if (result.success) {
+            let tao = result instanceof R.CardResult ? result.get() : '【桃】';
+            game.message([this, '打出了', tao]);
+            this.on('playedSha', game, ctx);
+        }
+
         yield this.on('unrequireTao', game, ctx);
         return yield Promise.resolve(result);
     }
