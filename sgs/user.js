@@ -319,6 +319,10 @@ class User extends EventListener {
         return this.figure.maxHandCards === undefined ? this.hp : this.figure.maxHandCards();
     }
 
+    targetableOf(game, ctx, something) {
+        return this.figure.targetableOf(game, ctx, something);
+    }
+
     // NOTE: This is NOT an event handler.
     * requireCard(game, ctx, cardClasses, validators = []) {
         const u = this;
@@ -435,6 +439,11 @@ class User extends EventListener {
 
     * useScrollCard(game, ctx) {
         yield this.figure.on('useScrollCard', game, ctx);
+    }
+
+    // 失去手牌后
+    * removeHandCards(game, ctx) {
+        yield this.figure.on('removeHandCards', game, ctx);
     }
 
     * damage(game, ctx) {

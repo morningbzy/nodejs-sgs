@@ -119,7 +119,7 @@ class JudgeContext extends Context {
     }
 }
 
-// module.exports.Context = Context;
+module.exports.Context = Context;
 module.exports.SimpleContext = SimpleContext;
 module.exports.RoundContext = RoundContext;
 module.exports.PhaseContext = PhaseContext;

@@ -326,6 +326,10 @@ class SilkBagCard extends CardBase {
         this.targetCount = C.TARGET_SELECT_TYPE.SINGLE;  // Could be C.TARGET_SELECT_TYPE.* or an positive integer
         this.targetValidators = [
             FSM.BASIC_VALIDATORS.notMeTargetValidator,
+            FSM.BASIC_VALIDATORS.buildTargetableValidator({
+                type: C.TARGETABLE_TYPE.CARD,
+                instance: this,
+            }),
         ];
     }
 
@@ -397,7 +401,7 @@ class DelayedSilkBagCard extends CardBase {
         super(suit, number);
         this.category = C.CARD_CATEGORY.DELAYED_SILK_BAG;
         this.distance = Infinity;
-        this.targetCount = 1;  // Could be C.TARGET_SELECT_TYPE.* or an positive integer
+        this.targetCount = C.TARGET_SELECT_TYPE.SINGLE;  // C.TARGET_SELECT_TYPE.* or an positive integer
     }
 
     * init(game, ctx) {
@@ -405,12 +409,18 @@ class DelayedSilkBagCard extends CardBase {
         let distance = u.figure.pk === F.HuangYueYing.pk ? Infinity : this.distance;
         let opt = {
             u,
-            targetValidator: (command) => {
-                let target = game.userByPk(command.params);
-                return (target.id !== u.id
-                    && game.distanceOf(u, target, ctx) <= distance
-                    && !target.hasJudgeType(this));
-            },
+            targetValidator: [
+                FSM.BASIC_VALIDATORS.buildTargetableValidator({
+                    type: C.TARGETABLE_TYPE.CARD,
+                    instance: this,
+                }),
+                (command, info) => {
+                    let target = info.game.userByPk(command.params);
+                    return (target.id !== u.id
+                        && info.game.distanceOf(u, target, info.parentCtx) <= distance
+                        && !target.hasJudgeType(this));
+                },
+            ],
             targetCount: this.targetCount,
             initInfo: {
                 card: this,
@@ -549,10 +559,16 @@ class Sha extends NormalCard {
             console.log(`|[i] Use too many Sha`);
             return yield Promise.resolve(R.fail);
         }
-        let targetValidators = [(command, info) => {
-            let target = info.game.userByPk(command.params);
-            return target.id !== u.id && info.game.inAttackRange(u, target, ctx);
-        }];
+        let targetValidators = [
+            (command, info) => {
+                let target = info.game.userByPk(command.params);
+                return target.id !== u.id && info.game.inAttackRange(u, target, ctx);
+            },
+            FSM.BASIC_VALIDATORS.buildTargetableValidator({
+                type: C.TARGETABLE_TYPE.CARD,
+                instance: ctx.i.shaCard,
+            }),
+        ];
 
         if (ctx.i.targetValidators.length > 1) {
             targetValidators.push(...ctx.i.targetValidators);
@@ -817,13 +833,13 @@ class ShunShouQianYang extends SilkBagCard {
         super(suit, number);
         this.name = '顺手牵羊';
         this.distance = 1;
-        this.targetValidators = [
+        this.targetValidators.push(
             (command, info) => {
                 let target = info.game.userByPk(command.params);
                 return info.game.distanceOf(info.sourceUser, target, info.parentCtx) <=
                     (info.sourceUser.figure.pk === F.HuangYueYing.pk ? Infinity : this.distance);
-            },
-        ];
+            }
+        );
     }
 
     * run(game, ctx) {

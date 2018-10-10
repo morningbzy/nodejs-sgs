@@ -84,6 +84,10 @@ class FigureBase extends EventListener {
     filterCard(card) {
         return card;
     }
+
+    targetableOf(game, ctx, something) {
+        return true;
+    }
 }
 
 // 魏 -----
@@ -939,12 +943,13 @@ class ZhuGeLiang extends FigureBase {
         };
     }
 
-    distanceTo(game, ctx, info) {
-        if (this.owner.cards.size === 0) {
-            return Infinity;
-        } else {
-            return super.distanceTo(game, ctx, info);
+    targetableOf(game, ctx, something) {
+        if (something.type === C.TARGETABLE_TYPE.CARD
+            && something.instance instanceof sgsCards.Sha
+            || something.instance instanceof sgsCards.JueDou) {
+            return this.owner.cards.size !== 0;
         }
+        return super.targetableOf(game, ctx, something);
     }
 
     * s1(game, ctx) {
@@ -1599,6 +1604,59 @@ class DaQiao extends FigureBase {
     }
 }
 
+// WU007【陆逊】 吴，男，3血 【谦逊】【连营】
+class LuXun extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '陆逊';
+        this.pk = LuXun.pk;
+        this.country = C.COUNTRY.WU;
+        this.gender = C.GENDER.MALE;
+        this.hp = 3;
+        this.skills = {
+            WU007s01: new Skill(this, {
+                pk: 'WU007s01',
+                style: C.SKILL_STYLE.SUODING,
+                name: '谦逊',
+                desc: '锁定技，你不能成为【乐不思蜀】或【顺手牵羊】的目标。',
+                handler: 's1',
+            }),
+            WU007s02: new Skill(this, {
+                pk: 'WU007s02',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '连营',
+                desc: '当你失去手牌后，若你没有手牌，则你可以摸一张牌。',
+                handler: 's2',
+            }),
+        };
+    }
+
+    targetableOf(game, ctx, something) {
+        if (something.type === C.TARGETABLE_TYPE.CARD
+            && something.instance instanceof sgsCards.LeBuSiShu
+            || something.instance instanceof sgsCards.ShunShouQianYang) {
+            return false;
+        }
+        return super.targetableOf(game, ctx, something);
+    }
+
+    * s2(game, ctx) {
+        const u = this.owner;
+        game.dispatchCards(u, 1);
+        game.message([u, '发动技能【连营】，获得一张牌']);
+    }
+
+    * removeHandCards(game, ctx) {
+        const u = this.owner;
+        if (u.cards.size === 0) {
+            let command = yield game.waitConfirm(u, `是否使用技能【连营】`);
+            if (command.cmd === C.CONFIRM.Y) {
+                yield this.triggerSkill(this.skills.WU007s02, game, ctx);
+            }
+        }
+    }
+}
+
 // WU011【小乔】 吴，女，3血 【天香】【红颜】
 class XiaoQiao extends FigureBase {
     constructor(game) {
@@ -1845,6 +1903,7 @@ LvMeng.pk = 'WU003';
 HuangGai.pk = 'WU004';
 ZhouYu.pk = 'WU005';
 DaQiao.pk = 'WU006';
+LuXun.pk = 'WU007';
 SunShangXiang.pk = 'WU008';
 XiaoQiao.pk = 'WU011';
 ZhouTai.pk = 'WU013';
@@ -1872,6 +1931,7 @@ let figures = {
     HuangGai,
     ZhouYu,
     DaQiao,
+    LuXun,
     XiaoQiao,
     SunShangXiang,
     ZhouTai,

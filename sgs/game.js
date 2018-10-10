@@ -407,32 +407,14 @@ class Game {
         this.broadcastUserInfo(user);
     }
 
-    lockUserCardPks(user, cardPks) {
-        // user.reply(`LOCK_CARD ${cardPks.join(' ')}`, true, true);
-    }
-
-    lockUserCards(user, cards) {
-        // cards = Array.isArray(cards) ? cards : Array.from([cards]);
-        // this.lockUserCardPks(user, this.cardManager.unfakeCards(cards).map(x => x.pk));
-    }
-
-    unlockUserCardPks(user, cardPks) {
-        // user.reply(`UNLOCK_CARD ${cardPks.join(' ')}`);
-        // user.popRestoreCmd();
-    }
-
-    unlockUserCards(user, cards) {
-        // cards = Array.isArray(cards) ? cards : Array.from([cards]);
-        // this.unlockUserCardPks(user, this.cardManager.unfakeCards(cards).map(x => x.pk));
-    }
-
     * removeUserHandCards(user, cards, discard = false) {
         cards = U.toArray(cards);
         user.removeCardPks(this.cardManager.unfakeCards(cards).map(x => x.pk));
+        this.broadcastUserInfo(user);
+        yield user.on('removeHandCards', this, {});
         if (discard) {
             this.discardCards(cards);
         }
-        this.broadcastUserInfo(user);
     }
 
     * removeUserCards(user, cards, discard = false) {

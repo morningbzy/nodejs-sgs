@@ -102,6 +102,10 @@ Constants = {
         TEXT: 'TEXT',
         CARD: 'CARD',
     },
+    TARGETABLE_TYPE: {
+        CARD: 1,
+        SKILL: 2,
+    },
     TARGET_SELECT_TYPE: {
         SINGLE: 1,
         NONE: 0,

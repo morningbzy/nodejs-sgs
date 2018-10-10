@@ -180,7 +180,7 @@ module.exports.BASIC_VALIDATORS = {
 
     buildCardSuitValidator: (suit) => {
         let validSuits;
-        switch(suit) {
+        switch (suit) {
             case C.CARD_SUIT.RED:
                 validSuits = [C.CARD_SUIT.HEART, C.CARD_SUIT.DIAMOND];
                 break;
@@ -200,7 +200,7 @@ module.exports.BASIC_VALIDATORS = {
         return (command, info) => {
             let card = info.game.cardByPk(command.params);
             return U.toArray(cardClasses).filter(cls => card instanceof cls).length > 0;
-        }
+        };
     },
 
     notMeTargetValidator: (command, info) => {
@@ -217,6 +217,13 @@ module.exports.BASIC_VALIDATORS = {
             return (amount === C.SELECT_TYPE.SINGLE
                 || amount < C.SELECT_TYPE.NONE
                 || info[category].size < amount);
+        };
+    },
+
+    buildTargetableValidator: (something) => {
+        return (command, info) => {
+            let target = info.game.userByPk(command.params);
+            return target.targetableOf(info.game, info.parentCtx, something)
         };
     }
 };
