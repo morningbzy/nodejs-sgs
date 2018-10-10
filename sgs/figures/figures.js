@@ -437,16 +437,16 @@ class XuChu extends FigureBase {
     * roundDrawCardPhaseStart(game, phaseCtx) {
         const u = this.owner;
         let command = yield game.waitConfirm(u, `是否发动技能【裸衣】？`);
-        phaseCtx.roundCtx.i.s1_param = false;
+        phaseCtx.roundCtx.i.WEI005s01 = false;
         if (command.cmd === C.CONFIRM.Y) {
             phaseCtx.i.drawCardCount -= 1;
-            phaseCtx.roundCtx.i.s1_param = true;
+            phaseCtx.roundCtx.i.WEI005s01 = true;
         }
     }
 
     * shaHitTarget(game, ctx) {
         const u = this.owner;
-        if (ctx.roundCtx.i.s1_param) {
+        if (ctx.roundCtx.i.WEI005s01) {
             game.message([u, '的技能【裸衣】生效，【杀】伤害+1']);
             ctx.i.exDamage += 1;
         }
@@ -1881,6 +1881,41 @@ class ZhouTai extends FigureBase {
     }
 }
 
+// 群 -----
+
+// QUN002【吕布】 群，男，4血 【无双】
+class LvBu extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '吕布';
+        this.pk = LvBu.pk;
+        this.country = C.COUNTRY.QUN;
+        this.gender = C.GENDER.MALE;
+        this.hp = 4;
+        this.skills = {
+            QUN002s01: {
+                pk: 'QUN002s01',
+                style: C.SKILL_STYLE.SUODING,
+                name: '无双',
+                desc: '锁定技，当你使用【杀】指定一个目标后，该角色需依次使用两张【闪】' +
+                '才能抵消此【杀】；当你使用【决斗】指定一个目标后，或成为一名角色使用' +
+                '【决斗】的目标后，该角色每次响应此【决斗】需依次打出两张【杀】。',
+                handler: 's1',
+            },
+        };
+    }
+
+    * afterShaTarget(game, ctx) {
+        const u = this.owner;
+
+        for (let t of ctx.i.targets) {
+            game.message([u, '指定', t, '为【杀】的目标，触发技能【无双】，需要打出两张【闪】。']);
+            ctx.i.shanAble.set(t, 2);
+        }
+    }
+}
+
+
 CaoCao.pk = 'WEI001';
 SiMaYi.pk = 'WEI002';
 XiaHouDun.pk = 'WEI003';
@@ -1907,6 +1942,8 @@ LuXun.pk = 'WU007';
 SunShangXiang.pk = 'WU008';
 XiaoQiao.pk = 'WU011';
 ZhouTai.pk = 'WU013';
+
+LvBu.pk = 'QUN002';
 
 let figures = {
     CaoCao,
@@ -1935,6 +1972,8 @@ let figures = {
     XiaoQiao,
     SunShangXiang,
     ZhouTai,
+
+    LvBu,
 };
 
 let figureNames = new Set();

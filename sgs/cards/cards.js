@@ -594,6 +594,7 @@ class Sha extends NormalCard {
         // 成为目标时
         for (let t of ctx.i.targets) {
             yield t.on('beShaTarget', game, ctx);
+            ctx.i.shanAble.set(t, 1)
         }
 
         // 指定目标后
@@ -611,7 +612,7 @@ class Sha extends NormalCard {
         yield u.on('useSha', game, ctx);
 
         ctx.i.ignoreArmor = false;
-        ctx.i.shanAble = new Map();
+        ctx.i.shanAble = new Map();  // k：目标，v：false不可闪，X需要闪的数量
 
         if (!ctx.i.skipShaInitStage) {
             yield this.targetEvents(game, ctx);
@@ -640,14 +641,18 @@ class Sha extends NormalCard {
             }
 
             if (!ctx.i.shanAble.has(target) || ctx.i.shanAble.get(target)) {
-                let result = yield target.on('requireShan', game, ctx);
-                if (result.success) {
-                    if (result instanceof R.CardResult) {
-                        let cards = result.get();
-                        yield game.removeUserCards(target, cards, true);
+                let result = R.success;
+                for(let i = 0; i < ctx.i.shanAble.get(target) && result.success; i++) {
+                    result = yield target.on('requireShan', game, ctx);
+                    if (result.success) {
+                        if (result instanceof R.CardResult) {
+                            let cards = result.get();
+                            yield game.removeUserCards(target, cards, true);
+                        }
+                        yield target.on('usedShan', game, ctx);
                     }
-
-                    yield target.on('usedShan', game, ctx);
+                }
+                if (result.success) {
                     ctx.i.hit = false;
                     yield u.on('shaBeenShan', game, ctx);
                 }
@@ -770,15 +775,29 @@ class JueDou extends SilkBagCard {
         let loser;
         while (!done) {
             for (let _u of users) {
-                let result = yield _u.on('requireSha', game, ctx);
-                if (result.success) {
-                    game.discardCards(ctx.i.card);
-                    ctx.handlingCards.delete(ctx.i.card);
+                let result = R.success;
+                let needShaCount = 1;
 
+                // 吕布的【无双】
+                if(ctx.i.sourceUser.figure.pk === F.LvBu.pk) {
+                    game.message([ctx.i.sourceUser, '触发技能【无双】，', _u, '需要打出两张【杀】。']);
+                    needShaCount = 2;
+                }
+                for(let i = 0; i < needShaCount && result.success; i ++ ) {
+                    result = yield _u.on('requireSha', game, ctx);
+                    if (result.success) {
+                        let lastCard = ctx.i.card;
+                        ctx.handlingCards.delete(lastCard);
+                        game.discardCards(lastCard);
+
+                        lastCard = result.get();
+                        yield game.removeUserCards(_u, lastCard);
+                        ctx.handlingCards.add(lastCard);
+                        ctx.i.card = lastCard;
+                    }
+                }
+                if (result.success) {
                     ctx.i.sourceUser = _u;
-                    ctx.i.card = result.get();
-                    yield game.removeUserCards(_u, ctx.i.card);
-                    ctx.handlingCards.add(ctx.i.card);
                 } else {
                     done = true;
                     loser = _u;
@@ -788,7 +807,7 @@ class JueDou extends SilkBagCard {
         }
 
         let damage = 1;
-        if (ctx.i.sourceUser.figure.pk === 'WEI005' && ctx.roundCtx.i.s1_param) {  // 许褚的【裸衣】
+        if (ctx.i.sourceUser.figure.pk === F.XuChu.pk && ctx.roundCtx.i.WEI005s01) {  // 许褚的【裸衣】
             game.message([u, '的技能【裸衣】生效，【决斗】伤害+1']);
             damage += 1;
         }
