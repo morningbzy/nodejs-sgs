@@ -104,6 +104,12 @@ class CardManager {
         }, []);
     }
 
+    createGhostCard(asClass) {
+        console.log(`|[i] Ghost card [${asClass.name}]`);
+        const card = new asClass(C.CARD_SUIT.NONE, 0);
+        return card;
+    }
+
     asCandidates(cards) {
         let candidates = [];
         cards.forEach(card => {

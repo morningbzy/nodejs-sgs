@@ -372,6 +372,10 @@ class User extends EventListener {
         return yield this.figure.on('roundPlayPhaseEnd', game, phaseCtx);
     }
 
+    * roundEndPhaseStart(game, phaseCtx) {
+        return yield this.figure.on('roundEndPhaseStart', game, phaseCtx);
+    }
+
     // ---  ---
 
     * play(game, ctx) {

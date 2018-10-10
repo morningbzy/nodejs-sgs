@@ -6,7 +6,7 @@ const cardManager = require('../cards');
 const Skill = require('../skills');
 const sgsCards = require('../cards/cards');
 const EventListener = require('../common/eventListener');
-const {SimpleContext, SkillContext} = require('../context');
+const {SimpleContext, CardContext, SkillContext} = require('../context');
 const Damage = require('../common/damage');
 
 const ST = C.SELECT_TYPE;
@@ -2023,6 +2023,107 @@ class LvBu extends FigureBase {
     }
 }
 
+// QUN003【貂蝉】 群，女，3血 【离间】【闭月】
+class DiaoChan extends FigureBase {
+    constructor(game) {
+        super();
+        this.name = '貂蝉';
+        this.pk = DiaoChan.pk;
+        this.country = C.COUNTRY.QUN;
+        this.gender = C.GENDER.FEMALE;
+        this.hp = 3;
+        this.skills = {
+            QUN003s01: new Skill(this, {
+                pk: 'QUN003s01',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '离间',
+                desc: '出牌阶段限一次，你可以弃置一张牌并选择两名男性角色，令其中一名男性角色' +
+                '视为对另一名男性角色使用一张【决斗】。',
+                handler: 's1',
+                fsmOpt: {
+                    cardCount: ST.NONE,
+                    targetCount: 2,
+                    targetValidator: [
+                        FSM.BASIC_VALIDATORS.buildCountExceededValidator('targets', 2),
+                        (command, info) => {
+                            const t = game.userByPk(command.params);
+                            return (t.gender === C.GENDER.MALE);
+                        },
+                        (command, info) => {
+                            const t = game.userByPk(command.params);
+                            if (info.targets.size === 0) {
+                                const card = game.cardManager.createGhostCard(sgsCards.JueDou);
+                                info.cards.add(card);
+                                return t.targetableOf(info.game, info.parentCtx, {
+                                    type: C.TARGETABLE_TYPE.CARD,
+                                    instance: card,
+                                });
+                            }
+                            return true;
+                        },
+                    ],
+                },
+            }),
+            QUN003s02: new Skill(this, {
+                pk: 'QUN003s02',
+                style: C.SKILL_STYLE.NORMAL,
+                name: '闭月',
+                desc: '结束阶段开始时，你可以摸一张牌。',
+                handler: 's2',
+            }),
+        };
+    }
+
+    * s1(game, ctx) {
+        const u = this.owner;
+        let card = U.toSingle(ctx.i.cards);
+        let targets = U.toArray(ctx.i.targets);
+        let sourceUser = targets[1];
+        targets = U.toArray(targets[0]);
+
+        let cardCtx = new CardContext(game, card, {
+            sourceUser,
+            targets,
+        }).linkParent(ctx);
+        game.message([u, '对', [sourceUser, targets], '使用技能【离间】，视为', sourceUser, '对', targets, '使用了一张【决斗】']);
+        cardCtx.i.currentTarget = targets[0];
+        yield card.run(game, cardCtx);
+
+        ctx.phaseCtx.i.QUN003s01 = false;  // 是否可用【离间】
+        return yield Promise.resolve(R.success);
+    }
+
+    * s2(game, ctx) {
+        const u = this.owner;
+        game.dispatchCards(u, 1);
+        game.message([u, '发动技能【闭月】，获得一张牌']);
+    }
+
+    * roundPlayPhaseStart(game, phaseCtx) {
+        phaseCtx.i.QUN003s01 = true;  // 是否可用【离间】
+    }
+
+    * play(game, ctx) {
+        const u = this.owner;
+        if (ctx.phaseCtx.i.QUN003s01) {
+            this.changeSkillState(this.skills.QUN003s01, C.SKILL_STATE.ENABLED);
+        } else {
+            this.changeSkillState(this.skills.QUN003s01, C.SKILL_STATE.DISABLED);
+        }
+    }
+
+    * roundPlayPhaseEnd(game, phaseCtx) {
+        phaseCtx.i.QUN003s01 = false;  // 是否可用【离间】
+    }
+
+    * roundEndPhaseStart(game, phaseCtx) {
+        const u = this.owner;
+        let command = yield game.waitConfirm(u, `是否发动技能【闭月】？`);
+        if (command.cmd === C.CONFIRM.Y) {
+            yield this.triggerSkill(this.skills.QUN003s02, game, phaseCtx);
+        }
+    }
+}
 
 CaoCao.pk = 'WEI001';
 SiMaYi.pk = 'WEI002';
@@ -2053,6 +2154,7 @@ ZhouTai.pk = 'WU013';
 
 HuaTuo.pk = 'QUN001';
 LvBu.pk = 'QUN002';
+DiaoChan.pk = 'QUN003';
 
 let figures = {
     CaoCao,
@@ -2084,6 +2186,7 @@ let figures = {
 
     HuaTuo,
     LvBu,
+    DiaoChan,
 };
 
 let figureNames = new Set();
