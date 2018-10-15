@@ -356,6 +356,7 @@ class SilkBagCard extends CardBase {
             C.TARGET_SELECT_TYPE.ALL,
         ].includes(card.targetCount) ? '' : ['对', targets];
         game.message([u, targetMsg, '使用了', card]);
+        game.broadcastPopup(`${C.POPUP_MSG_TYPE.CARD} ${'使用'} ${u.figure.name} ${card.toJsonString()}`, u);
 
         yield this.onUse(game, ctx);
 
@@ -624,8 +625,10 @@ class Sha extends NormalCard {
         game.removeUserStatus(u, C.USER_STATUS.DRUNK);
         ctx.i.damage = new Damage(u, card, damage, card.damageType);
 
-        yield game.removeUserCards(ctx.i.sourceUser, card);
-        game.message([ctx.i.sourceUser, '对', ctx.i.targets, '使用', card]);
+        yield game.removeUserCards(u, card);
+        game.message([u, '对', ctx.i.targets, '使用', card]);
+        game.broadcastPopup(`${C.POPUP_MSG_TYPE.CARD} ${`使用`} ${u.figure.name} ${card.toJsonString()}`, u);
+
         yield u.on('startSha', game, ctx);
 
         for (let target of targets) {
@@ -1131,7 +1134,7 @@ class HuoGong extends SilkBagCard {
         } else {
             game.message([u, '未能弃置一张同花色手牌，火攻没有造成伤害']);
         }
-        game.broadcastClearPopup();
+        // game.broadcastClearPopup();
     }
 }
 

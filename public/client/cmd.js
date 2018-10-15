@@ -185,14 +185,21 @@ const Cmd = {
 
         switch (msgType) {
             case POPUP_MSG_TYPE.JUDGE: {
-                Cmd.clear_popup(params, marker);
-                msgEl.queue(function () {
-                    let cards = [JSON.parse(params.join(' '))];
-                    let rendered = Mustache.render(cardTpl, {cards});
-                    $('.sgs-popup-msg-footer', msgEl).removeClass('invisible').text('判定牌');
-                    $('.sgs-popup-msg-body', msgEl).html(rendered);
-                    $(this).dequeue();
-                }).fadeIn(200).delay(1500);
+                aq.queue({
+                    ani: () => {
+                        return msgEl.queue(function () {
+                            let cards = [JSON.parse(params.join(' '))];
+                            let rendered = Mustache.render(cardTpl, {cards});
+                            $('.sgs-popup-msg-footer', msgEl).removeClass('invisible').text('判定牌');
+                            $('.sgs-popup-msg-body', msgEl).html(rendered);
+                            $(this).dequeue();
+                        }).fadeIn(100);
+                    },
+                    post: () => {
+                        Cmd.clear_popup([], marker);
+                        return msgEl;
+                    },
+                });
                 break;
             }
             case POPUP_MSG_TYPE.INSTEAD: {
@@ -205,21 +212,29 @@ const Cmd = {
                 $('.sgs-popup-msg-header', msgEl).removeClass('invisible').text(title);
                 $(arrow).appendTo($('.sgs-popup-msg-body', msgEl));
                 $(rendered).appendTo($('.sgs-popup-msg-body', msgEl));
-                msgEl.delay(1500);
+
+                aq.queue({});
                 break;
             }
             case POPUP_MSG_TYPE.CARD: {
-                Cmd.clear_popup(params, marker);
-                msgEl.queue(function () {
-                    let header = params.shift();
-                    let footer = params.shift();
-                    let cards = [JSON.parse(params.join(' '))];
-                    let rendered = Mustache.render(cardTpl, {cards});
-                    $('.sgs-popup-msg-header', msgEl).removeClass('invisible').text(header);
-                    $('.sgs-popup-msg-footer', msgEl).removeClass('invisible').text(footer);
-                    $('.sgs-popup-msg-body', msgEl).html(rendered);
-                    $(this).dequeue();
-                }).fadeIn(200).delay(1500);
+                aq.queue({
+                    ani: () => {
+                        return msgEl.queue(function () {
+                            let header = params.shift();
+                            let footer = params.shift();
+                            let cards = [JSON.parse(params.join(' '))];
+                            let rendered = Mustache.render(cardTpl, {cards});
+                            $('.sgs-popup-msg-header', msgEl).removeClass('invisible').text(header);
+                            $('.sgs-popup-msg-footer', msgEl).removeClass('invisible').text(footer);
+                            $('.sgs-popup-msg-body', msgEl).html(rendered);
+                            $(this).dequeue();
+                        }).fadeIn(100);
+                    },
+                    post: () => {
+                        Cmd.clear_popup([], marker);
+                        return msgEl;
+                    },
+                });
                 break;
             }
         }
@@ -227,7 +242,7 @@ const Cmd = {
 
     clear_popup: function (params, marker) {
         let msgEl = $('#sgs-popup-msg');
-        msgEl.fadeOut(() => {
+        msgEl.fadeOut(100, () => {
             $('.sgs-popup-msg-header, .sgs-popup-msg-footer', msgEl).addClass('invisible').text('信息');
             $('.sgs-popup-msg-body', msgEl).html('');
         });

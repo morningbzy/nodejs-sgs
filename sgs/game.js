@@ -204,12 +204,12 @@ class Game {
     }
 
     broadcastPopup(msg, self) {
-        this.lastPopupMsg = {msg, self};
+        // this.lastPopupMsg = {msg, self};
         this.broadcast(`POPUP ${msg}`, self);
     }
 
     broadcastClearPopup(self) {
-        this.lastPopupMsg = null;
+        // this.lastPopupMsg = null;
         this.broadcast('CLEAR_POPUP', self);
     }
 
@@ -434,6 +434,7 @@ class Game {
         yield this.unequipUserCard(user, card.equipType, true);
         user.equipCard(card);
         this.message([user, '装备了', card]);
+        game.broadcastPopup(`${C.POPUP_MSG_TYPE.CARD} ${`装备`} ${user.figure.name} ${card.toJsonString()}`, user);
         this.broadcastUserInfo(user);
     }
 
@@ -494,8 +495,8 @@ class Game {
         let context = new JudgeContext(game, {judgeCard});
         context.handlingCards.add(judgeCard);
 
-        game.broadcastPopup(`JUDGE ${judgeCard.toJsonString()}`, u);
         game.message(['判定牌为', context.i.judgeCard]);
+        game.broadcastPopup(`${C.POPUP_MSG_TYPE.JUDGE} ${judgeCard.toJsonString()}`, u);
 
         for (let _u of game.userRound()) {
             yield _u.on('beforeJudgeEffect', game, context);
@@ -503,7 +504,7 @@ class Game {
 
         yield u.on('judge', game, context);  // 目前仅用于小乔【红颜】，郭嘉【天妒】
         game.discardCards(context.allHandlingCards());
-        game.broadcastClearPopup(u);
+        // game.broadcastClearPopup(u);
 
         return R.judge(context.i.judgeCard, judgeFunction(context.i.judgeCard));
     }
