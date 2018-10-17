@@ -101,6 +101,7 @@ Constants = {
         INSTEAD: 'INSTEAD',
         TEXT: 'TEXT',
         CARD: 'CARD',
+        RICH_CONTENT: 'RICH_CONTENT',
     },
     TARGETABLE_TYPE: {
         CARD: 1,

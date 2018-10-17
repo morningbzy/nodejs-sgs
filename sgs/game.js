@@ -7,7 +7,7 @@ const {SimpleContext, JudgeContext} = require('./context');
 const User = require('./user');
 const cmdHandler = require('./cmd');
 const cardManager = require('./cards');
-const {buildMessage} = require('./common/message');
+const {buildMessage, buildPopup} = require('./common/message');
 
 
 class Command {
@@ -206,6 +206,19 @@ class Game {
     broadcastPopup(msg, self) {
         // this.lastPopupMsg = {msg, self};
         this.broadcast(`POPUP ${msg}`, self);
+    }
+
+    broadcastPopupEx(header, footer, ...info) {
+        let data = {
+            header: header,
+            footer: footer,
+            info: buildPopup(info),
+        };
+        this.broadcast(`POPUP ${C.POPUP_MSG_TYPE.RICH_CONTENT} ${JSON.stringify(data)}`);
+    }
+
+    broadcastPopupSkill(user, ...info) {
+        this.broadcastPopupEx(user.figure.name, null, ...info)
     }
 
     broadcastClearPopup(self) {
@@ -434,7 +447,7 @@ class Game {
         yield this.unequipUserCard(user, card.equipType, true);
         user.equipCard(card);
         this.message([user, '装备了', card]);
-        game.broadcastPopup(`${C.POPUP_MSG_TYPE.CARD} ${`装备`} ${user.figure.name} ${card.toJsonString()}`, user);
+        game.broadcastPopupEx(user.figure.name, '装备', card);
         this.broadcastUserInfo(user);
     }
 
@@ -496,7 +509,7 @@ class Game {
         context.handlingCards.add(judgeCard);
 
         game.message(['判定牌为', context.i.judgeCard]);
-        game.broadcastPopup(`${C.POPUP_MSG_TYPE.JUDGE} ${judgeCard.toJsonString()}`, u);
+        game.broadcastPopupEx(`${u.figure.name}`, '判定牌', card);
 
         for (let _u of game.userRound()) {
             yield _u.on('beforeJudgeEffect', game, context);

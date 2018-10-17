@@ -123,6 +123,7 @@ class CaoCao extends FigureBase {
 
     * s1(game, ctx) {
         let cards = U.toArray(ctx.i.damage.srcCard);
+        game.broadcastPopupSkill(this.owner, this.skills.WEI001s01);
         for (let card of cards) {
             if (ctx.phaseCtx.allHandlingCards().includes(card)) {
                 game.message([this.owner, '获得了', cardManager.unfakeCard(card)]);
@@ -134,6 +135,7 @@ class CaoCao extends FigureBase {
     }
 
     * s2(game, ctx) {
+        game.broadcastPopupSkill(this.owner, this.skills.WEI001s02);
         for (let u of game.userRound()) {
             if (u.id === this.owner.id
                 || u.figure.country !== C.COUNTRY.WEI) {
@@ -186,20 +188,20 @@ class SiMaYi extends FigureBase {
         this.gender = C.GENDER.MALE;
         this.hp = 3;
         this.skills = {
-            WEI002s01: {
+            WEI002s01: new Skill(this, {
                 pk: 'WEI002s0',
                 style: C.SKILL_STYLE.NORMAL,
                 name: '反馈',
                 desc: '你可以立即从对你造成伤害的来源处获得一张牌。',
                 handler: 's1',
-            },
-            WEI002s02: {
+            }),
+            WEI002s02: new Skill(this, {
                 pk: 'WEI002s02',
                 style: C.SKILL_STYLE.NORMAL,
                 name: '鬼才',
                 desc: '在任意角色的判定牌生效前，你可以打出一张手牌代替之。',
                 handler: 's2',
-            },
+            }),
         };
     }
 
@@ -207,6 +209,7 @@ class SiMaYi extends FigureBase {
     * s1(game, ctx) {
         const u = this.owner;
         const t = ctx.i.damage.srcUser;
+        game.broadcastPopupSkill(u, this.skills.WEI002s01);
         if (t) {
             let cardCandidates = t.cardCandidates({
                 includeJudgeCards: false,
@@ -232,16 +235,21 @@ class SiMaYi extends FigureBase {
 
     // 【鬼才】
     * s2(game, ctx) {
-        let result = yield this.owner.requireCard(game, ctx, sgsCards.CardBase);
+        const u = this.owner;
+        let result = yield u.requireCard(game, ctx, sgsCards.CardBase);
         if (result.success) {
             game.discardCards(ctx.i.judgeCard);
             ctx.handlingCards.delete(ctx.i.judgeCard);
 
             ctx.i.judgeCard = result.get();
-            yield game.removeUserCards(this.owner, ctx.i.judgeCard);
+            yield game.removeUserCards(u, ctx.i.judgeCard);
             ctx.handlingCards.add(ctx.i.judgeCard);
-            game.broadcastPopup(`INSTEAD ${this.name} ${ctx.i.judgeCard.toJsonString()}`);
-            game.message([this.owner, '使用', ctx.i.judgeCard, '替换了判定牌']);
+            // game.broadcastPopup(`${C.POPUP_MSG_TYPE.INSTEAD} ${this.name} ${ctx.i.judgeCard.toJsonString()}`);
+            game.broadcastPopupSkill(u,
+                this.skills.WEI002s02,
+                ctx.i.judgeCard
+            );
+            game.message([u, '使用', ctx.i.judgeCard, '替换了判定牌']);
         }
         return yield Promise.resolve(result);
     }
@@ -288,6 +296,7 @@ class XiaHouDun extends FigureBase {
         const u = this.owner;
         const t = ctx.i.damage.srcUser;
         let result = yield game.doJudge(u, card => C.CARD_SUIT.HEART !== card.suit);
+        game.broadcastPopupSkill(u, this.skills.WEI003s01);
         game.message([u, '判定【刚烈】为', result.get(), '判定', result.success ? '生效' : '未生效']);
         if (result.success) {
             let choice = '1';  // Default
@@ -379,6 +388,7 @@ class ZhangLiao extends FigureBase {
         let result = yield this.skills.WEI004s01.init(game, ctx);
         if (result.success) {
             let targets = result.get().target;
+            game.broadcastPopupSkill(u, this.skills.WEI004s01, targets);
             for (let t of targets) {
                 let cardCandidates = t.cardCandidates({
                     includeEquipments: false,
@@ -439,6 +449,7 @@ class XuChu extends FigureBase {
         let command = yield game.waitConfirm(u, `是否发动技能【裸衣】？`);
         phaseCtx.roundCtx.i.WEI005s01 = false;
         if (command.cmd === C.CONFIRM.Y) {
+            game.broadcastPopupSkill(u, this.skills.WEI005s01);
             phaseCtx.i.drawCardCount -= 1;
             phaseCtx.roundCtx.i.WEI005s01 = true;
         }
@@ -482,6 +493,7 @@ class GuoJia extends FigureBase {
 
     * s2(game, ctx) {
         const u = this.owner;
+        game.broadcastPopupSkill(u, this.skills.WEI006s02);
         let cards = game.cardManager.shiftCards(2);
         let cardCandidates = game.cardManager.asCandidates(cards);
 
@@ -530,6 +542,7 @@ class GuoJia extends FigureBase {
         let command = yield game.waitConfirm(u, `是否发动技能【天妒】？`);
         if (command.cmd === C.CONFIRM.Y) {
             const card = ctx.i.judgeCard;
+            game.broadcastPopupSkill(u, this.skills.WEI006s01);
             game.message([u, '发动技能【天妒】，获得了判定牌', card]);
             game.addUserCards(u, card);
         }
@@ -597,12 +610,19 @@ class ZhenJi extends FigureBase {
         }
 
         let fakeCard = cardManager.fakeCards(cards, {asClass: sgsCards.Shan});
+        game.broadcastPopupSkill(u,
+            this.skills.WEI007s01,
+            cards,
+            {icon: 'angle-right'},
+            fakeCard
+        );
         game.message([u, '使用技能【倾国】把', cards, '当作', fakeCard, '使用']);
         return yield Promise.resolve(new R.CardResult().set(fakeCard));
     }
 
     * s2(game, ctx) {
         const u = this.owner;
+        game.broadcastPopupSkill(u, this.skills.WEI007s02);
         game.message([u, '发动了【洛神】']);
         let result = yield game.doJudge(u,
             (card) => [C.CARD_SUIT.SPADE, C.CARD_SUIT.CLUB].includes(card.suit)
@@ -698,6 +718,12 @@ class LiuBei extends FigureBase {
         let cards = ctx.i.cards;
         let target = U.toSingle(ctx.i.targets);
 
+        game.broadcastPopupSkill(u,
+            this.skills.SHU001s01,
+            cards,
+            {icon: 'angle-right'},
+            target
+        );
         game.message([u, '使用技能【仁德】，将', cards, '交给', target]);
 
         yield game.removeUserCards(u, cards);
@@ -730,8 +756,21 @@ class LiuBei extends FigureBase {
         let result;
 
         if (shaTarget.length > 0) {
+            game.broadcastPopupSkill(u,
+                this.skills.SHU001s02,
+                {icon: 'angle-right'},
+                target,
+                {icon: 'angle-right'},
+                shaTarget
+            );
             game.message([u, '使用技能【激将】，请', target, '为其出【杀】，对', shaTarget, '使用。']);
         } else {
+            game.broadcastPopupSkill(u,
+                this.skills.SHU001s02,
+                {cards: cards},
+                {icon: 'angle-right'},
+                target
+            );
             game.message([u, '使用技能【激将】，请', target, '为其出【杀】。']);
         }
         let command = yield game.waitConfirm(target, `刘备使用技能【激将】，是否为其出【杀】？`);
@@ -1109,21 +1148,21 @@ class MaChao extends FigureBase {
         this.gender = C.GENDER.MALE;
         this.hp = 4;
         this.skills = {
-            SHU006s01: {
+            SHU006s01: new Skill(this, {
                 pk: 'SHU006s01',
                 style: C.SKILL_STYLE.SUODING,
                 name: '马术',
                 desc: '锁定技，你计算与其他角色的距离-1。',
                 handler: 's1',
-            },
-            SHU006s02: {
+            }),
+            SHU006s02: new Skill(this, {
                 pk: 'SHU006s02',
                 style: C.SKILL_STYLE.NORMAL,
                 name: '铁骑',
                 desc: '当你使用【杀】指定一个目标后，你可以判定，若结果为' +
                 '红色，该角色不能使用【闪】相应此【杀】。',
                 handler: 's2',
-            },
+            }),
         };
     }
 
@@ -1311,13 +1350,13 @@ class LvMeng extends FigureBase {
         this.gender = C.GENDER.MALE;
         this.hp = 4;
         this.skills = {
-            WU003s01: {
+            WU003s01: new Skill(this, {
                 pk: 'WU003s01',
                 style: C.SKILL_STYLE.NORMAL,
                 name: '吕蒙',
                 desc: '若你未于出牌阶段内使用或打出过【杀】，你可以跳过弃牌阶段。',
                 handler: 's1',
-            },
+            }),
         };
     }
 
@@ -1462,7 +1501,7 @@ class ZhouYu extends FigureBase {
         let card = game.cardByPk(command.params);
         game.message([t, '获得', u, '的一张牌', card]);
         yield game.removeUserCards(u, card, true);
-        game.broadcastPopup(`CARD ${t.figure.name} 反间-展示 ${card.toJsonString()}`);
+        game.broadcastPopupEx(t.figure.name, '反间-展示', card);
 
         if (card.suit === C.CARD_SUIT.SPADE && parseInt(choice) === 0
             || card.suit === C.CARD_SUIT.HEART && parseInt(choice) === 1
@@ -1533,7 +1572,7 @@ class DaQiao extends FigureBase {
                     ],
                 },
             }),
-            WU006s02: {
+            WU006s02: new Skill(this, {
                 pk: 'WU006s02',
                 style: C.SKILL_STYLE.NORMAL,
                 name: '流离',
@@ -1541,7 +1580,7 @@ class DaQiao extends FigureBase {
                 + '并将此【杀】转移给你攻击范围内的另一名角色。'
                 + '（该角色不得是【杀】的使用者）',
                 handler: 's2',
-            },
+            }),
         };
     }
 
@@ -1667,7 +1706,7 @@ class XiaoQiao extends FigureBase {
         this.gender = C.GENDER.FEMALE;
         this.hp = 3;
         this.skills = {
-            WU011s01: {
+            WU011s01: new Skill(this, {
                 pk: 'WU011s01',
                 style: C.SKILL_STYLE.NORMAL,
                 name: '天香',
@@ -1675,14 +1714,14 @@ class XiaoQiao extends FigureBase {
                 + '其他角色。若如此做，你将此伤害转移给该角色，然后其'
                 + '摸X张牌（X为该角色已损失的体力值）。',
                 handler: 's1',
-            },
-            WU011s02: {
+            }),
+            WU011s02: new Skill(this, {
                 pk: 'WU011s02',
                 style: C.SKILL_STYLE.SUODING,
                 name: '红颜',
                 desc: '【锁定技】你的黑桃牌均视为红桃牌。',
                 handler: 's2',
-            },
+            }),
         };
     }
 
@@ -1766,13 +1805,13 @@ class SunShangXiang extends FigureBase {
                     }
                 },
             }),
-            WU008s02: {
+            WU008s02: new Skill(this, {
                 pk: 'WU008s02',
                 style: C.SKILL_STYLE.NORMAL,
                 name: '枭姬',
                 desc: '当你失去装备区里的一张装备牌时，你可以摸两张牌。',
                 handler: 's2',
-            },
+            }),
         };
     }
 
@@ -1833,7 +1872,7 @@ class ZhouTai extends FigureBase {
         this.gender = C.GENDER.MALE;
         this.hp = 4;
         this.skills = {
-            WU013s01: {
+            WU013s01: new Skill(this, {
                 pk: 'WU013s01',
                 style: C.SKILL_STYLE.SUODING,
                 name: '不屈',
@@ -1842,15 +1881,15 @@ class ZhouTai extends FigureBase {
                 '均不同，则你回复至1体力。若出现相同点数，将此牌置入弃牌' +
                 '堆；只要你的武将牌上有牌，你的手牌上限便与这些牌数量相等。',
                 handler: 's1',
-            },
-            WU013s02: {
+            }),
+            WU013s02: new Skill(this, {
                 pk: 'WU013s02',
                 style: C.SKILL_STYLE.SUODING,
                 name: '激愤',
                 desc: '当一名角色的手牌被其他角色弃置或获得时，你可以失去' +
                 '1点体力，然后其摸两张牌。',
                 handler: 's2',
-            },
+            }),
         };
     }
 
@@ -1861,7 +1900,7 @@ class ZhouTai extends FigureBase {
     * s1(game, ctx) {
         const u = this.owner;
         let card = U.toSingle(game.cardManager.shiftCards(1));
-        game.broadcastPopup(`CARD ${this.name} 不屈牌 ${card.toJsonString()}`);
+        game.broadcastPopupEx(this.name, '不屈牌', this.skills.WU013s01, card);
         game.message([u, `获得不屈牌`, card]);
 
         if (!u.markers.map(marker => marker.number).includes(card.number)) {
@@ -2001,7 +2040,7 @@ class LvBu extends FigureBase {
         this.gender = C.GENDER.MALE;
         this.hp = 4;
         this.skills = {
-            QUN002s01: {
+            QUN002s01: new Skill(this, {
                 pk: 'QUN002s01',
                 style: C.SKILL_STYLE.SUODING,
                 name: '无双',
@@ -2009,7 +2048,7 @@ class LvBu extends FigureBase {
                 '才能抵消此【杀】；当你使用【决斗】指定一个目标后，或成为一名角色使用' +
                 '【决斗】的目标后，该角色每次响应此【决斗】需依次打出两张【杀】。',
                 handler: 's1',
-            },
+            }),
         };
     }
 

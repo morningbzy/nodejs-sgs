@@ -193,7 +193,7 @@ const Cmd = {
                             $('.sgs-popup-msg-footer', msgEl).removeClass('invisible').text('判定牌');
                             $('.sgs-popup-msg-body', msgEl).html(rendered);
                             $(this).dequeue();
-                        }).fadeIn(100);
+                        }).fadeIn(200).delay(300);
                     },
                     post: () => {
                         Cmd.clear_popup([], marker);
@@ -209,11 +209,15 @@ const Cmd = {
                 let arrow = '<div class="p-3 text-black-50" style="font-size: 3rem;">'
                     + '<i class="fas fa-angle-double-left"></i>'
                     + '</div>';
-                $('.sgs-popup-msg-header', msgEl).removeClass('invisible').text(title);
-                $(arrow).appendTo($('.sgs-popup-msg-body', msgEl));
-                $(rendered).appendTo($('.sgs-popup-msg-body', msgEl));
 
-                aq.queue({});
+                aq.queue({
+                    ani: () => {
+                        $('.sgs-popup-msg-header', msgEl).removeClass('invisible').text(title);
+                        $(arrow).appendTo($('.sgs-popup-msg-body', msgEl));
+                        $(rendered).appendTo($('.sgs-popup-msg-body', msgEl));
+                        return msgEl.delay(500);
+                    },
+                });
                 break;
             }
             case POPUP_MSG_TYPE.CARD: {
@@ -228,7 +232,29 @@ const Cmd = {
                             $('.sgs-popup-msg-footer', msgEl).removeClass('invisible').text(footer);
                             $('.sgs-popup-msg-body', msgEl).html(rendered);
                             $(this).dequeue();
-                        }).fadeIn(100);
+                        }).fadeIn(200).delay(300);
+                    },
+                    post: () => {
+                        Cmd.clear_popup([], marker);
+                        return msgEl;
+                    },
+                });
+                break;
+            }
+            case POPUP_MSG_TYPE.RICH_CONTENT: {
+                aq.queue({
+                    ani: () => {
+                        return msgEl.queue(function () {
+                            let data = JSON.parse(params.join(' '));
+                            let header = data.header;
+                            let footer = data.footer;
+                            let info = data.info;
+                            let rendered = Mustache.render(skillInfoTpl, {info});
+                            if (header !== null) $('.sgs-popup-msg-header', msgEl).removeClass('invisible').text(header);
+                            if (footer !== null) $('.sgs-popup-msg-footer', msgEl).removeClass('invisible').text(footer);
+                            $('.sgs-popup-msg-body', msgEl).html(rendered);
+                            $(this).dequeue();
+                        }).fadeIn(200).delay(300);
                     },
                     post: () => {
                         Cmd.clear_popup([], marker);
@@ -242,7 +268,7 @@ const Cmd = {
 
     clear_popup: function (params, marker) {
         let msgEl = $('#sgs-popup-msg');
-        msgEl.fadeOut(100, () => {
+        msgEl.fadeOut(200, () => {
             $('.sgs-popup-msg-header, .sgs-popup-msg-footer', msgEl).addClass('invisible').text('信息');
             $('.sgs-popup-msg-body', msgEl).html('');
         });

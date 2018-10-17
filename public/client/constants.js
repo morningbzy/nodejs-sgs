@@ -42,6 +42,7 @@ const POPUP_MSG_TYPE = {
     INSTEAD: 'INSTEAD',
     TEXT: 'TEXT',
     CARD: 'CARD',
+    RICH_CONTENT: 'RICH_CONTENT',
 };
 
 function sleep(ms) {

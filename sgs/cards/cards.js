@@ -254,6 +254,8 @@ class CardBase {
 
         this.faked = false;
         this.originCards = null;
+
+        this.ghost = false;
     }
 
     getOriginCards() {
@@ -277,6 +279,7 @@ class CardBase {
             suit: this.suit,
             number: this.number,
             faked: this.faked,
+            ghost: this.ghost,
         };
     }
 
@@ -356,7 +359,7 @@ class SilkBagCard extends CardBase {
             C.TARGET_SELECT_TYPE.ALL,
         ].includes(card.targetCount) ? '' : ['对', targets];
         game.message([u, targetMsg, '使用了', card]);
-        game.broadcastPopup(`${C.POPUP_MSG_TYPE.CARD} ${'使用'} ${u.figure.name} ${card.toJsonString()}`, u);
+        game.broadcastPopupEx(u.figure.name, null, card);
 
         yield this.onUse(game, ctx);
 
@@ -627,7 +630,7 @@ class Sha extends NormalCard {
 
         yield game.removeUserCards(u, card);
         game.message([u, '对', ctx.i.targets, '使用', card]);
-        game.broadcastPopup(`${C.POPUP_MSG_TYPE.CARD} ${`使用`} ${u.figure.name} ${card.toJsonString()}`, u);
+        game.broadcastPopupEx(u.figure.name, null, card);
 
         yield u.on('startSha', game, ctx);
 
@@ -1111,7 +1114,7 @@ class HuoGong extends SilkBagCard {
         t.popRestoreCmd('ALERT');
         let cardA = result.get();
         game.message([t, '展示出一张手牌', cardA]);
-        game.broadcastPopup(`CARD ${t.figure.name} 火攻-展示 ${cardA.toJsonString()}`);
+        game.broadcastPopupEx(t.figure.name, '火攻-展示', cardA);
 
         u.reply('ALERT 请弃置一张同花色的手牌...', true, true);
         result = yield u.requireCard(game, ctx, CardBase, [
@@ -1127,7 +1130,7 @@ class HuoGong extends SilkBagCard {
         if (result.success) {
             let cardB = result.get();
             game.message([u, '弃置一张手牌', cardB, '使火攻造成伤害']);
-            game.broadcastPopup(`CARD ${u.figure.name} 火攻-弃置 ${cardB.toJsonString()}`);
+            game.broadcastPopupEx(u.figure.name, '火攻-展示', cardB);
             yield game.removeUserCards(u, cardB, true);
             ctx.i.damage = new Damage(u, this, 1, C.DAMAGE_TYPE.HUO);
             yield t.on('damage', game, ctx);

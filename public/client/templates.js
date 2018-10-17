@@ -1,4 +1,4 @@
-let figureTpl, cardTpl, userTpl, equipmentTpl, judgeCardsTpl, markersTpl;
+let figureTpl, cardTpl, userTpl, equipmentTpl, judgeCardsTpl, markersTpl, skillInfoTpl;
 
 
 $(document).ready(() => {
@@ -20,6 +20,9 @@ $(document).ready(() => {
     });
     $.get('/client/tpl/markers.tpl', (tpl) => {
         markersTpl = tpl;
+    });
+    $.get('/client/tpl/skillinfo.tpl', (tpl) => {
+        skillInfoTpl = tpl;
     });
 });
 

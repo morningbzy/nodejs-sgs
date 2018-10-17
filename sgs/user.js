@@ -587,6 +587,7 @@ class User extends EventListener {
 
         if (result.success) {
             let sha = result instanceof R.CardResult ? result.get() : '【杀】';
+            game.broadcastPopupEx(this.figure.name, null, sha);
             game.message([this, '打出了', sha]);
             this.on('playedSha', game, ctx);
         }
@@ -615,6 +616,7 @@ class User extends EventListener {
 
         if (result.success) {
             let shan = result instanceof R.CardResult ? result.get() : '【闪】';
+            game.broadcastPopupEx(this.figure.name, null, shan);
             game.message([this, '打出了', shan]);
         }
         return yield Promise.resolve(result);
@@ -635,8 +637,8 @@ class User extends EventListener {
 
         if (result.success) {
             let tao = result instanceof R.CardResult ? result.get() : '【桃】';
+            game.broadcastPopupEx(this.figure.name, null, tao);
             game.message([this, '打出了', tao]);
-            this.on('playedSha', game, ctx);
         }
 
         yield this.on('unrequireTao', game, ctx);
